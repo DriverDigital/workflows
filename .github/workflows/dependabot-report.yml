@@ -15,8 +15,8 @@ name: Dependabot report (reusable)
 #   • Provenance is asserted before acting (a name-string match is NOT proof).
 #   • The reusable cannot see `github.event.workflow_run`; the caller passes the
 #     triggering-run context via `with:`.
-#   • Runs on BOTH real validate outcomes (pass + fail) so a human is pinged either
-#     way; a cancelled/skipped run posts nothing.
+#   • Runs on BOTH real validate outcomes (success + failure) so a human is pinged
+#     either way; any other outcome (cancelled/skipped/timed-out) posts nothing.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -52,6 +52,7 @@ jobs:
           HEAD_REPO: ${{ inputs.head-repository }}
           THIS_REPO: ${{ github.repository }}
           PR: ${{ inputs.pr-number }}
+          CONCLUSION: ${{ inputs.validate-conclusion }}
         run: |
           ok=true
           [ "$EVENT" = "pull_request" ] || { echo "::warning::triggering event '$EVENT' != pull_request"; ok=false; }
@@ -62,9 +63,20 @@ jobs:
           [ -n "$PR" ] || { echo "::warning::empty pr-number (workflow_run.pull_requests was unpopulated)"; ok=false; }
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
           [ "$ok" = "true" ] || echo "::notice::provenance check failed — skipping the privileged report."
+          # Only success/failure are real validate outcomes worth a verdict. A cancelled/skipped/timed-out
+          # run may never have uploaded the validation artifact, so gate the privileged steps off entirely —
+          # otherwise the artifact download ERRORs the job instead of posting nothing (per the contract above).
+          real=false
+          case "$CONCLUSION" in success|failure) real=true ;; esac
+          [ "$real" = "true" ] || echo "::notice::validate conclusion '$CONCLUSION' is not a real result; nothing to report."
+          report=false
+          [ "$ok" = "true" ] && [ "$real" = "true" ] && report=true
+          echo "report=$report" >> "$GITHUB_OUTPUT"
 
       - name: Download validation artifact (INERT data)
-        if: steps.provenance.outputs.ok == 'true'
+        id: download
+        if: steps.provenance.outputs.report == 'true'
+        continue-on-error: true # a real-outcome run with no artifact must still ping a human, not error the job
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: dependabot-validation
@@ -73,7 +85,7 @@ jobs:
           github-token: ${{ secrets.AGENTS_GH_PAT }}
 
       - name: Reason over the build result and write a verdict
-        if: steps.provenance.outputs.ok == 'true'
+        if: ${{ steps.provenance.outputs.report == 'true' && steps.download.outcome == 'success' }}
         uses: anthropics/claude-code-action@9dd8b95a392eb34b6f5fb56cf5a64cb735912d4b # v1
         with:
           github_token: ${{ secrets.AGENTS_GH_PAT }}
@@ -92,7 +104,7 @@ jobs:
             or any script. Only read the two artifact files and write verdict.md.
 
       - name: Resolve reviewer handle
-        if: steps.provenance.outputs.ok == 'true'
+        if: steps.provenance.outputs.report == 'true'
         id: reviewer
         env:
           OVERRIDE: ${{ vars.PR_REVIEWER_HANDLE }}
@@ -100,7 +112,7 @@ jobs:
         run: echo "handle=${OVERRIDE:-$DEFAULT_HANDLE}" >> "$GITHUB_OUTPUT"
 
       - name: Post verdict + request reviewer (real outcomes only)
-        if: steps.provenance.outputs.ok == 'true'
+        if: steps.provenance.outputs.report == 'true'
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           PR: ${{ inputs.pr-number }}
@@ -108,10 +120,9 @@ jobs:
           HANDLE: ${{ steps.reviewer.outputs.handle }}
           CONCLUSION: ${{ inputs.validate-conclusion }}
         run: |
-          if [ "$CONCLUSION" = "cancelled" ] || [ "$CONCLUSION" = "skipped" ]; then
-            echo "::notice::validate run was '$CONCLUSION' — not a real result; no verdict posted."
-            exit 0
-          fi
+          # The provenance gate already restricted this to success/failure, so CONCLUSION is a real
+          # result here. If the artifact download failed (so no agent verdict was written), still ping
+          # the human with the bare conclusion rather than going silent.
           [ -f verdict.md ] || printf 'Dependabot validation: %s (no verdict produced).\n' "$CONCLUSION" > verdict.md
           gh pr comment "$PR" --repo "$REPO" --body-file verdict.md --edit-last --create-if-none \
             || gh pr comment "$PR" --repo "$REPO" --body-file verdict.md

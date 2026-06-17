@@ -64,15 +64,32 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          set -euo pipefail
           UUID_RE='uuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+
+          # Resolve the issues this PR closes. We MUST distinguish "API call failed" (can't tell) from
+          # "no linked issues" (empty result): a fail-OPEN default on error would misroute a ticketed PR
+          # into the PR-first rail. So on ANY gh failure we fail CLOSED — emit has_ticket=unknown (the
+          # downstream steps gate on =='false', so the rail skips), warn a human, and exit 0 so a transient
+          # API hiccup leaves the job green rather than blocking the PR.
+          if ! refs=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+                        --json closingIssuesReferences --jq '.closingIssuesReferences[].number'); then
+            echo "has_ticket=unknown" >> "$GITHUB_OUTPUT"
+            echo "::warning::could not resolve closing issues for PR #$PR_NUMBER — skipping the PR-first rail (fail-closed) to avoid misrouting a ticketed PR."
+            exit 0
+          fi
+
           HAS_TICKET=false
-          for n in $(gh pr view "$PR_NUMBER" --repo "$REPO" --json closingIssuesReferences \
-                      --jq '.closingIssuesReferences[].number' 2>/dev/null || true); do
-            ibody=$(gh issue view "$n" --repo "$REPO" --json body --jq '.body' 2>/dev/null || true)
+          for n in $refs; do
+            if ! ibody=$(gh issue view "$n" --repo "$REPO" --json body --jq '.body'); then
+              echo "has_ticket=unknown" >> "$GITHUB_OUTPUT"
+              echo "::warning::could not read linked issue #$n — skipping the PR-first rail (fail-closed) to avoid misrouting a ticketed PR."
+              exit 0
+            fi
             if printf '%s' "$ibody" | grep -qiE "$UUID_RE"; then HAS_TICKET=true; break; fi
           done
           echo "has_ticket=$HAS_TICKET" >> "$GITHUB_OUTPUT"
-          [ "$HAS_TICKET" = "true" ] && echo "::notice::PR resolves a Bonsai ticket — ticketed rail owns it; skipping."
+          [ "$HAS_TICKET" = "true" ] && echo "::notice::PR resolves a Bonsai ticket — ticketed rail owns it; skipping." || true
 
       - name: Checkout PR head (same-repo / trusted)
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
