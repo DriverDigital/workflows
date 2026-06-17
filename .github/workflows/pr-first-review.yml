@@ -133,6 +133,6 @@ jobs:
             NOTE="No reviewer auto-requested (handle='$HANDLE', author='$AUTHOR')."
             echo "::notice::$NOTE"
           fi
-          printf '🤖 Automated PR-first review ran (no Bonsai ticket) — see inline comments. %s\n' "$NOTE" > marker.md
+          printf '🤖 Automated PR-first review ran (no Bonsai ticket) — findings, if any, are inline above. %s\n' "$NOTE" > marker.md
           gh pr comment "$PR" --repo "$REPO" --body-file marker.md --edit-last --create-if-none \
             || gh pr comment "$PR" --repo "$REPO" --body-file marker.md
