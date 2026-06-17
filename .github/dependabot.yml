@@ -1,0 +1,21 @@
+# Keeps the SHA-pinned actions inside these reusable workflows current.
+# Dependabot reads the `# vX` comment on each `uses:` pin, watches for new
+# releases, and opens ONE grouped PR that bumps the SHA (and the comment) for
+# review. This covers the third-party / GitHub actions INSIDE the reusables —
+# the security-relevant layer (claude-code-action holds AGENTS_GH_PAT).
+#
+# It does NOT touch the `DriverDigital/workflows@<sha>` pin in consumer repos'
+# caller stubs — those flow through each consumer repo's own github-actions
+# Dependabot when we cut a new reusable tag.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/" # scans .github/workflows/
+    schedule:
+      interval: "weekly"
+    groups:
+      actions:
+        patterns:
+          - "*" # one PR for all action bumps, not one per action
+    commit-message:
+      prefix: "ci"
