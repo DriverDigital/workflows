@@ -1,0 +1,89 @@
+name: Dependabot keep current (reusable)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REUSABLE WORKFLOW — Phase 3+ kit. When a PR is merged into a branch, rebase the
+# open Dependabot PRs targeting that same branch that are now BLOCKED by being out
+# of date, so they don't go stale. MECHANICAL (no AI): it posts `@dependabot
+# rebase`, which Dependabot acts on. Home: DriverDigital/workflows.
+#
+# WHAT GAP THIS FILLS: Dependabot's default `rebase-strategy: auto` already rebases
+# PRs on conflicts / dependency changes. It does NOT rebase a clean-but-behind PR
+# just to satisfy a branch that requires "up to date before merging" (strict). So
+# we act only on `mergeStateStatus` BEHIND (strict + behind ⇒ blocked) or DIRTY
+# (conflicts, as insurance if auto-rebase missed it) — NOT on every behind PR,
+# which would multiply CI churn for no benefit. On a NON-strict repo this is inert
+# (behind-but-mergeable PRs never report BEHIND) — which is correct: they merge fine.
+#
+# Trigger (in the caller): `on: pull_request: types: [closed]`. We act only on a
+# real MERGE, from a SAME-REPO, NON-Dependabot author, and scope to the merged PR's
+# base.ref, so one stub is branch-agnostic (main / develop / staging all work).
+#
+# IDENTITY: must post as a real USER with push access (driver-digital-agents via
+# AGENTS_GH_PAT). Dependabot ignores `@dependabot` commands from GitHub Apps /
+# github-actions[bot] (dependabot-core#9147). `rebase`/`recreate` survive the
+# Jan-2026 comment-command deprecation (only merge/close/reopen-family were removed).
+# The PAT is the SOLE credential and does the only write; the workflow's own
+# GITHUB_TOKEN is never used (gh always reads GH_TOKEN), so it stays read-only.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_call:
+    secrets:
+      AGENTS_GH_PAT: { required: true }
+
+permissions:
+  contents: read
+  pull-requests: read # the PAT does the comment; do NOT rely on this token to write
+
+concurrency:
+  # Serialize (never CANCEL) runs for the same base: a cancelled run could be killed
+  # mid comment-loop and silently drop PRs. The job is cheap + idempotent, so queue.
+  group: dependabot-keep-current-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rebase-stale:
+    # Real merge, same-repo, non-Dependabot author. Fork PRs get no secrets
+    # (AGENTS_GH_PAT empty) and a Dependabot-authored event runs with the restricted
+    # Dependabot token — both are skipped here; the next normal merge catches up.
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebase Dependabot PRs blocked by being behind this base
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }} # sole credential; not the default GITHUB_TOKEN
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+          # Open Dependabot PRs targeting the branch that just received a merge.
+          nums=$(gh pr list --repo "$REPO" --state open --base "$BASE" \
+                   --json number,author \
+                   --jq '.[] | select(.author.login == "dependabot[bot]") | .number')
+          if [ -z "$nums" ]; then
+            echo "No open Dependabot PRs targeting '$BASE'."
+            exit 0
+          fi
+          for num in $nums; do
+            # mergeStateStatus can be UNKNOWN right after a merge (GitHub recomputes
+            # it asynchronously); a fresh `gh pr view` forces computation — retry briefly.
+            state=UNKNOWN
+            for _ in 1 2 3 4 5; do
+              state=$(gh pr view "$num" --repo "$REPO" --json mergeStateStatus --jq '.mergeStateStatus' 2>/dev/null || echo UNKNOWN)
+              [ "$state" != "UNKNOWN" ] && break
+              sleep 6
+            done
+            case "$state" in
+              BEHIND|DIRTY)
+                echo "::notice::#$num is $state on '$BASE' (blocked) — requesting @dependabot rebase"
+                gh pr comment "$num" --repo "$REPO" --body "@dependabot rebase" \
+                  || echo "::warning::could not comment @dependabot rebase on #$num"
+                ;;
+              *)
+                echo "#$num: mergeStateStatus=$state — no rebase needed."
+                ;;
+            esac
+          done
