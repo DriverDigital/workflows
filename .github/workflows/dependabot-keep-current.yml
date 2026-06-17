@@ -59,6 +59,11 @@ jobs:
           BASE: ${{ github.event.pull_request.base.ref }}
         run: |
           set -euo pipefail
+          # Track non-fatal-per-PR problems and FAIL the run at the end if any
+          # occurred — a blocked Dependabot PR that we could not process (comment
+          # failed, or its merge state never resolved) must be a visible red run,
+          # not a silent green one.
+          failures=0
           # Open Dependabot PRs targeting the branch that just received a merge.
           nums=$(gh pr list --repo "$REPO" --state open --base "$BASE" \
                    --json number,author \
@@ -76,14 +81,25 @@ jobs:
               [ "$state" != "UNKNOWN" ] && break
               sleep 6
             done
+            if [ "$state" = "UNKNOWN" ]; then
+              echo "::warning::#$num mergeStateStatus stayed UNKNOWN after retries — could not determine whether it needs a rebase"
+              failures=$((failures + 1))
+              continue
+            fi
             case "$state" in
               BEHIND|DIRTY)
                 echo "::notice::#$num is $state on '$BASE' (blocked) — requesting @dependabot rebase"
-                gh pr comment "$num" --repo "$REPO" --body "@dependabot rebase" \
-                  || echo "::warning::could not comment @dependabot rebase on #$num"
+                if ! gh pr comment "$num" --repo "$REPO" --body "@dependabot rebase"; then
+                  echo "::warning::could not comment @dependabot rebase on #$num"
+                  failures=$((failures + 1))
+                fi
                 ;;
               *)
                 echo "#$num: mergeStateStatus=$state — no rebase needed."
                 ;;
             esac
           done
+          if [ "$failures" -gt 0 ]; then
+            echo "::error::$failures Dependabot PR(s) could not be processed (comment failed and/or merge state never resolved)."
+            exit 1
+          fi
