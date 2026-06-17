@@ -1,0 +1,35 @@
+name: Dependabot auto-merge (GitHub-owned actions)
+
+# Auto-approves + auto-merges Dependabot PRs for the `github-owned` action group
+# (actions/checkout, actions/upload-artifact, actions/download-artifact — all
+# GitHub-maintained, low-risk). The `claude-code-action` group is a SEPARATE
+# Dependabot group and is deliberately NOT auto-merged: it holds AGENTS_GH_PAT,
+# so a human reviews those bumps.
+#
+# Uses only the built-in `gh` CLI (no external action) so it is not subject to
+# the allowed-actions allowlist. The approval counts because the repo has
+# "Allow GitHub Actions to create and approve pull requests" enabled; auto-merge
+# completes because the repo has auto-merge enabled (there are no required status
+# checks to wait on).
+
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    # Dependabot only, and only the github-owned group (its name appears in the
+    # Dependabot branch ref). Anything else — claude-code-action, or a human PR —
+    # falls through and waits for a human.
+    if: ${{ github.actor == 'dependabot[bot]' && contains(github.head_ref, 'github-owned') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve + enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --auto --squash "$PR_URL"

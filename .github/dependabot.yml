@@ -1,0 +1,27 @@
+# Keeps the SHA-pinned actions inside these reusable workflows current.
+# Dependabot reads the `# vX` comment on each `uses:` pin, watches for new
+# releases, and opens grouped PRs that bump the SHA (and the comment).
+#
+# Two groups, by risk:
+#   • github-owned       (actions/*)    — GitHub-maintained, low-risk →
+#                                          AUTO-MERGED by dependabot-auto-merge.yml
+#   • claude-code-action (anthropics/*) — holds AGENTS_GH_PAT → a human reviews
+#
+# This covers the actions INSIDE the reusables only. The
+# `DriverDigital/workflows@<sha>` pin in consumer caller stubs bumps through
+# each consumer repo's own github-actions Dependabot when we cut a new tag.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/" # scans .github/workflows/
+    schedule:
+      interval: "weekly"
+    groups:
+      github-owned:
+        patterns:
+          - "actions/*"
+      claude-code-action:
+        patterns:
+          - "anthropics/*"
+    commit-message:
+      prefix: "ci"
