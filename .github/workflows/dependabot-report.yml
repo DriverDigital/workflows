@@ -86,10 +86,17 @@ jobs:
 
       - name: Reason over the build result and write a verdict
         if: ${{ steps.provenance.outputs.report == 'true' && steps.download.outcome == 'success' }}
+        # This runs on a Dependabot-initiated workflow_run, so the actor is a bot; claude-code-action
+        # refuses bot initiators unless allow-listed (allowed_bots). Safe here: this step only READS the
+        # inert artifact (Read/Glob/Grep/Write — no gh, no shell, no execution), so allowing dependabot
+        # to initiate it does not widen the trust surface. continue-on-error: a verdict-generation hiccup
+        # must never drop the human-ping in the steps below.
+        continue-on-error: true
         uses: anthropics/claude-code-action@9dd8b95a392eb34b6f5fb56cf5a64cb735912d4b # v1
         with:
           github_token: ${{ secrets.AGENTS_GH_PAT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          allowed_bots: "dependabot[bot]"
           # NEVER set anthropic_api_key (OAuth / Max billing only).
           # MINIMAL tool surface: read the inert artifact + write verdict.md. NO `gh`, no shell over the
           # attacker-influenced build.log — the comment + reviewer-request happen in TRUSTED run: steps below.
@@ -104,7 +111,7 @@ jobs:
             or any script. Only read the two artifact files and write verdict.md.
 
       - name: Resolve reviewer handle
-        if: steps.provenance.outputs.report == 'true'
+        if: ${{ always() && steps.provenance.outputs.report == 'true' }}
         id: reviewer
         env:
           OVERRIDE: ${{ vars.PR_REVIEWER_HANDLE }}
@@ -112,7 +119,7 @@ jobs:
         run: echo "handle=${OVERRIDE:-$DEFAULT_HANDLE}" >> "$GITHUB_OUTPUT"
 
       - name: Post verdict + request reviewer (real outcomes only)
-        if: steps.provenance.outputs.report == 'true'
+        if: ${{ always() && steps.provenance.outputs.report == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           PR: ${{ inputs.pr-number }}
