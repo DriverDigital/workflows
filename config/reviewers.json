@@ -1,0 +1,9 @@
+{
+  "_doc": "CANONICAL Bonsai-display-name -> GitHub-handle map. Used by the TICKETED rail (future) to resolve the reviewer from the Bonsai Reviewer field. The PR-first rail does NOT read this at runtime — it uses the reusables' default-reviewer-handle input (default Maria) plus the per-repo PR_REVIEWER_HANDLE Actions-variable override. The box copy at driver-bonsai-mcp/config/reviewers.json is retained for the ticketed-rail orchestrator's Bonsai reassignment; reconcile the two copies to one source in Phase 4.",
+  "reviewers": {
+    "Maria Carter": "mcarter-astronautdev",
+    "Jade Wang": "jadewang425",
+    "KT Tripathi": "ktdriverdigital"
+  },
+  "default_reviewer": "Maria Carter"
+}

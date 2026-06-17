@@ -1,0 +1,121 @@
+name: PR-first review (reusable)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REUSABLE WORKFLOW — Phase 3 PR-first rail. Runs as driver-digital-agents on a
+# HUMAN, no-ticket PR: /code-review (comments only) + a marker comment + request a
+# human reviewer. Home: DriverDigital/workflows.
+# Holds AGENTS_GH_PAT + CLAUDE_CODE_OAUTH_TOKEN.
+#
+# SECURITY CONTRACT — DO NOT WEAKEN:
+#   • The secret-holding /code-review step is guarded to SAME-REPO PRs only. Fork
+#     PRs get no secrets under `pull_request` AND are explicitly skipped here.
+#   • /code-review runs with a READ-ONLY tool surface (read/diff only — no
+#     install/build/test, no `gh api`, no write-capable `gh`). The plugin posts its
+#     inline comments through claude-code-action's own GitHub path.
+#   • Read the author from the PR payload, NOT github.actor (which flips to a human
+#     on reopen of a bot PR).
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_call:
+    inputs:
+      code-review-effort:
+        description: Reserved — effort flag for /code-review once confirmed (start 'high').
+        type: string
+        default: 'high'
+      default-reviewer-handle:
+        description: GitHub handle to request as reviewer (default = Maria). Per-repo override = vars.PR_REVIEWER_HANDLE.
+        type: string
+        default: mcarter-astronautdev
+    secrets:
+      AGENTS_GH_PAT:           { required: true }
+      CLAUDE_CODE_OAUTH_TOKEN: { required: true }
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.user.login != 'claude[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    steps:
+      - name: Same-repo guard (never run the secret-holding review on a fork PR)
+        id: guard
+        env:
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          THIS_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" = "$THIS_REPO" ]; then
+            echo "same_repo=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "same_repo=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Fork PR ($HEAD_REPO) — skipping (external-contributor PRs are deferred)."
+          fi
+
+      - name: No-ticket detection (ticketed rail owns PRs that resolve a Bonsai ticket)
+        if: steps.guard.outputs.same_repo == 'true'
+        id: ticket
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          UUID_RE='uuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+          HAS_TICKET=false
+          for n in $(gh pr view "$PR_NUMBER" --repo "$REPO" --json closingIssuesReferences \
+                      --jq '.closingIssuesReferences[].number' 2>/dev/null || true); do
+            ibody=$(gh issue view "$n" --repo "$REPO" --json body --jq '.body' 2>/dev/null || true)
+            if printf '%s' "$ibody" | grep -qiE "$UUID_RE"; then HAS_TICKET=true; break; fi
+          done
+          echo "has_ticket=$HAS_TICKET" >> "$GITHUB_OUTPUT"
+          [ "$HAS_TICKET" = "true" ] && echo "::notice::PR resolves a Bonsai ticket — ticketed rail owns it; skipping."
+
+      - name: Checkout PR head (same-repo / trusted)
+        if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Run /code-review (comments only — execution-free, read-only tools)
+        if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
+        uses: anthropics/claude-code-action@9dd8b95a392eb34b6f5fb56cf5a64cb735912d4b # v1
+        with:
+          github_token: ${{ secrets.AGENTS_GH_PAT }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # NEVER set anthropic_api_key (OAuth / Max billing only).
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          # READ-ONLY surface: read code + diff only. NO write-capable `gh` and NO install/build/test —
+          # /code-review --comment posts its inline comments through claude-code-action's own GitHub path.
+          # (--effort wiring deferred to verify-before-build; --comment is confirmed.)
+          claude_args: '--allowedTools "Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
+          prompt: "/code-review:code-review --comment"
+
+      - name: Post marker + request a human reviewer
+        if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          OVERRIDE: ${{ vars.PR_REVIEWER_HANDLE }}
+          DEFAULT_HANDLE: ${{ inputs.default-reviewer-handle }}
+        run: |
+          HANDLE="${OVERRIDE:-$DEFAULT_HANDLE}"
+          # GitHub 422s if you request the PR author as their own reviewer — pre-skip that.
+          if [ -n "$HANDLE" ] && [ "$HANDLE" != "$AUTHOR" ]; then
+            gh pr edit "$PR" --repo "$REPO" --add-reviewer "$HANDLE" || echo "::warning::could not add reviewer '$HANDLE'"
+            NOTE="Requested review from @$HANDLE."
+          else
+            NOTE="No reviewer auto-requested (handle='$HANDLE', author='$AUTHOR')."
+            echo "::notice::$NOTE"
+          fi
+          printf '🤖 Automated PR-first review ran (no Bonsai ticket) — see inline comments. %s\n' "$NOTE" > marker.md
+          gh pr comment "$PR" --repo "$REPO" --body-file marker.md --edit-last --create-if-none \
+            || gh pr comment "$PR" --repo "$REPO" --body-file marker.md

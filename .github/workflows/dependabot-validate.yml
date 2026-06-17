@@ -1,0 +1,146 @@
+name: Dependabot validate (reusable)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REUSABLE WORKFLOW — UNPRIVILEGED, credential-less. Phase 3 PR-first rail.
+# Home: DriverDigital/workflows. Invoked by a per-repo caller stub
+# (templates/github/dependabot-validate.yml) named EXACTLY 'Dependabot validate'
+# on `pull_request`.
+#
+# SECURITY CONTRACT — DO NOT WEAKEN:
+#   • Declares NO `workflow_call.secrets` — a caller literally cannot inject a
+#     credential this job would consume by name.
+#   • `permissions: contents: read` only.
+#   • Runs UNTRUSTED Dependabot build (install/build/test incl. pre/postinstall
+#     scripts) but holds NO token to exfiltrate. The privileged comment +
+#     reviewer-request lives in the SEPARATE `dependabot-report` reusable
+#     (workflow_run), which never runs this code.
+#   • The `validate` job ALWAYS runs (no job-level `if:`) so it reports as a
+#     required status check on EVERY PR; it branches INTERNALLY — non-Dependabot
+#     PRs no-op green, Dependabot PRs run the real validation (which may go red).
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_call:
+    inputs:
+      config-path:
+        description: Per-repo validation override file (read from the TARGET repo).
+        type: string
+        default: .github/agent-validate.json
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate on Dependabot author
+        id: gate
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Author '$PR_AUTHOR' is not dependabot[bot]; no-op success so the required check stays green on human PRs."
+          fi
+
+      - name: Checkout PR head (UNTRUSTED — no credentials persisted)
+        if: steps.gate.outputs.run == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Validate (install / build / test / theme / dev-smoke)
+        if: steps.gate.outputs.run == 'true'
+        env:
+          CONFIG_PATH: ${{ inputs.config-path }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -uo pipefail
+          LOG=build.log; : > "$LOG"
+          : > steps.txt
+          overall=0
+          cfg() { [ -f "$CONFIG_PATH" ] && jq -r --arg k "$1" '.[$k] // empty' "$CONFIG_PATH" 2>/dev/null || true; }
+          have_script() { [ -f package.json ] && jq -e --arg s "$1" '.scripts[$s] // empty' package.json >/dev/null 2>&1; }
+          record() { echo "$1=$2" >> steps.txt; }
+          runstep() {
+            local name="$1"; shift
+            echo "=== $name :: $* ===" | tee -a "$LOG"
+            if bash -c "$*" >>"$LOG" 2>&1; then
+              record "$name" 0
+            else
+              local rc=$?; record "$name" "$rc"; overall=1
+              echo "--- $name FAILED (rc=$rc) ---" | tee -a "$LOG"
+            fi
+          }
+
+          # Package manager from the lockfile (npm is the house default).
+          if [ -f pnpm-lock.yaml ]; then PM=pnpm
+          elif [ -f yarn.lock ]; then PM=yarn
+          else PM=npm; fi
+          echo "package manager: $PM" | tee -a "$LOG"
+
+          INSTALL="$(cfg install)"
+          if [ -z "$INSTALL" ]; then
+            case "$PM" in
+              pnpm) INSTALL="corepack enable && pnpm install --frozen-lockfile";;
+              yarn) INSTALL="corepack enable && yarn install --frozen-lockfile";;
+              *)    INSTALL="npm ci";;
+            esac
+          fi
+          runstep install "$INSTALL"
+
+          BUILD="$(cfg build)"
+          if [ -n "$BUILD" ]; then runstep build "$BUILD"
+          elif have_script build; then runstep build "$PM run build"
+          else echo "no build script — skipping build" | tee -a "$LOG"; fi
+
+          TEST="$(cfg test)"
+          if [ -n "$TEST" ]; then runstep test "$TEST"
+          elif have_script test; then runstep test "$PM test"
+          else echo "no test script — skipping test" | tee -a "$LOG"; fi
+
+          # Shopify theme check (only if configured in the override).
+          THEME="$(cfg themeCheck)"
+          [ -n "$THEME" ] && runstep theme-check "$THEME"
+
+          # Bounded dev smoke (only if a dev command is configured). Expect the dev
+          # server to STAY UP to the deadline (timeout rc 124/137) AND print a ready
+          # marker; anything else = crashed.
+          DEV="$(cfg dev)"
+          if [ -n "$DEV" ]; then
+            BUDGET="$(cfg devTimeoutSeconds)"; [ -z "$BUDGET" ] && BUDGET=90
+            READY="$(cfg devReadyRegex)"; [ -z "$READY" ] && READY='compiled|ready|built in|Local:'
+            echo "=== dev-smoke :: timeout ${BUDGET}s :: $DEV ===" | tee -a "$LOG"
+            timeout -k 10 "$BUDGET" bash -c "$DEV" > dev.log 2>&1; rc=$?
+            cat dev.log >> "$LOG"
+            if { [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; } && grep -qiE "$READY" dev.log; then
+              record dev-smoke 0; echo "dev-smoke OK (stayed up + ready marker)" | tee -a "$LOG"
+            else
+              record dev-smoke "$rc"; overall=1
+              echo "--- dev-smoke FAILED (rc=$rc; crashed or no ready marker) ---" | tee -a "$LOG"
+            fi
+          fi
+
+          # Structured summary for the privileged report job (treated as INERT data there).
+          CMDS="$(jq -Rn '[inputs]' < steps.txt 2>/dev/null || echo '[]')"
+          jq -n --argjson cmds "$CMDS" --arg pm "$PM" --argjson overall "$overall" \
+            '{overall:$overall, package_manager:$pm, commands:$cmds}' > result.json
+          printf '%s' "$PR_NUMBER" > pr-number.txt
+          echo "overall=$overall" | tee -a "$LOG"
+          exit "$overall"
+
+      - name: Upload validation artifact
+        if: ${{ always() && steps.gate.outputs.run == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: dependabot-validation
+          path: |
+            build.log
+            result.json
+            pr-number.txt
+          retention-days: 5
+          if-no-files-found: warn
