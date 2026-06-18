@@ -1,30 +1,31 @@
 # DriverDigital/workflows — central reusable workflows
 
-> **Staging note:** this directory is staged inside `driver-bonsai-mcp` for review. Its contents are the
-> source for the **`DriverDigital/workflows`** repo — the single source for the Bonsai→GitHub pipeline's
-> reusable workflows. Until those files are pushed there + a `v1.0.0` is tagged, the caller stubs in
-> `driver-bonsai-mcp/templates/github/*.yml` pin to a placeholder SHA (`@0000…0000`).
+Single source for Driver's Bonsai→GitHub pipeline reusable workflows. Each consuming repo installs a thin
+caller stub per workflow (from `driver-bonsai-mcp/templates/github/*.yml`) that pins an **immutable commit
+SHA**; a bot (Dependabot/Renovate) bumps the SHAs as new tags ship. This repo is **public** so cross-repo
+reusable calls resolve from any consuming repo (the org enforces a selected-actions allowlist at the
+org/enterprise tier).
 
-## Go-live (one-time)
+## Status & versions
 
-1. Create `DriverDigital/workflows` (done) and push `.github/workflows/*` + `config/reviewers.json` + this
-   `README.md` to its default branch.
-2. **Tag that commit `v1.0.0`** (`git tag v1.0.0 && git push origin v1.0.0`, or a GitHub Release) and copy its
-   **commit SHA**. The tag is just a human label + Renovate's bump target; the caller stubs pin the immutable
-   **SHA**, so paste that SHA over the `@0000…0000` placeholder in each of the three `templates/github/*.yml`
-   stubs. Also SHA-pin the in-reusable `actions/*` + `claude-code-action` refs at this point.
-3. `AGENTS_GH_PAT` + `CLAUDE_CODE_OAUTH_TOKEN` are already org Actions secrets, and cross-repo Actions access is
-   enabled — no secret setup needed.
-4. Install the three stubs into the pilot repo's `.github/workflows/`, run a test PR (human + Dependabot), then
-   pin the required check `validate / validate` + add a human-approver rule.
+Latest tag **`v1.1.1`** (`9d0a595`) — **four** reusables. Org Actions secrets (`AGENTS_GH_PAT`,
+`CLAUDE_CODE_OAUTH_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
+Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
+rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
+`dependabot-keep-current` + claude-code-action bump) → `v1.1.1` (keep-current fail-loud fix).
 
-## What's here (Phase 3 — PR-first rail)
+**Onboarding a new repo:** copy the matching stubs from `driver-bonsai-mcp/templates/github/` into the
+repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
+`validate / validate` + add a human-approver rule (see *First-run / required-check* below).
+
+## What's here
 
 | Reusable (`.github/workflows/`) | Privilege | Trigger (in the caller) | Job |
 |---|---|---|---|
 | `pr-first-review.yml` | secrets (PAT + OAuth) | `pull_request` | human no-ticket PR → `/code-review` (comments) + request a human reviewer |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
+| `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
 
 Phase 4 migrates the Phase-2 kit (`claude.yml`, `bonsai-status-sync.yml`) into this same repo as reusables.
 
