@@ -110,9 +110,20 @@ jobs:
           plugins: "code-review@claude-code-plugins"
           # READ-ONLY surface: read code + diff only. NO write-capable `gh` and NO install/build/test —
           # /code-review --comment posts its inline comments through claude-code-action's own GitHub path.
-          # (--effort wiring deferred to verify-before-build; --comment is confirmed.)
+          # The prompt carries Driver house-style review conventions + a lowered (>50) reporting threshold;
+          # the code-review-effort input stays reserved.
           claude_args: '--allowedTools "Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
-          prompt: "/code-review:code-review --comment"
+          prompt: |
+            /code-review:code-review --comment
+
+            Driver Digital review conventions — apply on top of the skill's defaults:
+            - Threshold: surface every finding scoring above 50 (the skill defaults to flagging only the ≥80) — be more inclusive than usual.
+            - Voice: first person, as one reviewer ("I noticed…", "I'd do X if I were you") — never "we", never a clipped linter tone; warm and collaborative.
+            - Specific and cited, always: every comment names the exact file and line and what's wrong — never a vague class of problems.
+            - Advise the fix; never offer to make, apply, or "dig into" it — it's the author's PR.
+            - Plain language, minimal jargon.
+            - If you post a summary comment, open with what's genuinely working well, then list the issues most-important first.
+            - No tool-attribution footer — no "🤖 Generated with Claude Code" line and no "react with 👍/👎" line.
 
       - name: Post marker + request a human reviewer
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
