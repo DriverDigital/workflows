@@ -9,9 +9,21 @@ name: PR-first review (reusable)
 # SECURITY CONTRACT — DO NOT WEAKEN:
 #   • The secret-holding /code-review step is guarded to SAME-REPO PRs only. Fork
 #     PRs get no secrets under `pull_request` AND are explicitly skipped here.
-#   • /code-review runs with a READ-ONLY tool surface (read/diff only — no
-#     install/build/test, no `gh api`, no write-capable `gh`). The plugin posts its
-#     inline comments through claude-code-action's own GitHub path.
+#   • /code-review runs with NO allow-list (deliberate). An explicit allow-list silently
+#     disables the action's auto-allowed tools — including the inline-comment poster
+#     `mcp__github_inline_comment__create_inline_comment` — which is what BROKE this rail
+#     (a real run denied 10/10 turns and posted nothing; see the step comment).
+#   • The boundary is the PAT SCOPE — full stop; NO deny-list either. `AGENTS_GH_PAT` is a
+#     fine-grained PAT = Issues + Pull-requests R/W, Contents:READ, no Admin. So every
+#     catastrophic op — push, merge, repo delete/visibility, secrets, workflow edits, AND
+#     deleting an issue — needs Contents:Write or Admin and 403s SERVER-SIDE no matter what the
+#     agent runs. The ONLY irreversible ops the PAT can do are deleting issue/PR comments or
+#     labels (Issues:Write, no undelete) — and those are low-stakes + trivially recreatable (our
+#     issues regenerate from Bonsai tasks; labels/comments are cheap), so per Maria's
+#     catastrophe-only call we ACCEPT them and ship NO `--disallowedTools` rather than play
+#     whack-a-mole. Token exfil via WebFetch/curl is reversible by rotation AND unpreventable
+#     given broad Bash anyway. Net: the read-only-on-code PAT IS the guardrail; an in-prompt
+#     list added nothing. The same-repo / no-fork / private gates below keep this leg trusted.
 #   • Read the author from the PR payload, NOT github.actor (which flips to a human
 #     on reopen of a bot PR).
 # ─────────────────────────────────────────────────────────────────────────────
@@ -19,10 +31,6 @@ name: PR-first review (reusable)
 on:
   workflow_call:
     inputs:
-      code-review-effort:
-        description: Reserved — effort flag for /code-review once confirmed (start 'high').
-        type: string
-        default: 'high'
       default-reviewer-handle:
         description: GitHub handle to request as reviewer (default = Maria). Per-repo override = vars.PR_REVIEWER_HANDLE.
         type: string
@@ -110,9 +118,27 @@ jobs:
           plugins: "code-review@claude-code-plugins"
           # READ-ONLY surface: read code + diff only. NO write-capable `gh` and NO install/build/test —
           # /code-review --comment posts its inline comments through claude-code-action's own GitHub path.
-          # The prompt carries Driver house-style review conventions + a lowered (>50) reporting threshold;
-          # the code-review-effort input stays reserved.
-          claude_args: '--allowedTools "Read,Glob,Grep,Bash(git diff:*),Bash(git log:*),Bash(gh pr diff:*),Bash(gh pr view:*)"'
+          # The prompt carries Driver house-style review conventions + a lowered (>50) reporting threshold.
+          # MODEL/EFFORT (Maria 2026-06-24): `opus` ALIAS (drift to latest Opus with the CLI) + `--effort xhigh`
+          # (what "ultracode" is under the hood; valid: low/medium/high/xhigh/max). No superpowers here by
+          # design — the reviewer is the specialized /code-review skill; the implementer leg gets superpowers.
+          # ⚠️ WHY NO --allowedTools (Maria 2026-06-24): an explicit allow-list is what BROKE this rail.
+          # It silently disables the action's auto-allowed tools — including the inline-comment poster
+          # `mcp__github_inline_comment__create_inline_comment` (how /code-review posts inline findings,
+          # same gotcha as TodoWrite). A real run on PR #17 logged num_turns=10 / permission_denials_count=10
+          # / "No buffered inline comments": the skill analyzed fine and found issues, but EVERY attempt to
+          # post one was denied while the always-on marker made it look reviewed. (That is the real cause
+          # behind the old "every run hit a clean diff → 0 findings" note — it was never clean.) A tight
+          # allow-list also can't keep up with what the skill reaches for, so it just starves.
+          # So: the GUARDRAIL is the PAT SCOPE, not micromanagement. Pass NO --allowedTools AND NO
+          # --disallowedTools — let the action defaults stand (skill, comment tool, Task subagents, WebFetch
+          # all just work). The PAT (Contents:READ, no Admin) 403s every catastrophic op server-side — push /
+          # merge / repo delete or visibility / secrets / workflow edits / issue delete — so an in-prompt deny
+          # adds nothing. The only irreversible ops the PAT CAN do (delete issue/PR comments or labels) are
+          # low-stakes + recreatable (our issues regenerate from Bonsai tasks), so per Maria's catastrophe-only
+          # call we accept them rather than whack-a-mole a deny-list. Token exfil is reversible by rotation +
+          # unpreventable given broad Bash. The top-level marker stays in the separate run: step below.
+          claude_args: '--model opus --effort xhigh'
           prompt: |
             /code-review:code-review --comment
 
@@ -124,6 +150,7 @@ jobs:
             - Plain language, minimal jargon.
             - If you post a summary comment, open with what's genuinely working well, then list the issues most-important first.
             - No tool-attribution footer — no "🤖 Generated with Claude Code" line and no "react with 👍/👎" line.
+            - You MAY dispatch parallel subagents (the Task tool) to review independent parts of the diff at once for the best result fastest — optional, your judgment. Stay read-only: review and report findings only, never attempt a write (no `gh` writes, no edits) — the review token is read-only on code, so edits/pushes can't land anyway.
 
       - name: Post marker + request a human reviewer
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
