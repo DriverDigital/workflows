@@ -200,12 +200,13 @@ jobs:
             # and prior reopen-runs don't inflate it. A gh failure → N empty → neutral message, never a false "all clear".
             # ponytail: not surfacing soft-degraded (denials-but-success) runs — v1.3.1's complete allow-list made denials
             # rare; add a permission_denials count from steps.review.outputs.execution_file if that ever changes.
-            # Resolve our bot identity dynamically; fall back to the known agent login if the lookup blips.
-            BOT="$(gh api user --jq .login 2>/dev/null)"; BOT="${BOT:-driver-digital-agents}"
+            # Resolve our bot identity. If the lookup blips we do NOT guess a login — counting against a wrong login
+            # would match nothing and post a FALSE "all clear"; leaving BOT empty falls through to the neutral message.
+            BOT="$(gh api user --jq .login 2>/dev/null || true)"
             # Newest-first + one generous page (no --paginate): THIS run's comments are the newest, so a silently
             # truncated paginated list could drop them onto a missing page → read 0 → post a FALSE "all clear".
             N=""
-            if MATCHES="$(gh api "repos/$REPO/pulls/$PR/comments?per_page=100&sort=created&direction=desc" \
+            if [ -n "$BOT" ] && MATCHES="$(gh api "repos/$REPO/pulls/$PR/comments?per_page=100&sort=created&direction=desc" \
                   --jq ".[] | select(.user.login == \"$BOT\" and .created_at >= \"$STARTED_AT\") | .id" 2>/dev/null)"; then
               N="$(printf '%s' "$MATCHES" | grep -c . || true)"
             fi
