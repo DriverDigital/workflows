@@ -61,6 +61,9 @@ jobs:
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           THIS_REPO: ${{ github.repository }}
         run: |
+          # Stamp job start (minus a 60s skew margin) so the marker can scope its inline-comment count to THIS run —
+          # the margin errs toward over-counting (a benign "found issues") rather than ever excluding a real comment.
+          echo "started_at=$(date -u -d '-60 seconds' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
           if [ "$HEAD_REPO" = "$THIS_REPO" ]; then
             echo "same_repo=true" >> "$GITHUB_OUTPUT"
           else
@@ -112,6 +115,7 @@ jobs:
           persist-credentials: false
 
       - name: Run /code-review (comments only — execution-free, read-only tools)
+        id: review
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
         uses: anthropics/claude-code-action@806af32823ef69c8ef357086c573a902af641307 # v1
         with:
@@ -151,8 +155,12 @@ jobs:
             - No tool-attribution footer — no "🤖 Generated with Claude Code" line and no "react with 👍/👎" line.
             - You MAY dispatch parallel subagents (the Task tool) to review independent parts of the diff at once for the best result fastest — optional, your judgment. Stay read-only: review and report findings only, never attempt a write (no `gh` writes, no edits) — the review token is read-only on code, so edits/pushes can't land anyway.
 
-      - name: Post marker + request a human reviewer
-        if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
+      # OUTCOME-AWARE marker. `!cancelled()` so it ALSO fires when /code-review ERRORED (then the truth that the PR is
+      # UNREVIEWED matters most) — but NOT when the run was cancelled/superseded by a newer event (else every superseded
+      # run would post a false "unreviewed — human needed" ping). The old fixed "findings, if any, are inline above"
+      # string masqueraded all three outcomes — errored, clean, found-issues — as each other; this branches on the truth.
+      - name: Post outcome-aware marker + request a human reviewer
+        if: ${{ !cancelled() && steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           PR: ${{ github.event.pull_request.number }}
@@ -160,7 +168,13 @@ jobs:
           AUTHOR: ${{ github.event.pull_request.user.login }}
           OVERRIDE: ${{ vars.PR_REVIEWER_HANDLE }}
           DEFAULT_HANDLE: ${{ inputs.default-reviewer-handle }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+          STARTED_AT: ${{ steps.guard.outputs.started_at }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
+          set -o pipefail
+
+          # ── Request a human reviewer (unchanged). Still request even when the review errored — it matters more then.
           HANDLE="${OVERRIDE:-$DEFAULT_HANDLE}"
           # GitHub 422s if you request the PR author as their own reviewer — pre-skip that.
           if [ -n "$HANDLE" ] && [ "$HANDLE" != "$AUTHOR" ]; then
@@ -170,6 +184,39 @@ jobs:
             NOTE="No reviewer auto-requested (handle='$HANDLE', author='$AUTHOR')."
             echo "::notice::$NOTE"
           fi
-          printf '🤖 Automated PR-first review ran (no Bonsai ticket) — findings, if any, are inline above. %s\n' "$NOTE" > marker.md
+
+          # ── Classify what the review ACTUALLY did so the comment can't mask a broken/clean/found run as another.
+          # ERRORED is the safety-critical case: claude-code-action FAILS its own step on error_max_turns /
+          # error_during_execution / budget / no-result (base-action/src/run-claude-sdk.ts throws → core.setFailed),
+          # so `steps.review.outcome != 'success'` is the authoritative "the review did not finish" signal. The job
+          # also stays RED in that case — this step does not (and cannot) un-fail it.
+          if [ "$REVIEW_OUTCOME" != "success" ]; then
+            printf '🤖 Automated PR-first review — ⚠️ **this review did not complete.** It errored or hit a limit before finishing, so this PR is effectively **unreviewed** — please do not read the absence of comments as a clean bill of health. Run log: %s\n\n%s\n' "$RUN_URL" "$NOTE" > marker.md
+          else
+            # Review finished. Count the inline review comments it posted. Subagents post via the same buffer, which the
+            # action flushes INSIDE its own `uses:` block (the "Post buffered inline comments" composite step) before this
+            # step runs — so a gh-api count is ground truth and subagent-proof (counting create_inline_comment tool calls
+            # in the execution_file would undercount subagent posts). Scope to OUR bot + this run's window so CodeRabbit
+            # and prior reopen-runs don't inflate it. A gh failure → N empty → neutral message, never a false "all clear".
+            # ponytail: not surfacing soft-degraded (denials-but-success) runs — v1.3.1's complete allow-list made denials
+            # rare; add a permission_denials count from steps.review.outputs.execution_file if that ever changes.
+            # Resolve our bot identity dynamically; fall back to the known agent login if the lookup blips.
+            BOT="$(gh api user --jq .login 2>/dev/null)"; BOT="${BOT:-driver-digital-agents}"
+            # Newest-first + one generous page (no --paginate): THIS run's comments are the newest, so a silently
+            # truncated paginated list could drop them onto a missing page → read 0 → post a FALSE "all clear".
+            N=""
+            if MATCHES="$(gh api "repos/$REPO/pulls/$PR/comments?per_page=100&sort=created&direction=desc" \
+                  --jq ".[] | select(.user.login == \"$BOT\" and .created_at >= \"$STARTED_AT\") | .id" 2>/dev/null)"; then
+              N="$(printf '%s' "$MATCHES" | grep -c . || true)"
+            fi
+            if [ -z "$N" ]; then
+              printf '🤖 Automated PR-first review — the review completed; any findings are inline above.\n\n%s\n' "$NOTE" > marker.md
+            elif [ "$N" -gt 0 ]; then
+              printf '🤖 Automated PR-first review — I went through this and left %s comment(s) inline above, most important first.\n\n%s\n' "$N" "$NOTE" > marker.md
+            else
+              printf '🤖 Automated PR-first review — I went through this and it looks great: nothing worth flagging. All clear ✅\n\n%s\n' "$NOTE" > marker.md
+            fi
+          fi
+
           gh pr comment "$PR" --repo "$REPO" --body-file marker.md --edit-last --create-if-none \
             || gh pr comment "$PR" --repo "$REPO" --body-file marker.md
