@@ -77,16 +77,20 @@ jobs:
               sleep $((n * 5)); n=$((n + 1))
             done
           }
-          # The PR must be OPEN and authored by claude[bot] — a ticketed implementer PR. A late
-          # sentinel arriving after merge, or a human PR, is not ours (PR-first owns human PRs).
-          if ! meta=$(ghj pr view "$PR" --repo "$REPO" --json state,author,headRefOid); then
+          # The PR must be OPEN — never review a merged/closed PR (e.g. a late sentinel after merge).
+          # We do NOT re-check the author here: round 1 is already gated to claude[bot] in the caller
+          # stub (webhook payload), and the round-2+ sentinel is author-gated to driver-digital-agents
+          # there — so ownership is the TICKETED-NESS check below (uuid in the linked issue), matching
+          # how pr-first partitions. A gh-based author check is also WRONG: `gh pr view --json author`
+          # returns a GitHub App as `app/claude`, not the webhook's `claude[bot]`, so it would skip
+          # every real implementer PR (caught live on pilot PR #60).
+          if ! meta=$(ghj pr view "$PR" --repo "$REPO" --json state,headRefOid); then
             echo "::error::could not read PR #$PR after retries"; exit 1
           fi
           STATE=$(printf '%s' "$meta" | jq -r '.state')
-          AUTHOR=$(printf '%s' "$meta" | jq -r '.author.login')
           HEAD_SHA=$(printf '%s' "$meta" | jq -r '.headRefOid')
-          if [ "$STATE" != "OPEN" ] || [ "$AUTHOR" != "claude[bot]" ]; then
-            echo "::notice::PR #$PR is state=$STATE author=$AUTHOR — not an open claude[bot] PR; skipping"
+          if [ "$STATE" != "OPEN" ]; then
+            echo "::notice::PR #$PR is state=$STATE — not open; skipping"
             echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
           # Ticketed iff the PR's linked issue body carries a Bonsai uuid (same recovery as
