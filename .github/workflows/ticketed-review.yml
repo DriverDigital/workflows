@@ -1,0 +1,253 @@
+name: Ticketed review (reusable)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Central reusable (DriverDigital/workflows) — Phase 3 ticketed-rail auto-review loop.
+# Auto-reviews a claude[bot] TICKETED PR (one that resolves a Bonsai ticket) with
+# /code-review; loops up to 2 revise rounds (max 3 passes); then hands the PR + the
+# Bonsai ticket to the human reviewer named on the ticket (Maria fallback). The loop
+# NEVER writes task status — it stays Internal Review throughout.
+#
+# TRIGGER (load-bearing): claude-code-action does NOT support workflow_run events — with
+# no PR context the inline-comment poster cannot post — so this rail is driven by the
+# CALLER's PR-scoped events and takes the PR number directly:
+#   • round 1  = pull_request [opened/ready_for_review/reopened] on a claude[bot] PR.
+#   • round 2+ = an issue_comment SENTINEL (<!-- request-ticketed-review -->) the
+#                implementer (claude.yml) posts after each revision. The revision push
+#                itself lands as github-actions[bot], which GitHub's recursion rule bars
+#                from cascading — so the sentinel, posted as the driver-digital-agents
+#                USER, is what carries the loop to the next round.
+#
+# IDENTITY: runs as driver-digital-agents (AGENTS_GH_PAT) — distinct from the claude[bot]
+# implementer, so GitHub permits it to review the PR. COMMENT-ONLY: it never submits a
+# formal approve / request-changes review (the human assigned at handoff does that, which
+# keeps bonsai-status-sync's human-author gate satisfied without us forging a review
+# identity). The PAT is Issues+PR R/W, Contents:READ, no Admin — push/merge/secrets all
+# 403 server-side, so a generous --allowedTools is plumbing, not a grant (same contract as
+# pr-first-review.yml).
+#
+# ROUND COUNTING: each review pass posts exactly one comment carrying the hidden round
+# marker (<!-- ticketed-review-round -->) — a revise request OR the terminal handoff. The
+# next run greps prior markers to compute R. The sentinel token is DISTINCT from the round
+# marker, so it never inflates the count. Termination is guaranteed by the cap (R=3); a
+# crash before the revise comment STALLS the loop (no sentinel → no next round) rather than
+# looping — fail-safe.
+# ─────────────────────────────────────────────────────────────────────────────
+
+on:
+  workflow_call:
+    inputs:
+      pr_number:
+        description: The PR to review (round 1 = the opened PR; round 2+ = the sentinel comment's PR).
+        required: true
+        type: string
+    secrets:
+      AGENTS_GH_PAT:           { required: true }
+      CLAUDE_CODE_OAUTH_TOKEN: { required: true }
+      BONSAI_BEARER_TOKEN:     { required: true }
+
+# Matches pr-first-review.yml: every GitHub op runs through AGENTS_GH_PAT (GH_TOKEN /
+# github_token), so the GITHUB_TOKEN permissions are minimal. No id-token — the reviewer
+# uses the PAT, not the Claude App (so it never mints an installation token).
+permissions:
+  contents: read
+  pull-requests: write
+  issues: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve the open ticketed PR + its Bonsai uuid + head sha
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          REPO: ${{ github.repository }}
+          PR: ${{ inputs.pr_number }}
+        run: |
+          set -euo pipefail
+          UUID_RE='uuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+          # Retry gh reads up to 3x so a transient API blip doesn't strand the PR (round 1 has no
+          # auto re-fire). On PERSISTENT failure fail the step RED — loud + re-runnable — never
+          # skip green: a "couldn't determine" must not be mistaken for "not ours".
+          ghj() {
+            local n=1 out
+            while true; do
+              if out=$(gh "$@" 2>/dev/null); then printf '%s' "$out"; return 0; fi
+              [ "$n" -ge 3 ] && return 1
+              sleep $((n * 5)); n=$((n + 1))
+            done
+          }
+          # The PR must be OPEN and authored by claude[bot] — a ticketed implementer PR. A late
+          # sentinel arriving after merge, or a human PR, is not ours (PR-first owns human PRs).
+          if ! meta=$(ghj pr view "$PR" --repo "$REPO" --json state,author,headRefOid); then
+            echo "::error::could not read PR #$PR after retries"; exit 1
+          fi
+          STATE=$(printf '%s' "$meta" | jq -r '.state')
+          AUTHOR=$(printf '%s' "$meta" | jq -r '.author.login')
+          HEAD_SHA=$(printf '%s' "$meta" | jq -r '.headRefOid')
+          if [ "$STATE" != "OPEN" ] || [ "$AUTHOR" != "claude[bot]" ]; then
+            echo "::notice::PR #$PR is state=$STATE author=$AUTHOR — not an open claude[bot] PR; skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          # Ticketed iff the PR's linked issue body carries a Bonsai uuid (same recovery as
+          # bonsai-status-sync.yml). PR-first owns any PR that resolves NO ticket. An empty
+          # closingIssuesReferences is a SUCCESS (zero loop iterations) → skip green below.
+          if ! refs=$(ghj pr view "$PR" --repo "$REPO" --json closingIssuesReferences \
+                        --jq '.closingIssuesReferences[].number'); then
+            echo "::error::could not read closing issues for PR #$PR after retries"; exit 1
+          fi
+          TASK_UUID=""
+          for n in $refs; do
+            if ! ibody=$(ghj issue view "$n" --repo "$REPO" --json body --jq '.body'); then
+              echo "::error::could not read issue #$n after retries"; exit 1
+            fi
+            TASK_UUID=$(printf '%s' "$ibody" | grep -oiE "$UUID_RE" | head -n1 | cut -d= -f2 || true)
+            if [ -n "$TASK_UUID" ]; then break; fi
+          done
+          if [ -z "$TASK_UUID" ]; then
+            echo "::notice::PR #$PR resolves no Bonsai ticket — PR-first owns it; skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          {
+            echo "skip=false"
+            echo "pr=$PR"
+            echo "uuid=$TASK_UUID"
+            echo "head_sha=$HEAD_SHA"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Count prior review rounds
+        id: round
+        if: steps.resolve.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          REPO: ${{ github.repository }}
+          PR: ${{ steps.resolve.outputs.pr }}
+        run: |
+          set -euo pipefail
+          MARKER='<!-- ticketed-review-round -->'
+          # Count matching comments by EMITTING ONE ID PER MATCH and counting lines. `gh api
+          # --paginate --jq '[...] | length'` would apply jq PER PAGE and emit one count per page
+          # (a multi-line value past 30 comments → `R=$((PRIOR+1))` syntax error, step RED, loop
+          # stalls). `.[] | select | .id | wc -l` totals correctly across pages.
+          PRIOR=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login==\"driver-digital-agents\") | select(.body | contains(\"$MARKER\")) | .id" \
+            | wc -l | tr -d '[:space:]')
+          R=$((PRIOR + 1))
+          echo "r=$R" >> "$GITHUB_OUTPUT"
+          # Handoff happens AT pass 3, so a 4th pass should never occur — backstop anyway.
+          if [ "$R" -gt 3 ]; then echo "over=true" >> "$GITHUB_OUTPUT"; else echo "over=false" >> "$GITHUB_OUTPUT"; fi
+          echo "::notice::ticketed review pass #$R for PR #$PR"
+
+      - name: Checkout the PR head (read-only review)
+        if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.resolve.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Mark review start (for this-run comment detection)
+        id: clock
+        if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
+        # 60s skew margin so a clock difference between the runner and GitHub's comment
+        # timestamps can't hide a just-posted inline finding (mirrors pr-first v1.4.0).
+        run: echo "since=$(date -u -d '-60 seconds' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Run /code-review (comments only — read-only tools)
+        id: review
+        if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
+        # Don't abort the job on a review error — the decide step turns an errored review into an
+        # honest handoff (never a false "clean"). The review-step OUTCOME is what it reads.
+        continue-on-error: true
+        uses: anthropics/claude-code-action@806af32823ef69c8ef357086c573a902af641307 # v1
+        with:
+          github_token: ${{ secrets.AGENTS_GH_PAT }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # NEVER set anthropic_api_key (OAuth / Max billing only).
+          plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
+          plugins: "code-review@claude-code-plugins"
+          # --allowedTools MUST name the inline-comment poster — that is what makes claude-code-action
+          # INSTALL the inline-comment MCP server (src/mcp/install-mcp-server.ts); omit it and the rail
+          # posts nothing. GENEROUS by design so the skill + its Task subagents aren't starved; the
+          # GUARDRAIL is the PAT scope (Contents:READ / no Admin), not the tool list. (Same contract as
+          # pr-first-review.yml.)
+          claude_args: '--model opus --effort xhigh --allowedTools "mcp__github_inline_comment__create_inline_comment,Read,Glob,Grep,Bash,Task,TodoWrite,WebFetch"'
+          prompt: |
+            /code-review:code-review --comment
+
+            Review PR #${{ steps.resolve.outputs.pr }} in ${{ github.repository }}.
+
+            Driver Digital review conventions — apply on top of the skill's defaults:
+            - Threshold: surface every finding scoring above 50 (the skill defaults to flagging only the ≥80) — be more inclusive than usual.
+            - Voice: first person, as one reviewer ("I noticed…", "I'd do X if I were you") — never "we", never a clipped linter tone; warm and collaborative.
+            - Specific and cited, always: every comment names the exact file and line and what's wrong — never a vague class of problems.
+            - Advise the fix; never offer to make, apply, or "dig into" it — it's the author's PR.
+            - Plain language, minimal jargon.
+            - If you post a summary comment, open with what's genuinely working well, then list the issues most-important first.
+            - No tool-attribution footer — no "🤖 Generated with Claude Code" line and no "react with 👍/👎" line.
+            - You MAY dispatch parallel subagents (the Task tool) to review independent parts of the diff at once for the best result fastest — optional, your judgment. Stay read-only: review and report findings only, never attempt a write (no `gh` writes, no edits) — the review token is read-only on code, so edits/pushes can't land anyway.
+
+            Additional rules for this ticketed loop:
+            - Post ONLY findings that warrant a change (no praise-only comments) — each inline comment is a revision request the implementer will act on.
+            - Read the existing review discussion on the PR first; do NOT re-flag a finding the author already declined with sound reasoning.
+            - Do NOT submit a formal approval or request-changes review — inline comments only.
+
+      - name: Decide outcome → revise or hand off
+        if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          REPO: ${{ github.repository }}
+          PR: ${{ steps.resolve.outputs.pr }}
+          UUID: ${{ steps.resolve.outputs.uuid }}
+          R: ${{ steps.round.outputs.r }}
+          SINCE: ${{ steps.clock.outputs.since }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+          BONSAI_URL: ${{ vars.BONSAI_URL || 'https://driver-bonsai-mcp.ngrok.app' }}
+          BONSAI_TOKEN: ${{ secrets.BONSAI_BEARER_TOKEN }}
+        run: |
+          set -euo pipefail
+          MARKER='<!-- ticketed-review-round -->'
+          # FOUND = did OUR bot post any INLINE review comment during THIS run? Bot-login scoped +
+          # created_at >= SINCE. EMIT ONE ID PER MATCH + count lines (the `--jq '[...] | length'`
+          # form counts PER PAGE → a multi-line FOUND past 30 comments makes `[ "$FOUND" -gt 0 ]`
+          # error and silently force a "review clean" handoff, defeating the revise loop). The
+          # `|| true` inside the group keeps a gh FAILURE → 0 (neutral, never a false "found"). The
+          # round-marker lives in a TOP-LEVEL issue comment (a different endpoint), so it's not
+          # counted here and can't masquerade as a finding.
+          FOUND=$( { gh api "repos/$REPO/pulls/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login==\"driver-digital-agents\") | select(.created_at >= \"$SINCE\") | .id" 2>/dev/null || true; } \
+            | wc -l | tr -d '[:space:]')
+
+          if [ "$REVIEW_OUTCOME" = "success" ] && [ "$FOUND" -gt 0 ] && [ "$R" -lt 3 ]; then
+            # REVISE — re-summon the implementer. The marker makes claude.yml use its revision prompt;
+            # the @claude makes its actor gate fire. The implementer then posts the sentinel that
+            # fires round R+1.
+            printf '%s\n\n@claude — ticketed review pass #%s found issues. Validate each inline finding, implement the warranted ones, and reply on any you decline.\n' "$MARKER" "$R" > body.md
+            gh pr comment "$PR" --repo "$REPO" --body-file body.md
+            echo "::notice::pass #$R found $FOUND issue(s) — requested revisions"
+          else
+            # HAND OFF — clean review, cap reached, OR the review errored (always reach a human).
+            if [ "$REVIEW_OUTCOME" != "success" ]; then
+              REASON="⚠️ the automated review did not complete (see the run log) — handing to a human for a full review"
+            elif [ "$FOUND" -gt 0 ]; then
+              REASON="2 revise rounds complete"
+            else
+              REASON="review clean"
+            fi
+            # The server reads the ticket's Reviewer, maps it to a handle (Maria fallback), and
+            # reassigns the Bonsai ticket (Agents → human) under the browser lock. --max-time 130 sits
+            # above the server's lock-acquire timeout so it always returns a verdict; --retry covers a
+            # transient 503 BROWSER_BUSY (reassign is idempotent). A hard failure fails the step RED
+            # (visible) rather than silently dropping the handoff.
+            RESP=$(curl -fsS --retry 3 --retry-delay 30 --max-time 130 -X POST "$BONSAI_URL/tasks/reviewer-handoff" \
+              -H "Authorization: Bearer $BONSAI_TOKEN" -H "Content-Type: application/json" \
+              -d "$(jq -n --arg uuid "$UUID" '{uuid:$uuid}')")
+            HANDLE=$(printf '%s' "$RESP" | jq -r '.handle')
+            NAME=$(printf '%s' "$RESP" | jq -r '.name')
+            if [ -n "$HANDLE" ] && [ "$HANDLE" != "null" ]; then
+              gh pr edit "$PR" --repo "$REPO" --add-reviewer "$HANDLE" || echo "::warning::could not add reviewer $HANDLE"
+            fi
+            printf '%s\n\n🤖 Ticketed review complete (%s) — handed to @%s (%s) for human review. Bonsai ticket reassigned.\n' "$MARKER" "$REASON" "$HANDLE" "$NAME" > body.md
+            gh pr comment "$PR" --repo "$REPO" --body-file body.md
+            echo "::notice::handed off PR #$PR to @$HANDLE ($REASON)"
+          fi
