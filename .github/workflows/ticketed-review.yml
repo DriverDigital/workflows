@@ -167,6 +167,12 @@ jobs:
         with:
           github_token: ${{ secrets.AGENTS_GH_PAT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Round 1 fires on `pull_request: opened` by claude[bot], so the initiating actor is a Bot
+          # and claude-code-action refuses it unless allow-listed (the same block the Dependabot rail
+          # hit → allowed_bots: "dependabot[bot]"). Safe + non-widening: the caller stub already gates
+          # round 1 to claude[bot] PRs, so this only un-blocks the one intended initiator. Round 2+ is
+          # issue_comment-initiated by the driver-digital-agents USER, which is never bot-blocked.
+          allowed_bots: "claude[bot]"
           # NEVER set anthropic_api_key (OAuth / Max billing only).
           plugin_marketplaces: "https://github.com/anthropics/claude-code.git"
           plugins: "code-review@claude-code-plugins"
