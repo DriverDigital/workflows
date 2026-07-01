@@ -114,11 +114,32 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # Install Claude Code (latest STABLE, unpinned) + hand it to the action via
+      # path_to_claude_code_executable, so we track the current CLI without bumping the action, and a
+      # transient `curl (35)` download blip retries + fails loudly instead of the action's silent
+      # single-retry install (which threw "native binary not found" on Avara PR #143). No
+      # continue-on-error (mirrors the review step): an install outage is an honest RED job + the marker
+      # step below reports "unreviewed". ubuntu-latest → $HOME=/home/runner.
+      - name: Install Claude Code (latest stable, resilient)
+        if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
+        run: |
+          set +e
+          for i in 1 2 3 4 5; do
+            curl -fsSL https://claude.ai/install.sh | bash
+            [ -x "$HOME/.local/bin/claude" ] && break
+            echo "Claude Code install attempt $i failed; retrying in $((i * 3))s"
+            [ "$i" -lt 5 ] && sleep "$((i * 3))"
+          done
+          set -e
+          [ -x "$HOME/.local/bin/claude" ] || { echo "::error::Claude Code install failed after 5 attempts"; exit 1; }
+          "$HOME/.local/bin/claude" --version
+
       - name: Run /code-review (comments only — execution-free, read-only tools)
         id: review
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
-        uses: anthropics/claude-code-action@428971d2ecd6e3a7cb0ee0da2a3a8b33fdb3678d # v1
+        uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1.0.161
         with:
+          path_to_claude_code_executable: /home/runner/.local/bin/claude
           github_token: ${{ secrets.AGENTS_GH_PAT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # NEVER set anthropic_api_key (OAuth / Max billing only).

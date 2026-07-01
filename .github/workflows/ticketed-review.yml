@@ -157,14 +157,36 @@ jobs:
         # timestamps can't hide a just-posted inline finding (mirrors pr-first v1.4.0).
         run: echo "since=$(date -u -d '-60 seconds' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
+      # Install Claude Code (latest STABLE, unpinned) + hand it to the action via
+      # path_to_claude_code_executable, so we track the current CLI without bumping the action, and a
+      # transient `curl (35)` download blip retries + fails loudly instead of the action's silent
+      # single-retry install (which threw "native binary not found" on Avara PR #143). continue-on-error
+      # MIRRORS the review step below: an install outage still degrades to the honest handoff, never a
+      # false "clean". ubuntu-latest → $HOME=/home/runner.
+      - name: Install Claude Code (latest stable, resilient)
+        if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
+        continue-on-error: true
+        run: |
+          set +e
+          for i in 1 2 3 4 5; do
+            curl -fsSL https://claude.ai/install.sh | bash
+            [ -x "$HOME/.local/bin/claude" ] && break
+            echo "Claude Code install attempt $i failed; retrying in $((i * 3))s"
+            [ "$i" -lt 5 ] && sleep "$((i * 3))"
+          done
+          set -e
+          [ -x "$HOME/.local/bin/claude" ] || { echo "::error::Claude Code install failed after 5 attempts"; exit 1; }
+          "$HOME/.local/bin/claude" --version
+
       - name: Run /code-review (comments only — read-only tools)
         id: review
         if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
         # Don't abort the job on a review error — the decide step turns an errored review into an
         # honest handoff (never a false "clean"). The review-step OUTCOME is what it reads.
         continue-on-error: true
-        uses: anthropics/claude-code-action@806af32823ef69c8ef357086c573a902af641307 # v1
+        uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1.0.161
         with:
+          path_to_claude_code_executable: /home/runner/.local/bin/claude
           github_token: ${{ secrets.AGENTS_GH_PAT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Round 1 fires on `pull_request: opened` by claude[bot], so the initiating actor is a Bot
