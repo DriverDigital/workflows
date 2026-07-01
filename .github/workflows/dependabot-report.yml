@@ -84,6 +84,26 @@ jobs:
           run-id: ${{ inputs.triggering-run-id }}
           github-token: ${{ secrets.AGENTS_GH_PAT }}
 
+      # Install Claude Code (latest STABLE, unpinned) + hand it to the action via
+      # path_to_claude_code_executable, so we track the current CLI without bumping the action, and a
+      # transient `curl (35)` download blip retries + fails loudly instead of the action's silent
+      # single-retry install (which threw "native binary not found" on Avara PR #143). continue-on-error
+      # MIRRORS the verdict step so an install outage never drops the human-ping below. ubuntu-latest → $HOME=/home/runner.
+      - name: Install Claude Code (latest stable, resilient)
+        if: ${{ steps.provenance.outputs.report == 'true' && steps.download.outcome == 'success' }}
+        continue-on-error: true
+        run: |
+          set +e
+          for i in 1 2 3 4 5; do
+            curl -fsSL https://claude.ai/install.sh | bash
+            [ -x "$HOME/.local/bin/claude" ] && break
+            echo "Claude Code install attempt $i failed; retrying in $((i * 3))s"
+            [ "$i" -lt 5 ] && sleep "$((i * 3))"
+          done
+          set -e
+          [ -x "$HOME/.local/bin/claude" ] || { echo "::error::Claude Code install failed after 5 attempts"; exit 1; }
+          "$HOME/.local/bin/claude" --version
+
       - name: Reason over the build result and write a verdict
         if: ${{ steps.provenance.outputs.report == 'true' && steps.download.outcome == 'success' }}
         # This runs on a Dependabot-initiated workflow_run, so the actor is a bot; claude-code-action
@@ -92,8 +112,9 @@ jobs:
         # to initiate it does not widen the trust surface. continue-on-error: a verdict-generation hiccup
         # must never drop the human-ping in the steps below.
         continue-on-error: true
-        uses: anthropics/claude-code-action@428971d2ecd6e3a7cb0ee0da2a3a8b33fdb3678d # v1
+        uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1.0.161
         with:
+          path_to_claude_code_executable: /home/runner/.local/bin/claude
           github_token: ${{ secrets.AGENTS_GH_PAT }}
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           allowed_bots: "dependabot[bot]"
