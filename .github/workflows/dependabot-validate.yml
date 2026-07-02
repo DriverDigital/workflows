@@ -88,7 +88,14 @@ jobs:
             case "$PM" in
               pnpm) INSTALL="corepack enable && pnpm install --frozen-lockfile";;
               yarn) INSTALL="corepack enable && yarn install --frozen-lockfile";;
-              *)    INSTALL="npm ci";;
+              # npm is the catch-all (no pnpm/yarn lock). `npm ci` HARD-REQUIRES a
+              # committed package-lock.json; many Shopify theme repos gitignore it.
+              # Use `npm ci` only when a lockfile is present, else `npm install`.
+              *)    if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+                      INSTALL="npm ci"
+                    else
+                      INSTALL="npm install --no-audit --no-fund"
+                    fi;;
             esac
           fi
           runstep install "$INSTALL"
