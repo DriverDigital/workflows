@@ -1,33 +1,46 @@
 # DriverDigital/workflows — central reusable workflows
 
-Single source for Driver's Bonsai→GitHub pipeline reusable workflows. Each consuming repo installs a thin
-caller stub per workflow (from `driver-bonsai-mcp/templates/github/*.yml`) that pins an **immutable commit
-SHA**; a bot (Dependabot/Renovate) bumps the SHAs as new tags ship. This repo is **public** so cross-repo
-reusable calls resolve from any consuming repo (the org enforces a selected-actions allowlist at the
-org/enterprise tier).
+Single source for Driver's Bonsai→GitHub pipeline reusable workflows **and the onboarding kit**
+(`templates/github/` in this repo). Each consuming repo installs a thin caller stub per workflow that pins
+an **immutable commit SHA**; a bot (Dependabot/Renovate) bumps the SHAs as new tags ship. This repo is
+**public** so cross-repo reusable calls resolve from any consuming repo (the org enforces a
+selected-actions allowlist at the org/enterprise tier).
 
 ## Status & versions
 
-Latest tag **`v1.1.1`** (`9d0a595`) — **four** reusables. Org Actions secrets (`AGENTS_GH_PAT`,
-`CLAUDE_CODE_OAUTH_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
+Latest tag **`v1.5.4`** (`34826c9`) — **five** reusables. The onboarding kit in `templates/github/` pins
+all five caller stubs @ **v1.5.4** (`34826c9`); deployed fleet stubs are Dependabot-bumped from their
+install-time pins. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
+`BONSAI_BEARER_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
-`dependabot-keep-current` + claude-code-action bump) → `v1.1.1` (keep-current fail-loud fix).
+`dependabot-keep-current` + claude-code-action bump) → `v1.1.1` (keep-current fail-loud fix) → `v1.2.0`
+(PR-first house-style review) → `v1.4.0` (PR-first outcome-aware marker) → `v1.5.2` (add the
+`ticketed-review` reviewer-loop rail) → `v1.5.3` (always-latest resilient Claude Code self-install in the
+three agent reusables) → `v1.5.4` (`dependabot-validate`: npm-install fallback for lockfile-less repos +
+`actions/checkout` v7).
 
-**Onboarding a new repo:** copy the matching stubs from `driver-bonsai-mcp/templates/github/` into the
+**Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
 repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
-`validate / validate` + add a human-approver rule (see *First-run / required-check* below).
+`validate / validate` + add a human-approver rule (see *First-run / required-check* below). Caller stubs
+MUST carry their own `permissions:` block (a repo whose default workflow token is read-only otherwise
+produces a silent `startup_failure` — no check run, no notification).
 
 ## What's here
 
 | Reusable (`.github/workflows/`) | Privilege | Trigger (in the caller) | Job |
 |---|---|---|---|
 | `pr-first-review.yml` | secrets (PAT + OAuth) | `pull_request` | human no-ticket PR → `/code-review` (comments) + request a human reviewer |
+| `ticketed-review.yml` | secrets (PAT + OAuth + Bonsai) | `pull_request` + `issue_comment` | claude[bot] **ticketed** PR → capped `/code-review` revise loop (max 3 passes) → hand off to a human (Bonsai reassign via the server's `/tasks/reviewer-handoff`) |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
 
-Phase 4 migrates the Phase-2 kit (`claude.yml`, `bonsai-status-sync.yml`) into this same repo as reusables.
+**The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
+carries the five caller stubs above plus the two full per-repo workflows — `claude.yml` (the implementer)
+and `bonsai-status-sync.yml` (deterministic status flips) — and `pull_request_template.md`. Converting
+those two full workflows into reusables remains future work; until then they are installed per-repo
+verbatim.
 
 ## The three identities
 
@@ -38,7 +51,7 @@ Phase 4 migrates the Phase-2 kit (`claude.yml`, `bonsai-status-sync.yml`) into t
 - **Anthropic billing** — `CLAUDE_CODE_OAUTH_TOKEN` (Max). **Never set `anthropic_api_key`** (it overrides
   OAuth and bills at API rates).
 
-Both secrets must be **org-level Actions secrets** available to each consuming repo.
+All three secrets must be **org-level Actions secrets** available to each consuming repo.
 
 ## The Dependabot security split (load-bearing)
 
@@ -52,7 +65,7 @@ number, same-repo head). **Never use `pull_request_target`.**
 
 ## Consuming it (caller stubs)
 
-Install the matching stubs from `driver-bonsai-mcp/templates/github/` into a repo's `.github/workflows/`.
+Install the matching stubs from **this repo's `templates/github/`** into a repo's `.github/workflows/`.
 Pin every `uses:` to an **immutable commit SHA** (decided 2026-06-17); a bot (Renovate/Dependabot) bumps the
 SHAs. The `dependabot-validate` stub's `name:` MUST stay byte-identical (`Dependabot validate`) across all
 repos — the `dependabot-report` stub's `workflow_run` trigger name-matches it exactly, and a drift silently
@@ -79,9 +92,11 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 Both rails request a human GitHub reviewer = the reusable's `default-reviewer-handle` input (default
 `mcarter-astronautdev` = Maria), overridable per-repo via the `PR_REVIEWER_HANDLE` Actions **variable**. The
-PR-first rail does **not** read `reviewers.json` at runtime — it only needs the default/override. The bundled
-`config/reviewers.json` (full Bonsai-name → handle map) is the canonical input for the **ticketed rail**
-(future), which resolves the reviewer from the Bonsai Reviewer field.
+PR-first rail does **not** read `reviewers.json` at runtime — it only needs the default/override. The full
+Bonsai-name → handle map (`config/reviewers.json` in `driver-bonsai-mcp`, build-copied into the server's
+`dist/`) is consumed by the **ticketed rail**: its `/tasks/reviewer-handoff` server endpoint (LIVE since
+2026-06-26) resolves the Bonsai Reviewer field → a GitHub handle (default Maria) and reassigns the Bonsai
+task. The `config/reviewers.json` copy in **this** repo is reference only — no workflow reads it at runtime.
 
 ## First-run / required-check
 
