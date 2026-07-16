@@ -8,9 +8,10 @@ selected-actions allowlist at the org/enterprise tier).
 
 ## Status & versions
 
-Latest tag **`v1.5.4`** (`34826c9`) — **five** reusables. The onboarding kit in `templates/github/` pins
-all five caller stubs @ **v1.5.4** (`34826c9`); deployed fleet stubs are Dependabot-bumped from their
-install-time pins. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
+Latest tag **`v1.5.5`** (`0b1a657`) — **five** reusables. The onboarding kit in `templates/github/` pins
+all five caller stubs @ **v1.5.5** (`0b1a657`); deployed fleet stubs are repinned by **manual waves** —
+Dependabot does NOT bump these reusable-workflow pins in practice (zero such PRs fleet-wide; debugging
+why is on the backlog). Audit drift any time with `tools/fleet-pin-audit.sh`. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
 `BONSAI_BEARER_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
@@ -18,7 +19,7 @@ rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` b
 (PR-first house-style review) → `v1.4.0` (PR-first outcome-aware marker) → `v1.5.2` (add the
 `ticketed-review` reviewer-loop rail) → `v1.5.3` (always-latest resilient Claude Code self-install in the
 three agent reusables) → `v1.5.4` (`dependabot-validate`: npm-install fallback for lockfile-less repos +
-`actions/checkout` v7).
+`actions/checkout` v7) → `v1.5.5` (claude-code-action 1.0.161 → 1.0.168 in the agent reusables).
 
 **Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
 repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
