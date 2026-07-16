@@ -6,6 +6,21 @@ an **immutable commit SHA**; a bot (Dependabot/Renovate) bumps the SHAs as new t
 **public** so cross-repo reusable calls resolve from any consuming repo (the org enforces a
 selected-actions allowlist at the org/enterprise tier).
 
+## How the three repos fit together
+
+- **workflows** (this repo, public) — the reusable GitHub workflows + this onboarding kit. Fleet
+  repos carry thin SHA-pinned caller stubs; these run the GitHub side (implementer, reviews, Bonsai
+  status sync) once an issue exists.
+- **[driver-bonsai-mcp](https://github.com/DriverDigital/driver-bonsai-mcp)** — the Bonsai bridge
+  server (MCP + REST) *and* the Bonsai job pack (`pipeline/`) that defines the triage/executor cron
+  jobs which open those issues.
+- **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the generic
+  headless `claude -p` cron runner the production box uses to execute the job pack.
+
+Flow: a Bonsai ticket assigned to **Agents** → the box cron (driver-agents runner + the job pack +
+the bridge server) triages it and opens a GitHub issue → the target repo's caller stubs + these
+reusables implement, review, and sync status back to Bonsai.
+
 ## Status & versions
 
 Latest tag **`v1.5.5`** (`0b1a657`) — **five** reusables. The onboarding kit in `templates/github/` pins
