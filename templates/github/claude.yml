@@ -117,6 +117,15 @@ jobs:
       # stalls at In Progress). (Matches the action's official examples/claude.yml + setup.md.)
       id-token: write
       actions: read   # lets Claude read CI results on the PR during the @claude revision loop
+    env:
+      # Shopify admin tool wiring (driver-agents). SHOPIFY_STORE_NAME is the per-repo store handle
+      # the agent passes to `--store` (and the env-file name the provisioning step writes) — SET IT
+      # when the repo has store secrets; empty = this repo has no store tooling and the provisioning
+      # step self-skips. The tool's paths (DRIVER_AGENTS_DIR / SHOPIFY_STORE_DIR / SHOPIFY_AUDIT_DIR)
+      # are exported to the job by the provisioning step via $GITHUB_ENV — they CANNOT live here:
+      # the `runner` context is unavailable at job-level env (GitHub rejects the whole workflow file
+      # with "Unrecognized named-value: runner" — actions/runner#2204).
+      SHOPIFY_STORE_NAME: ""
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
@@ -129,6 +138,56 @@ jobs:
           # @claude PR-revision run on our private repos. The action then UNSETS this header itself and
           # pushes with the minted App token, so the claude[bot] identity (and the status-sync cascade) is
           # preserved — verified against the action's git-config.ts and the official examples/claude.yml.
+      # Shopify Admin tool (driver-agents) — OPTIONAL, self-skipping. When SHOPIFY_STORE_NAME (env
+      # above) is set AND the repo carries store secrets (DRIVER_AGENTS_SCOPES_CLIENT_ID /
+      # DRIVER_AGENTS_SCOPES_CLIENT_SECRET — named for the "Driver Agents Scopes" custom app in the
+      # store's Dev Dashboard, since a repo may someday hold other apps' credentials — plus
+      # SHOPIFY_STORE = the myshopify domain), this clones the private driver-agents repo
+      # (AGENTS_GH_PAT has read) and writes the store env file the tool reads. The implementer can then
+      # create metaobjects/metafields as part of a dev ticket:
+      #   "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" -q '...'
+      # (The repo's CLAUDE.md documents the schema-in-repo convention the implementer follows.)
+      # CLIENT_ID/CLIENT_SECRET are the app's long-lived credentials; the tool mints a 24h access
+      # token per run via the client credentials grant — no long-lived token in GitHub secrets,
+      # nothing rotates; the minted token is cached only on the runner's throwaway disk for the job.
+      # RESILIENCE (same lesson as the CLI install below — Avara PR #143): the clone retries 5x with
+      # backoff, and if it STILL fails this step DEGRADES (::warning:: + exit 0) instead of failing
+      # the job — a provisioning blip must not kill an implementer run that may not even touch
+      # Shopify. A ticket that DOES need the tool surfaces the gap in its PR (CLAUDE.md says how).
+      # Repos without store secrets skip this cleanly: no failure, no tool, no new attack surface.
+      - name: Provision Shopify admin tool (self-skipping)
+        env:
+          DRIVER_AGENTS_SCOPES_CLIENT_ID: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_ID }}
+          DRIVER_AGENTS_SCOPES_CLIENT_SECRET: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_SECRET }}
+          SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+        run: |
+          if [ -z "$SHOPIFY_STORE_NAME" ] || [ -z "$DRIVER_AGENTS_SCOPES_CLIENT_ID" ] || [ -z "$DRIVER_AGENTS_SCOPES_CLIENT_SECRET" ] || [ -z "$SHOPIFY_SHOP" ] || [ -z "$GH_TOKEN" ]; then
+            echo "Shopify store tooling not configured for this repo — skipping"; exit 0
+          fi
+          set +e
+          for i in 1 2 3 4 5; do
+            gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --depth 1 && break
+            echo "driver-agents clone attempt $i failed; retrying in $((i * 3))s"
+            rm -rf "$RUNNER_TEMP/driver-agents"
+            [ "$i" -lt 5 ] && sleep "$((i * 3))"
+          done
+          set -e
+          if [ ! -x "$RUNNER_TEMP/driver-agents/tools/shopify/admin-graphql.sh" ]; then
+            echo "::warning::Shopify admin tool provisioning failed (driver-agents clone unavailable) — this run proceeds WITHOUT store access"
+            exit 0
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/shopify-stores"
+          printf 'SHOP=%s\nCLIENT_ID=%s\nCLIENT_SECRET=%s\n' \
+            "$SHOPIFY_SHOP" "$DRIVER_AGENTS_SCOPES_CLIENT_ID" "$DRIVER_AGENTS_SCOPES_CLIENT_SECRET" \
+            > "$RUNNER_TEMP/shopify-stores/$SHOPIFY_STORE_NAME.env"
+          {
+            echo "DRIVER_AGENTS_DIR=$RUNNER_TEMP/driver-agents"
+            echo "SHOPIFY_STORE_DIR=$RUNNER_TEMP/shopify-stores"
+            echo "SHOPIFY_AUDIT_DIR=$RUNNER_TEMP/shopify-audit"
+          } >> "$GITHUB_ENV"
+          echo "Provisioned store '$SHOPIFY_STORE_NAME' for the Shopify admin tool"
       # Install Claude Code ourselves (latest STABLE channel), then hand it to the action below via
       # path_to_claude_code_executable (which makes the action SKIP its own install). Two reasons:
       #   1. UNPINNED CLI: each action release bakes in a PINNED Claude Code version (v1.0.161 installs
