@@ -1,0 +1,56 @@
+name: Lint workflows
+
+# THIS REPO'S OWN CI — not a reusable, not part of the kit.
+#
+# The five reusables in .github/workflows/ are `workflow_call`-only, so they never run on this
+# repo's own PRs; `dependabot-auto-merge.yml` is the one other file here that does, and it lints
+# nothing. So before this file existed, nothing checked the workflows this repo SHIPS: a YAML or
+# shell error in templates/github/ would sail through review and land in every consumer repo on the
+# next fleet wave, where it surfaces as a silent `startup_failure` rather than a red check here.
+#
+# Lints BOTH halves — the five reusables in .github/workflows/ AND the kit in templates/github/,
+# which is the actual product. actionlint also runs shellcheck over every `run:` block (shellcheck
+# is preinstalled on ubuntu-latest), so the kit's shell is covered too.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Pinned release + checksum instead of the upstream `rhysd/actionlint` action: the org
+      # enforces a selected-actions allowlist, so a dependency-free download is one less thing to
+      # get approved, and the checksum keeps it honest if a release asset is ever replaced.
+      # Bump VERSION and SHA256 TOGETHER — Dependabot does not manage this pair.
+      - name: Install actionlint
+        env:
+          VERSION: 1.7.12
+          SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 120 -o actionlint.tar.gz \
+            "https://github.com/rhysd/actionlint/releases/download/v${VERSION}/actionlint_${VERSION}_linux_amd64.tar.gz"
+          echo "${SHA256}  actionlint.tar.gz" | sha256sum -c -
+          tar -xzf actionlint.tar.gz actionlint
+
+      - name: Lint the reusables and the kit
+        run: |
+          set -euo pipefail
+          # With no paths actionlint globs .github/workflows/ itself. The kit lives outside that
+          # path, so it is passed explicitly — without the second call the files consumer repos
+          # actually install would go unchecked, which is the whole point of this job.
+          ./actionlint -color
+          ./actionlint -color templates/github/*.yml

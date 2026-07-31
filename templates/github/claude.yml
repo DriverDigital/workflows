@@ -160,6 +160,19 @@ jobs:
       # never reaches the store's client credentials. Bumping the tool is a deliberate edit here.
       # Repos without store secrets skip this cleanly: no failure, no tool, no new attack surface.
       - name: Provision Shopify admin tool (self-skipping)
+        # LEAST PRIVILEGE (from the review on Avara PR #161): without the `if:` below this step
+        # has no event gate, so on a repo that HAS store secrets it wrote the store env file on
+        # every rail the job handles — including a `/code-review` request, which only reads a diff and posts
+        # comments yet still runs with `Bash` on the allow-list. CLIENT_ID/CLIENT_SECRET are the
+        # app's LONG-LIVED credentials (a leak means store access until someone rotates the app by
+        # hand, unlike the 24h token the tool mints), so the read-only rail has no business holding
+        # them. Same expression as `plugin_marketplaces` below, so the two stay in step.
+        # Do NOT "simplify" this to `github.event_name == 'issues'`: that would also strip the tool
+        # from the ticketed-review revision rail and from a human's `@claude add a metafield…`,
+        # both of which do real implementation work and may legitimately need store access.
+        # (The ticketed rail's own revision comment carries only the round marker and `@claude`,
+        # never the literal `/code-review`, so it is unaffected by this gate.)
+        if: ${{ !(contains(github.event.comment.body, '/code-review') || contains(github.event.review.body, '/code-review')) }}
         env:
           DRIVER_AGENTS_SCOPES_CLIENT_ID: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_ID }}
           DRIVER_AGENTS_SCOPES_CLIENT_SECRET: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_SECRET }}
@@ -227,16 +240,19 @@ jobs:
       #   2. RESILIENT INSTALL: the action's own install retries ONCE, no backoff, and does NOT fail the
       #      job when the download fails — it proceeds and the SDK throws a misleading "native binary not
       #      found". A transient `curl (35) Recv failure: Connection reset by peer` fetching the binary
-      #      killed an @claude run exactly this way (Avara PR #143, 2026-07-01). This loop retries 5x with
-      #      backoff and fails LOUDLY if the binary is still missing, so a real outage is an honest red
-      #      job — not a confusing SDK error with the tracking comment stuck on "working…".
+      #      killed an @claude run exactly this way (Avara PR #143, 2026-07-01). This loop bounds each
+      #      attempt with `timeout`, retries 5x with backoff, and fails LOUDLY if the binary is still
+      #      missing, so a real outage is an honest red job — not a confusing SDK error with the
+      #      tracking comment stuck on "working…".
       # The action SHA stays PINNED (supply-chain safety); only the CLI binary floats (to current stable).
       # Path is fixed because runs-on is ubuntu-latest (GitHub-hosted) → $HOME is always /home/runner.
       - name: Install Claude Code (latest stable, resilient)
         run: |
           set +e
           for i in 1 2 3 4 5; do
-            curl -fsSL https://claude.ai/install.sh | bash
+            # `timeout` because install.sh downloads the CLI binary itself — a stalled transfer
+            # would otherwise hang this attempt forever and the retry below would never advance.
+            timeout 180 bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
             [ -x "$HOME/.local/bin/claude" ] && break
             echo "Claude Code install attempt $i failed; retrying in $((i * 3))s"
             [ "$i" -lt 5 ] && sleep "$((i * 3))"

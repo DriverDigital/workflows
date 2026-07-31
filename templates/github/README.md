@@ -71,7 +71,10 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
      myshopify domain) **and** edit `SHOPIFY_STORE_NAME` in the repo's copy of `claude.yml` to the
      store handle. Leave `SHOPIFY_STORE_NAME` empty and the provisioning step self-skips cleanly.
      The handle must be a plain `[A-Za-z0-9._-]` string — it becomes a filename, and anything else
-     fails the step loudly.
+     fails the step loudly. Even on a store repo the step skips the read-only `/code-review` rail,
+     so a review run never holds the app's long-lived credentials; and `driver-agents` is cloned at
+     the pinned `DRIVER_AGENTS_REF`, with the checkout verified against that pin before any
+     credential is written to disk.
 3. **Orchestrator PAT (the cascade requirement).** GitHub does **not** re-trigger workflows from
    events caused by the default `GITHUB_TOKEN`. The cron orchestrator must create issues with a
    **single fine-grained PAT owned by the `driver-digital-agents` machine-user account** —

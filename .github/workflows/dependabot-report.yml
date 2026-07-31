@@ -95,7 +95,9 @@ jobs:
         run: |
           set +e
           for i in 1 2 3 4 5; do
-            curl -fsSL https://claude.ai/install.sh | bash
+            # `timeout` because install.sh downloads the CLI binary itself — a stalled transfer
+            # would otherwise hang this attempt forever and the retry below would never advance.
+            timeout 180 bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
             [ -x "$HOME/.local/bin/claude" ] && break
             echo "Claude Code install attempt $i failed; retrying in $((i * 3))s"
             [ "$i" -lt 5 ] && sleep "$((i * 3))"

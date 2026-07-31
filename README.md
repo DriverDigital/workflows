@@ -42,11 +42,17 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 
 ### Unreleased on `main` (since `v1.5.5`) — tag before the next fleet wave
 
-- **reusables:** `actions/checkout` → `v7.0.1`, `claude-code-action` → `v1.0.183`.
+- **reusables:** `actions/checkout` → `v7.0.1`, `claude-code-action` → `v1.0.183`; each Claude Code
+  self-install attempt is now bounded by `timeout` — a stalled download used to hang one attempt
+  until the job's wall-clock cap while the retry loop never advanced.
 - **kit `claude.yml`:** human `@claude` comments always get **tag mode** (never prompt-hijacked —
   foundrae-blackridge PR #148); the ticketed round-marker branch is author-gated on
   `driver-digital-agents` + id `261291955`; optional self-skipping **Shopify admin tool**
-  provisioning; `actions/checkout` → `v7.0.1` and `claude-code-action` → `v1.0.183`.
+  provisioning — pinned to a reviewed `driver-agents` revision, verified before any credential is
+  written, and gated off the read-only `/code-review` rail (Avara PR #161); the same bounded
+  self-install; `actions/checkout` → `v7.0.1` and `claude-code-action` → `v1.0.183`.
+- **this repo's own CI:** new `lint.yml` runs actionlint — plus shellcheck over every `run:` block —
+  across the reusables **and** the kit, so a broken workflow can no longer reach consumer repos.
 
 **Release + repin order (don't skip a step — a wave is only safe once all three are done):**
 
@@ -60,7 +66,8 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 `.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check
 `templates/github/claude.yml`'s `actions/checkout` + `claude-code-action` pins against the
 reusables' whenever you cut a tag. The same applies to `DRIVER_AGENTS_REF` in that file (the pinned
-`driver-agents` revision the Shopify admin tool is cloned from).
+`driver-agents` revision the Shopify admin tool is cloned from) and to the `VERSION` + `SHA256` pair
+in `lint.yml` — bump those two together or the checksum check fails the job.
 
 **Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
 repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
@@ -83,6 +90,13 @@ carries the five caller stubs above plus the two full per-repo workflows — `cl
 and `bonsai-status-sync.yml` (deterministic status flips) — and `pull_request_template.md`. Converting
 those two full workflows into reusables remains future work; until then they are installed per-repo
 verbatim.
+
+Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
+and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
+broken workflow can't reach consumer repos — it reports red on the PR, but **pin `actionlint` as a
+required check** if you want it to actually block a merge) and `dependabot-auto-merge.yml` (auto-merges
+this repo's own `github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded,
+so those land by hand).
 
 ## The three identities
 
