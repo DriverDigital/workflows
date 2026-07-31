@@ -35,6 +35,9 @@ form at all, and it must be settled before any other work.
 
 ### THE GO/NO-GO — Phase 0 spike
 
+> **Skip this entire section if [`identity-unification-scope.md`](identity-unification-scope.md) ships first.**
+> Without the Claude App there is no OIDC exchange to validate, and this spike has nothing to test.
+
 `claude-code-action` mints the Claude App installation token by POSTing its OIDC token to Anthropic's
 `github-app-token-exchange`. Since 2025-08-12 that endpoint validates that **the workflow file is
 content-identical to the version on the repository's default branch** (error:
@@ -73,14 +76,28 @@ reusable. Issue #443 is still open.
 **If Phase 0 fails:** convert `bonsai-status-sync.yml` only, leave `claude.yml` as a full per-repo file, and
 revisit when #443 closes.
 
-### The non-option, written down so nobody reaches for it under pressure
+### Never reach for `github_token` as an unplanned fallback — but see the note below
 
-Anthropic's documented workaround on #443 is to supply your own `github_token`. **Never do this on
-`claude.yml`.** It changes the PR author from `claude[bot]` to `driver-digital-agents`, which breaks the rail
-split in two places at once: `ticketed-review`'s stub gates round 1 on
-`pull_request.user.login == 'claude[bot]'`, and `pr-first-review` gates on `!= 'claude[bot]'`. Every
-implementer PR would route to the PR-first rail instead of the ticketed rail — no capped revise loop, no
-Bonsai reviewer handoff. That is not a degraded mode; it is a silent, green-looking wrong outcome.
+Anthropic's documented workaround on #443 is to supply your own `github_token`. **Never do this as an ad-hoc
+fix mid-pilot.** It changes the PR author from `claude[bot]` to `driver-digital-agents`, which breaks the rail
+split: `ticketed-review`'s stub gates round 1 on `pull_request.user.login == 'claude[bot]'`, and
+`pr-first-review` gates on `!= 'claude[bot]'`.
+
+> **Correction (2026-07-31).** An earlier revision of this document said such PRs would "route to the PR-first
+> rail instead of the ticketed rail". That is wrong, and the truth is worse. The ticketed stub's `if:` is
+> false, so the reusable is **never invoked** — no check run at all. The PR does reach `pr-first-review`, whose
+> `!= 'claude[bot]'` guard now passes, but its `has_ticket` step finds the Bonsai uuid and skips. **Both rails
+> end green having done nothing, and the PR is reviewed by nobody.**
+
+**This is now a deliberate project, not a forbidden shortcut.** Dropping the Claude App and unifying on
+`driver-digital-agents` is scoped in [`identity-unification-scope.md`](identity-unification-scope.md), which
+fixes the rail gates as a requirement rather than discovering them as a failure. The distinction is entirely
+whether the gates move in the same change.
+
+**If that project ships first, Phase 0 below ceases to exist** — no App token means no OIDC exchange, no
+default-branch validation, and no `job_workflow_ref` question. The `claude.yml` stub also stops needing
+`id-token: write`, which was what made it the most privileged stub in the kit. Sequencing identity-first is
+therefore the cheaper order.
 
 ---
 
