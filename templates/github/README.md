@@ -12,6 +12,7 @@ lifecycle.
 | `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). |
 | `bonsai-status-sync.yml` | `.github/workflows/bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the sync can resolve the task. AI PRs link automatically via the issue's development branch. |
+| `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 

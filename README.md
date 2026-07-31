@@ -51,6 +51,10 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
   provisioning — pinned to a reviewed `driver-agents` revision, verified before any credential is
   written, and gated off the read-only `/code-review` rail (Avara PR #161); the same bounded
   self-install; `actions/checkout` → `v7.0.1` and `claude-code-action` → `v1.0.183`.
+- **new kit file `shopify-tool-smoke.yml`** (store repos only): a manual diagnostic for the Shopify
+  admin-tool wiring, upstreamed from Avara PR #161 so it is maintained here rather than reinvented
+  per repo. It duplicates `claude.yml`'s provisioning step by design — same wiring, loud failures
+  instead of degrade — so the two must be kept in lockstep.
 - **this repo's own CI:** new `lint.yml` runs actionlint — plus shellcheck over every `run:` block —
   across the reusables **and** the kit, so a broken workflow can no longer reach consumer repos.
 
@@ -65,9 +69,10 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 **Template pins are manual.** `.github/dependabot.yml` uses `directory: "/"`, which only scans
 `.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check
 `templates/github/claude.yml`'s `actions/checkout` + `claude-code-action` pins against the
-reusables' whenever you cut a tag. The same applies to `DRIVER_AGENTS_REF` in that file (the pinned
-`driver-agents` revision the Shopify admin tool is cloned from) and to the `VERSION` + `SHA256` pair
-in `lint.yml` — bump those two together or the checksum check fails the job.
+reusables' whenever you cut a tag. The same applies to `DRIVER_AGENTS_REF` — which appears in **two**
+kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
+smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
+`lint.yml`, which must be bumped together or the checksum check fails the job.
 
 **Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
 repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check

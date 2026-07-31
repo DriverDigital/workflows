@@ -1,0 +1,89 @@
+name: Shopify tool smoke test
+
+# OPTIONAL — copy this into STORE repos only (the ones that set the Shopify secrets for claude.yml).
+# A repo without a store has no use for it: every run would fail on the missing-secret check below,
+# which is correct for a manual diagnostic but pointless noise to install.
+#
+# Manual diagnostic: verifies a repo's Shopify admin-tool wiring end to end — secrets → private
+# driver-agents clone → client-credentials token mint → Admin API — WITHOUT touching store data
+# (read-only queries). Run it after rotating store credentials, changing the kit's provisioning
+# step, or wiring a new store. A red run here means the @claude implementer would hit the same wall
+# mid-ticket. Unlike claude.yml's degrade-and-continue provisioning, failures here are LOUD on
+# purpose — that IS the diagnostic.
+
+on: workflow_dispatch
+
+# Needs no github.token at all (the clone authenticates with AGENTS_GH_PAT).
+permissions: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    # Must exceed the provisioning step's own worst case, or GitHub cancels the job mid-retry and the
+    # operator gets an opaque "exceeded maximum execution time" instead of the loud ::error:: this
+    # workflow exists to produce. That worst case is 5 clone attempts x 120s + 30s of backoff ~= 11
+    # min, plus the two Admin API calls below.
+    timeout-minutes: 15
+    env:
+      # SET THIS to the same store handle as claude.yml's SHOPIFY_STORE_NAME in this repo. Literal
+      # only — the `runner` context is NOT available at job-level env; the tool paths are derived
+      # from $RUNNER_TEMP inside the steps and exported via $GITHUB_ENV.
+      SHOPIFY_STORE_NAME: ""
+    steps:
+      # Same provisioning as claude.yml — including the pinned DRIVER_AGENTS_REF and the per-attempt
+      # `timeout` — except that missing secrets, a dead clone, or a checkout that isn't at the pin
+      # FAIL here rather than degrading. Keep this step in lockstep with claude.yml's: the point of
+      # the smoke test is that it exercises the SAME wiring, so a divergence here would test
+      # something that isn't what actually runs.
+      - name: Provision Shopify admin tool
+        env:
+          DRIVER_AGENTS_SCOPES_CLIENT_ID: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_ID }}
+          DRIVER_AGENTS_SCOPES_CLIENT_SECRET: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_SECRET }}
+          SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
+          # different revision than the implementer actually runs would defeat the purpose.
+          DRIVER_AGENTS_REF: b798f6f19fb95e145a5988aa60726ca09f75f18d # main @ 2026-07-30
+        run: |
+          for v in SHOPIFY_STORE_NAME DRIVER_AGENTS_SCOPES_CLIENT_ID DRIVER_AGENTS_SCOPES_CLIENT_SECRET SHOPIFY_SHOP GH_TOKEN; do
+            [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or SHOPIFY_STORE_NAME not filled in above?)"; exit 1; }
+          done
+          case "$SHOPIFY_STORE_NAME" in
+            *[!a-zA-Z0-9._-]*|.*)
+              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 . _ -, no leading dot)"
+              exit 1 ;;
+          esac
+          set +e
+          for i in 1 2 3 4 5; do
+            # `timeout` is load-bearing: a hung clone would otherwise sit in a single attempt until
+            # the job timeout above and the retry/backoff below would never advance. Full clone (no
+            # --depth 1) so the pinned SHA is always reachable.
+            timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet &&
+              git -C "$RUNNER_TEMP/driver-agents" checkout -q "$DRIVER_AGENTS_REF" && break
+            echo "driver-agents clone attempt $i failed; retrying in $((i * 3))s"
+            rm -rf "$RUNNER_TEMP/driver-agents"
+            [ "$i" -lt 5 ] && sleep "$((i * 3))"
+          done
+          set -e
+          [ "$(git -C "$RUNNER_TEMP/driver-agents" rev-parse HEAD 2>/dev/null)" = "$DRIVER_AGENTS_REF" ] \
+            || { echo "::error::driver-agents is not at the pinned revision $DRIVER_AGENTS_REF after 5 attempts"; exit 1; }
+          [ -x "$RUNNER_TEMP/driver-agents/tools/shopify/admin-graphql.sh" ] \
+            || { echo "::error::driver-agents clone failed after 5 attempts"; exit 1; }
+          umask 077
+          mkdir -p "$RUNNER_TEMP/shopify-stores"
+          printf 'SHOP=%s\nCLIENT_ID=%s\nCLIENT_SECRET=%s\n' \
+            "$SHOPIFY_SHOP" "$DRIVER_AGENTS_SCOPES_CLIENT_ID" "$DRIVER_AGENTS_SCOPES_CLIENT_SECRET" \
+            > "$RUNNER_TEMP/shopify-stores/$SHOPIFY_STORE_NAME.env"
+          {
+            echo "DRIVER_AGENTS_DIR=$RUNNER_TEMP/driver-agents"
+            echo "SHOPIFY_STORE_DIR=$RUNNER_TEMP/shopify-stores"
+            echo "SHOPIFY_AUDIT_DIR=$RUNNER_TEMP/shopify-audit"
+          } >> "$GITHUB_ENV"
+
+      - name: Read-only smoke (token mint + shop + metaobject scope)
+        run: |
+          "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" \
+            -q '{ shop { name currencyCode } }'
+          "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" \
+            -q '{ metaobjectDefinitions(first: 3) { nodes { type name } } }'
+          echo "Shopify admin tool wiring verified for '$SHOPIFY_STORE_NAME'"
