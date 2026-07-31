@@ -23,11 +23,14 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.6.0`** (`0a3934f`) — **five** reusables. The onboarding kit in `templates/github/` pins
-all five caller stubs @ **v1.6.0** (`0a3934f`); deployed fleet stubs are repinned by **manual waves** —
-Dependabot does NOT bump these reusable-workflow pins in practice (zero such PRs fleet-wide; debugging
-why is on the backlog). Audit drift any time with `tools/fleet-pin-audit.sh`. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
-`BONSAI_BEARER_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
+Latest tag **`v1.7.0`** — a **kit-only** release: the five reusables are byte-identical to
+**`v1.6.0`** (`0a3934f`), so the onboarding kit's caller stubs still (correctly) pin `0a3934f` and no
+stub-repin wave is needed — the fleet wave re-copies only the two kit files that changed. Deployed
+fleet stubs are repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins
+in practice (zero such PRs fleet-wide; debugging why is on the backlog). Audit drift any time with
+`tools/fleet-pin-audit.sh`. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
+`BONSAI_BEARER_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access are already in place —
+no per-repo secret setup.
 
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
@@ -38,7 +41,21 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 (`allowed_bots: claude[bot]`, so the bot-opened round 1 actually reviews) → `v1.5.3` (always-latest
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
-1.0.161 → 1.0.168 in the agent reusables) → **`v1.6.0`** (below). `v1.3.0` was never tagged.
+1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → **`v1.7.0`** (both below). `v1.3.0` was never
+tagged.
+
+### `v1.7.0` (2026-07-31, kit-only)
+
+- **kit `claude.yml` + `shopify-tool-smoke.yml`:** `DRIVER_AGENTS_REF` → `0404c4e` (driver-agents
+  main @ 2026-07-31) — picks up the human-readable Slack alert wording (driver-agents PR #2). The
+  pin moves in both files together, per the lockstep rule.
+- **CI alerting leg:** the same provisioning step now writes the org-level `SHOPIFY_ALERT_WEBHOOK`
+  secret (the `#driver-agents-status` incoming webhook) to the runner's throwaway disk and exports
+  `SHOPIFY_ALERT_WEBHOOK_FILE` + `SHOPIFY_ALERT_HOST_LABEL`, so the admin tool's destructive/failed-
+  call alerts post from Actions runs exactly as they do from the box. The alert's "where to look"
+  label is the run URL — the runner's audit log doesn't outlive the job. Absent secret = alerts
+  silently off, nothing else changes (the tool's own best-effort posture).
+- **reusables: unchanged.** Caller stubs keep pinning `v1.6.0`'s `0a3934f`; no repin wave.
 
 ### `v1.6.0` (`0a3934f`, 2026-07-31)
 
