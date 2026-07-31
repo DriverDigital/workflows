@@ -23,15 +23,13 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.7.0`** (`3966041`) — a **kit-only** release: the five reusables are byte-identical
-to **`v1.6.0`**'s (`0a3934f`). The onboarding kit pins all five caller stubs @ **v1.7.0**
-(`3966041`) anyway — a functional no-op, but `tools/fleet-pin-audit.sh` measures drift against the
-*latest tag*, so skipping the repin would have made the whole fleet read as stale until the next
-reusable change. Deployed fleet stubs are repinned by **manual waves** — Dependabot does NOT bump
-these reusable-workflow pins in practice (zero such PRs fleet-wide; debugging why is on the
-backlog). Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`, `BONSAI_BEARER_TOKEN`,
-`SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access are already in place — no per-repo secret
-setup.
+Latest tag **`v1.8.0`** — a **kit-only** release (the five reusables are byte-identical since
+`v1.6.0`'s `0a3934f`); as with `v1.7.0`, the caller stubs get repinned to the new tag's SHA anyway
+so `tools/fleet-pin-audit.sh`'s latest-tag comparison stays meaningful. Deployed fleet stubs are
+repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins in practice
+(zero such PRs fleet-wide; debugging why is on the backlog). Org Actions secrets (`AGENTS_GH_PAT`,
+`CLAUDE_CODE_OAUTH_TOKEN`, `BONSAI_BEARER_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions
+access are already in place — no per-repo secret setup.
 
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
@@ -42,8 +40,24 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 (`allowed_bots: claude[bot]`, so the bot-opened round 1 actually reviews) → `v1.5.3` (always-latest
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
-1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → **`v1.7.0`** (both below). `v1.3.0` was never
-tagged.
+1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → **`v1.8.0`** (all below).
+`v1.3.0` was never tagged.
+
+### `v1.8.0` (2026-07-31, kit-only)
+
+- **kit `claude.yml` + `shopify-tool-smoke.yml`:** `DRIVER_AGENTS_REF` → `0bbb125` (the audit
+  pipeline: `SHOPIFY_AUDIT_CONTEXT` on the tool, plus the box's nightly `audit-publish.sh` —
+  design at driver-agents `docs/audit-data-model.md`). Lockstep as always.
+- **Audit context export:** the provisioning step now builds `SHOPIFY_AUDIT_CONTEXT`
+  (ticket/issue/run/host) so every tool call's audit line says *on whose behalf* it ran. The
+  Bonsai task uuid is resolved from the ISSUE body (`uuid=` param — the same linkage
+  `bonsai-status-sync.yml` greps), with a `closingIssuesReferences` fallback for the
+  @claude-on-a-PR rails; a human's ad-hoc `@claude` has no ticket, correctly.
+- **Audit artifact upload:** a final `if: always()` `actions/upload-artifact` step (pinned
+  `v7.0.1`) ships the runner's throwaway audit log to the box's nightly collector —
+  `github.run_attempt` in the artifact name dodges the immutable-artifact collision on re-runs.
+  Skips cleanly on repos without store tooling. Same step on the smoke test.
+- **reusables: unchanged**; stubs repinned to the new tag SHA for the pin-audit invariant.
 
 ### `v1.7.0` (2026-07-31, kit-only)
 
