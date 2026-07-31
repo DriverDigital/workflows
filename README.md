@@ -23,14 +23,15 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.7.0`** — a **kit-only** release: the five reusables are byte-identical to
-**`v1.6.0`** (`0a3934f`), so the onboarding kit's caller stubs still (correctly) pin `0a3934f` and no
-stub-repin wave is needed — the fleet wave re-copies only the two kit files that changed. Deployed
-fleet stubs are repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins
-in practice (zero such PRs fleet-wide; debugging why is on the backlog). Audit drift any time with
-`tools/fleet-pin-audit.sh`. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
-`BONSAI_BEARER_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access are already in place —
-no per-repo secret setup.
+Latest tag **`v1.7.0`** (`3966041`) — a **kit-only** release: the five reusables are byte-identical
+to **`v1.6.0`**'s (`0a3934f`). The onboarding kit pins all five caller stubs @ **v1.7.0**
+(`3966041`) anyway — a functional no-op, but `tools/fleet-pin-audit.sh` measures drift against the
+*latest tag*, so skipping the repin would have made the whole fleet read as stale until the next
+reusable change. Deployed fleet stubs are repinned by **manual waves** — Dependabot does NOT bump
+these reusable-workflow pins in practice (zero such PRs fleet-wide; debugging why is on the
+backlog). Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`, `BONSAI_BEARER_TOKEN`,
+`SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access are already in place — no per-repo secret
+setup.
 
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
@@ -55,7 +56,8 @@ tagged.
   call alerts post from Actions runs exactly as they do from the box. The alert's "where to look"
   label is the run URL — the runner's audit log doesn't outlive the job. Absent secret = alerts
   silently off, nothing else changes (the tool's own best-effort posture).
-- **reusables: unchanged.** Caller stubs keep pinning `v1.6.0`'s `0a3934f`; no repin wave.
+- **reusables: unchanged** (byte-identical to `v1.6.0`'s). The stubs are repinned to `3966041`
+  regardless, purely so `fleet-pin-audit.sh`'s latest-tag comparison stays meaningful.
 
 ### `v1.6.0` (`0a3934f`, 2026-07-31)
 
