@@ -47,6 +47,15 @@ jobs:
           tar -xzf actionlint.tar.gz actionlint
 
       - name: Lint the reusables and the kit
+        env:
+          # SC2015 ("A && B || C is not if-then-else") is the ONLY exclusion, and it is a false
+          # positive here: every hit is this repo's deliberate `cond && action || true`, where the
+          # trailing C is a literal `true` — a no-op that exists so `set -e` doesn't abort when cond
+          # is false. C running "unexpectedly" is precisely the intent, so there is nothing to fix.
+          # Upstream agrees: shellcheck 0.11 no longer reports this shape at all, so the finding
+          # only appears on the older shellcheck preinstalled on the runner. Excluded rather than
+          # rewriting two load-bearing reusables to satisfy a check that is going away.
+          SHELLCHECK_OPTS: --exclude=SC2015
         run: |
           set -euo pipefail
           # With no paths actionlint globs .github/workflows/ itself. The kit lives outside that
