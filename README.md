@@ -28,13 +28,51 @@ all five caller stubs @ **v1.5.5** (`0b1a657`); deployed fleet stubs are repinne
 Dependabot does NOT bump these reusable-workflow pins in practice (zero such PRs fleet-wide; debugging
 why is on the backlog). Audit drift any time with `tools/fleet-pin-audit.sh`. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
 `BONSAI_BEARER_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
+
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
 `dependabot-keep-current` + claude-code-action bump) → `v1.1.1` (keep-current fail-loud fix) → `v1.2.0`
-(PR-first house-style review) → `v1.4.0` (PR-first outcome-aware marker) → `v1.5.2` (add the
-`ticketed-review` reviewer-loop rail) → `v1.5.3` (always-latest resilient Claude Code self-install in the
-three agent reusables) → `v1.5.4` (`dependabot-validate`: npm-install fallback for lockfile-less repos +
-`actions/checkout` v7) → `v1.5.5` (claude-code-action 1.0.161 → 1.0.168 in the agent reusables).
+(PR-first house-style review) → `v1.3.1` (PR-first: REQUIRE the allow-list naming the inline-comment
+poster) → `v1.4.0` (PR-first outcome-aware marker) → `v1.5.0` (add the `ticketed-review` reviewer-loop
+rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real PR) → `v1.5.2`
+(`allowed_bots: claude[bot]`, so the bot-opened round 1 actually reviews) → `v1.5.3` (always-latest
+resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
+npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
+1.0.161 → 1.0.168 in the agent reusables). `v1.3.0` was never tagged.
+
+### Unreleased on `main` (since `v1.5.5`) — tag before the next fleet wave
+
+- **reusables:** `actions/checkout` → `v7.0.1`, `claude-code-action` → `v1.0.183`; each Claude Code
+  self-install attempt is now bounded by `timeout` — a stalled download used to hang one attempt
+  until the job's wall-clock cap while the retry loop never advanced.
+- **kit `claude.yml`:** human `@claude` comments always get **tag mode** (never prompt-hijacked —
+  foundrae-blackridge PR #148); the ticketed round-marker branch is author-gated on
+  `driver-digital-agents` + id `261291955`; optional self-skipping **Shopify admin tool**
+  provisioning — pinned to a reviewed `driver-agents` revision, verified before any credential is
+  written, and gated off the read-only `/code-review` rail (Avara PR #161); the same bounded
+  self-install; `actions/checkout` → `v7.0.1` and `claude-code-action` → `v1.0.183`.
+- **new kit file `shopify-tool-smoke.yml`** (store repos only): a manual diagnostic for the Shopify
+  admin-tool wiring, upstreamed from Avara PR #161 so it is maintained here rather than reinvented
+  per repo. It duplicates `claude.yml`'s provisioning step by design — same wiring, loud failures
+  instead of degrade — so the two must be kept in lockstep.
+- **this repo's own CI:** new `lint.yml` runs actionlint — plus shellcheck over every `run:` block —
+  across the reusables **and** the kit, so a broken workflow can no longer reach consumer repos.
+
+**Release + repin order (don't skip a step — a wave is only safe once all three are done):**
+
+1. Merge to `main`, then cut the new tag.
+2. Repin the five caller stubs in `templates/github/` to that tag's SHA and commit. Until this
+   lands, the kit's stubs still point at `v1.5.5` reusables.
+3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
+   to confirm the fleet converged afterwards).
+
+**Template pins are manual.** `.github/dependabot.yml` uses `directory: "/"`, which only scans
+`.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check
+`templates/github/claude.yml`'s `actions/checkout` + `claude-code-action` pins against the
+reusables' whenever you cut a tag. The same applies to `DRIVER_AGENTS_REF` — which appears in **two**
+kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
+smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
+`lint.yml`, which must be bumped together or the checksum check fails the job.
 
 **Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
 repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
@@ -57,6 +95,13 @@ carries the five caller stubs above plus the two full per-repo workflows — `cl
 and `bonsai-status-sync.yml` (deterministic status flips) — and `pull_request_template.md`. Converting
 those two full workflows into reusables remains future work; until then they are installed per-repo
 verbatim.
+
+Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
+and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
+broken workflow can't reach consumer repos — it reports red on the PR, but **pin `actionlint` as a
+required check** if you want it to actually block a merge) and `dependabot-auto-merge.yml` (auto-merges
+this repo's own `github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded,
+so those land by hand).
 
 ## The three identities
 

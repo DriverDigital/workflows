@@ -117,8 +117,17 @@ jobs:
       # stalls at In Progress). (Matches the action's official examples/claude.yml + setup.md.)
       id-token: write
       actions: read   # lets Claude read CI results on the PR during the @claude revision loop
+    env:
+      # Shopify admin tool wiring (driver-agents). SHOPIFY_STORE_NAME is the per-repo store handle
+      # the agent passes to `--store` (and the env-file name the provisioning step writes) — SET IT
+      # when the repo has store secrets; empty = this repo has no store tooling and the provisioning
+      # step self-skips. The tool's paths (DRIVER_AGENTS_DIR / SHOPIFY_STORE_DIR / SHOPIFY_AUDIT_DIR)
+      # are exported to the job by the provisioning step via $GITHUB_ENV — they CANNOT live here:
+      # the `runner` context is unavailable at job-level env (GitHub rejects the whole workflow file
+      # with "Unrecognized named-value: runner" — actions/runner#2204).
+      SHOPIFY_STORE_NAME: ""
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           # Keep the DEFAULT persist-credentials — do NOT set it to false. On the @claude-on-a-PR
@@ -129,26 +138,121 @@ jobs:
           # @claude PR-revision run on our private repos. The action then UNSETS this header itself and
           # pushes with the minted App token, so the claude[bot] identity (and the status-sync cascade) is
           # preserved — verified against the action's git-config.ts and the official examples/claude.yml.
+      # Shopify Admin tool (driver-agents) — OPTIONAL, self-skipping. When SHOPIFY_STORE_NAME (env
+      # above) is set AND the repo carries store secrets (DRIVER_AGENTS_SCOPES_CLIENT_ID /
+      # DRIVER_AGENTS_SCOPES_CLIENT_SECRET — named for the "Driver Agents Scopes" custom app in the
+      # store's Dev Dashboard, since a repo may someday hold other apps' credentials — plus
+      # SHOPIFY_STORE = the myshopify domain), this clones the private driver-agents repo
+      # (AGENTS_GH_PAT has read) and writes the store env file the tool reads. The implementer can then
+      # create metaobjects/metafields as part of a dev ticket:
+      #   "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" -q '...'
+      # (The repo's CLAUDE.md documents the schema-in-repo convention the implementer follows.)
+      # CLIENT_ID/CLIENT_SECRET are the app's long-lived credentials; the tool mints a 24h access
+      # token per run via the client credentials grant — no long-lived token in GitHub secrets,
+      # nothing rotates; the minted token is cached only on the runner's throwaway disk for the job.
+      # RESILIENCE (same lesson as the CLI install below — Avara PR #143): each clone attempt is
+      # bounded by `timeout` and retries 5x with backoff, and if it STILL fails this step DEGRADES
+      # (::warning:: + exit 0) instead of failing the job — a provisioning blip must not kill an
+      # implementer run that may not even touch Shopify. A ticket that DOES need the tool surfaces
+      # the gap in its PR (CLAUDE.md says how).
+      # SUPPLY CHAIN: driver-agents is cloned at a PINNED revision (DRIVER_AGENTS_REF below) and the
+      # checkout is verified against it before any credential is written to disk — unreviewed code
+      # never reaches the store's client credentials. Bumping the tool is a deliberate edit here.
+      # Repos without store secrets skip this cleanly: no failure, no tool, no new attack surface.
+      - name: Provision Shopify admin tool (self-skipping)
+        # LEAST PRIVILEGE (from the review on Avara PR #161): without the `if:` below this step
+        # has no event gate, so on a repo that HAS store secrets it wrote the store env file on
+        # every rail the job handles — including a `/code-review` request, which only reads a diff and posts
+        # comments yet still runs with `Bash` on the allow-list. CLIENT_ID/CLIENT_SECRET are the
+        # app's LONG-LIVED credentials (a leak means store access until someone rotates the app by
+        # hand, unlike the 24h token the tool mints), so the read-only rail has no business holding
+        # them. Same expression as `plugin_marketplaces` below, so the two stay in step.
+        # Do NOT "simplify" this to `github.event_name == 'issues'`: that would also strip the tool
+        # from the ticketed-review revision rail and from a human's `@claude add a metafield…`,
+        # both of which do real implementation work and may legitimately need store access.
+        # (The ticketed rail's own revision comment carries only the round marker and `@claude`,
+        # never the literal `/code-review`, so it is unaffected by this gate.)
+        if: ${{ !(contains(github.event.comment.body, '/code-review') || contains(github.event.review.body, '/code-review')) }}
+        env:
+          DRIVER_AGENTS_SCOPES_CLIENT_ID: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_ID }}
+          DRIVER_AGENTS_SCOPES_CLIENT_SECRET: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_SECRET }}
+          SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          # PINNED driver-agents revision — the same immutable-SHA rule this repo already applies to
+          # every `uses:`. admin-graphql.sh is executed by the write-capable implementer while the
+          # store's client credentials sit on the runner's disk, so it must be REVIEWED code, not
+          # whatever driver-agents' default branch happens to hold at run time. Bump deliberately,
+          # then re-copy the kit in the next fleet wave.
+          DRIVER_AGENTS_REF: b798f6f19fb95e145a5988aa60726ca09f75f18d # main @ 2026-07-30
+        run: |
+          if [ -z "$SHOPIFY_STORE_NAME" ] || [ -z "$DRIVER_AGENTS_SCOPES_CLIENT_ID" ] || [ -z "$DRIVER_AGENTS_SCOPES_CLIENT_SECRET" ] || [ -z "$SHOPIFY_SHOP" ] || [ -z "$GH_TOKEN" ]; then
+            echo "Shopify store tooling not configured for this repo — skipping"; exit 0
+          fi
+          # SHOPIFY_STORE_NAME becomes a filename below. Reject anything that isn't a plain store
+          # handle (no separators, no traversal, no control characters). This is a misconfiguration,
+          # not a transient blip, so it fails LOUD — same house rule as bonsai-status-sync.yml's
+          # STATUS_NOT_FOUND: never write a malformed env file the tool would silently fail to find.
+          case "$SHOPIFY_STORE_NAME" in
+            *[!a-zA-Z0-9._-]*|.*)
+              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 . _ -, no leading dot)"
+              exit 1 ;;
+          esac
+          set +e
+          for i in 1 2 3 4 5; do
+            # `timeout` is load-bearing: a hung clone would otherwise sit in a single attempt until
+            # the 90-minute job timeout and the retry/backoff below would never advance. Full clone
+            # (no --depth 1) so the pinned SHA is always reachable — driver-agents is ~20 KB, so the
+            # extra history costs nothing; revisit if that repo ever grows.
+            timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet &&
+              git -C "$RUNNER_TEMP/driver-agents" checkout -q "$DRIVER_AGENTS_REF" && break
+            echo "driver-agents clone attempt $i failed; retrying in $((i * 3))s"
+            rm -rf "$RUNNER_TEMP/driver-agents"
+            [ "$i" -lt 5 ] && sleep "$((i * 3))"
+          done
+          set -e
+          # Fail CLOSED on the credential path: unless the checkout is verifiably AT the pinned
+          # revision, write no store env file and export no paths. The run itself still proceeds — a
+          # provisioning blip must not kill an implementer run that may never touch Shopify.
+          if [ "$(git -C "$RUNNER_TEMP/driver-agents" rev-parse HEAD 2>/dev/null)" != "$DRIVER_AGENTS_REF" ] ||
+             [ ! -x "$RUNNER_TEMP/driver-agents/tools/shopify/admin-graphql.sh" ]; then
+            echo "::warning::Shopify admin tool provisioning failed (driver-agents unavailable, or not at the pinned revision $DRIVER_AGENTS_REF) — this run proceeds WITHOUT store access"
+            rm -rf "$RUNNER_TEMP/driver-agents"
+            exit 0
+          fi
+          umask 077
+          mkdir -p "$RUNNER_TEMP/shopify-stores"
+          printf 'SHOP=%s\nCLIENT_ID=%s\nCLIENT_SECRET=%s\n' \
+            "$SHOPIFY_SHOP" "$DRIVER_AGENTS_SCOPES_CLIENT_ID" "$DRIVER_AGENTS_SCOPES_CLIENT_SECRET" \
+            > "$RUNNER_TEMP/shopify-stores/$SHOPIFY_STORE_NAME.env"
+          {
+            echo "DRIVER_AGENTS_DIR=$RUNNER_TEMP/driver-agents"
+            echo "SHOPIFY_STORE_DIR=$RUNNER_TEMP/shopify-stores"
+            echo "SHOPIFY_AUDIT_DIR=$RUNNER_TEMP/shopify-audit"
+          } >> "$GITHUB_ENV"
+          echo "Provisioned store '$SHOPIFY_STORE_NAME' for the Shopify admin tool"
       # Install Claude Code ourselves (latest STABLE channel), then hand it to the action below via
       # path_to_claude_code_executable (which makes the action SKIP its own install). Two reasons:
-      #   1. UNPINNED CLI: each action release bakes in a PINNED Claude Code version (v1.0.161 installs
-      #      2.1.197). We'd rather track the current CLI without bumping the action just to move it
+      #   1. UNPINNED CLI: each action release bakes in a PINNED Claude Code version. We'd rather
+      #      track the current CLI without bumping the action just to move it
       #      forward — `install.sh` with no version arg installs the latest STABLE build (auto-advances,
       #      never pinned; not the more bleeding-edge `latest` channel). The action SHA is still bumped
       #      periodically (Dependabot) so its bundled Agent SDK stays close to the CLI it drives.
       #   2. RESILIENT INSTALL: the action's own install retries ONCE, no backoff, and does NOT fail the
       #      job when the download fails — it proceeds and the SDK throws a misleading "native binary not
       #      found". A transient `curl (35) Recv failure: Connection reset by peer` fetching the binary
-      #      killed an @claude run exactly this way (Avara PR #143, 2026-07-01). This loop retries 5x with
-      #      backoff and fails LOUDLY if the binary is still missing, so a real outage is an honest red
-      #      job — not a confusing SDK error with the tracking comment stuck on "working…".
+      #      killed an @claude run exactly this way (Avara PR #143, 2026-07-01). This loop bounds each
+      #      attempt with `timeout`, retries 5x with backoff, and fails LOUDLY if the binary is still
+      #      missing, so a real outage is an honest red job — not a confusing SDK error with the
+      #      tracking comment stuck on "working…".
       # The action SHA stays PINNED (supply-chain safety); only the CLI binary floats (to current stable).
       # Path is fixed because runs-on is ubuntu-latest (GitHub-hosted) → $HOME is always /home/runner.
       - name: Install Claude Code (latest stable, resilient)
         run: |
           set +e
           for i in 1 2 3 4 5; do
-            curl -fsSL https://claude.ai/install.sh | bash
+            # `timeout` because install.sh downloads the CLI binary itself — a stalled transfer
+            # would otherwise hang this attempt forever and the retry below would never advance.
+            timeout 180 bash -c 'curl -fsSL https://claude.ai/install.sh | bash'
             [ -x "$HOME/.local/bin/claude" ] && break
             echo "Claude Code install attempt $i failed; retrying in $((i * 3))s"
             [ "$i" -lt 5 ] && sleep "$((i * 3))"
@@ -156,7 +260,7 @@ jobs:
           set -e
           [ -x "$HOME/.local/bin/claude" ] || { echo "::error::Claude Code install failed after 5 attempts"; exit 1; }
           "$HOME/.local/bin/claude" --version
-      - uses: anthropics/claude-code-action@fad22eb3fa582b7357fc0ea48af6645851b884fd # v1.0.161
+      - uses: anthropics/claude-code-action@be7b93b1907a4abad570368f3c74b6fe3807510b # v1.0.183
         with:
           # Use the latest CLI we installed above; skips the action's own pinned-version install.
           path_to_claude_code_executable: /home/runner/.local/bin/claude
