@@ -23,8 +23,8 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.5.5`** (`0b1a657`) — **five** reusables. The onboarding kit in `templates/github/` pins
-all five caller stubs @ **v1.5.5** (`0b1a657`); deployed fleet stubs are repinned by **manual waves** —
+Latest tag **`v1.6.0`** (`0a3934f`) — **five** reusables. The onboarding kit in `templates/github/` pins
+all five caller stubs @ **v1.6.0** (`0a3934f`); deployed fleet stubs are repinned by **manual waves** —
 Dependabot does NOT bump these reusable-workflow pins in practice (zero such PRs fleet-wide; debugging
 why is on the backlog). Audit drift any time with `tools/fleet-pin-audit.sh`. Org Actions secrets (`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`,
 `BONSAI_BEARER_TOKEN`) and cross-repo Actions access are already in place — no per-repo secret setup.
@@ -38,9 +38,9 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 (`allowed_bots: claude[bot]`, so the bot-opened round 1 actually reviews) → `v1.5.3` (always-latest
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
-1.0.161 → 1.0.168 in the agent reusables). `v1.3.0` was never tagged.
+1.0.161 → 1.0.168 in the agent reusables) → **`v1.6.0`** (below). `v1.3.0` was never tagged.
 
-### Unreleased on `main` (since `v1.5.5`) — tag before the next fleet wave
+### `v1.6.0` (`0a3934f`, 2026-07-31)
 
 - **reusables:** `actions/checkout` → `v7.0.1`, `claude-code-action` → `v1.0.183`; each Claude Code
   self-install attempt is now bounded by `timeout` — a stalled download used to hang one attempt
@@ -62,7 +62,7 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 
 1. Merge to `main`, then cut the new tag.
 2. Repin the five caller stubs in `templates/github/` to that tag's SHA and commit. Until this
-   lands, the kit's stubs still point at `v1.5.5` reusables.
+   lands, the kit's stubs still point at the PREVIOUS tag's reusables.
 3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
    to confirm the fleet converged afterwards).
 
