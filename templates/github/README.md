@@ -5,11 +5,34 @@ orchestrator (on the box) opens a GitHub **issue** from a ready Bonsai task and 
 these workflows take it from there and keep the Bonsai task's status in lockstep with the PR
 lifecycle.
 
+### Full workflows (installed verbatim, per-repo)
+
 | File | Goes to | Does |
 |---|---|---|
 | `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). |
 | `bonsai-status-sync.yml` | `.github/workflows/bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the sync can resolve the task. AI PRs link automatically via the issue's development branch. |
+
+### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
+
+All five go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
+trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is recorded.
+
+| File | Rail |
+|---|---|
+| `pr-first-review.yml` | Human, no-ticket PR → `/code-review` comments + request a human reviewer. |
+| `ticketed-review.yml` | `claude[bot]` **ticketed** PR → capped `/code-review` revise loop (max 3 passes) → Bonsai reviewer handoff. |
+| `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
+| `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
+| `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
+
+Two rules that fail **silently** if broken:
+
+- The `dependabot-validate.yml` stub's `name:` must stay byte-identical (`Dependabot validate`)
+  across every repo — `dependabot-report.yml`'s `workflow_run` trigger name-matches it exactly, and
+  a drift disables the human-ping with no error.
+- Every caller stub must keep its own `permissions:` block. A repo whose default workflow token is
+  read-only otherwise produces a silent `startup_failure` — no check run, no notification.
 
 ## Status machine
 
@@ -27,14 +50,28 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
 
 1. **Install the Claude GitHub App** on the repo — `/install-github-app` from the Claude Code
    CLI, or install `github.com/apps/claude` manually. The App identity is what opens/pushes PRs.
-2. **Secrets** (repo or org → Settings → Secrets and variables → Actions):
+2. **Secrets** (repo or org → Settings → Secrets and variables → Actions). The three core ones are
+   already **org-level** Actions secrets available to every consuming repo — no per-repo setup:
    - `CLAUDE_CODE_OAUTH_TOKEN` — output of `claude setup-token` run as the **Agents** account
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
      override the OAuth token and bill at API rates.
+   - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT. This is the **reviewer /
+     PR-first actor** on both review rails and the `GH_TOKEN` on every `gh` step; never the default
+     `GITHUB_TOKEN`.
    - `BONSAI_BEARER_TOKEN` — must **byte-match** the server's `BEARER_TOKEN` (else every status
      flip 401s).
-   - *(optional)* repo **variable** `BONSAI_URL` if the tunnel host ever changes (defaults to
+
+   Optional, per-repo:
+   - **variable** `BONSAI_URL` if the tunnel host ever changes (defaults to
      `https://driver-bonsai-mcp.ngrok.app`).
+   - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the PR-first and
+     Dependabot-report rails (default `mcarter-astronautdev`).
+   - **Shopify admin tooling** — only for repos with a store. Set all three secrets
+     `DRIVER_AGENTS_SCOPES_CLIENT_ID`, `DRIVER_AGENTS_SCOPES_CLIENT_SECRET`, `SHOPIFY_STORE` (the
+     myshopify domain) **and** edit `SHOPIFY_STORE_NAME` in the repo's copy of `claude.yml` to the
+     store handle. Leave `SHOPIFY_STORE_NAME` empty and the provisioning step self-skips cleanly.
+     The handle must be a plain `[A-Za-z0-9._-]` string — it becomes a filename, and anything else
+     fails the step loudly.
 3. **Orchestrator PAT (the cascade requirement).** GitHub does **not** re-trigger workflows from
    events caused by the default `GITHUB_TOKEN`. The cron orchestrator must create issues with a
    **single fine-grained PAT owned by the `driver-digital-agents` machine-user account** —
@@ -43,16 +80,30 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    issues are created but neither `claude.yml` nor the In-Progress flip fires. (claude-code-action
    opens/pushes PRs as the Claude App, so the PR events cascade on their own.) The minimal
    permission set is the security boundary, not the repo list — see `docs/phase2-github-setup.md`.
-4. **Copy the kit:**
+4. **Copy the kit** (from a checkout of `DriverDigital/workflows`):
    ```bash
    mkdir -p .github/workflows
-   cp templates/github/claude.yml            .github/workflows/
-   cp templates/github/bonsai-status-sync.yml .github/workflows/
+   cp templates/github/claude.yml               .github/workflows/
+   cp templates/github/bonsai-status-sync.yml   .github/workflows/
+   cp templates/github/pr-first-review.yml      .github/workflows/
+   cp templates/github/ticketed-review.yml      .github/workflows/
+   cp templates/github/dependabot-validate.yml  .github/workflows/
+   cp templates/github/dependabot-report.yml    .github/workflows/
+   cp templates/github/dependabot-keep-current.yml .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    ```
+   **Re-copying into a repo that already has the kit?** Preserve that repo's own Dependabot action
+   pins — re-copy the workflow bodies, but don't clobber pins Dependabot has since bumped there.
 5. **Confirm the board strings.** `bonsai-status-sync.yml` hardcodes the exact Bonsai status
    strings. If the board is ever renamed, update them here — a miss fails the workflow loudly
    with `STATUS_NOT_FOUND` rather than flipping silently.
+6. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
+   check context GitHub reports** — for a reusable-workflow job that is
+   `<caller-job-id> / <reusable-job-id>`, expected **`validate / validate`**. Copy the literal
+   string from the first run's checks list; the workflow display name is not part of it. Also add a
+   rule requiring a **human** approver (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
+   `dependabot-validate` always runs and branches internally — never `if:`-skip it, because a
+   *skipped* required check counts as not-passed and would block every human PR.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 
