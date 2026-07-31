@@ -43,7 +43,7 @@ jobs:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
           # different revision than the implementer actually runs would defeat the purpose.
-          DRIVER_AGENTS_REF: 0404c4e910c10e2c79bf53f50c94ca9194b47eb9 # main @ 2026-07-31
+          DRIVER_AGENTS_REF: 0bbb125f36a6cae7bb211145efb6e57f70a883e9 # main @ 2026-07-31 (audit pipeline)
           # Optional, same as claude.yml's: org-level secret; absent = alerts off, smoke still runs.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
@@ -88,6 +88,10 @@ jobs:
               echo "SHOPIFY_ALERT_HOST_LABEL=GitHub Actions run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             } >> "$GITHUB_ENV"
           fi
+          # Same audit-context wiring as claude.yml's (no issue — this is a manual diagnostic).
+          CTX="$(jq -cn --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{run:$run, host:"github-actions"}')"
+          echo "SHOPIFY_AUDIT_CONTEXT=$CTX" >> "$GITHUB_ENV"
 
       - name: Read-only smoke (token mint + shop + metaobject scope)
         run: |
@@ -96,3 +100,13 @@ jobs:
           "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" \
             -q '{ metaobjectDefinitions(first: 3) { nodes { type name } } }'
           echo "Shopify admin tool wiring verified for '$SHOPIFY_STORE_NAME'"
+
+      # Same as claude.yml's: the runner's audit log is throwaway — ship it to the box's nightly
+      # collector. run_attempt in the name avoids the immutable-artifact collision on re-runs.
+      - name: Upload Shopify audit artifact
+        if: ${{ always() && env.SHOPIFY_AUDIT_DIR != '' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: shopify-audit-${{ env.SHOPIFY_STORE_NAME }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.SHOPIFY_AUDIT_DIR }}
+          if-no-files-found: ignore
