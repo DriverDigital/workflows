@@ -126,8 +126,11 @@ produces a silent `startup_failure` — no check run, no notification).
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
 carries the five caller stubs above plus the two full per-repo workflows — `claude.yml` (the implementer)
 and `bonsai-status-sync.yml` (deterministic status flips) — and `pull_request_template.md`. Converting
-those two full workflows into reusables remains future work; until then they are installed per-repo
-verbatim.
+those two full workflows into reusables is **scoped but not started** — see
+[`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md). Until then they are installed
+per-repo verbatim, which is why they are 71% of the kit by line count and the source of every drift incident
+so far. The scope is gated on one spike: whether Claude App token minting survives inside a cross-repo
+reusable.
 
 Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
