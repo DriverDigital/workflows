@@ -43,7 +43,9 @@ jobs:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
           # different revision than the implementer actually runs would defeat the purpose.
-          DRIVER_AGENTS_REF: b798f6f19fb95e145a5988aa60726ca09f75f18d # main @ 2026-07-30
+          DRIVER_AGENTS_REF: 0404c4e910c10e2c79bf53f50c94ca9194b47eb9 # main @ 2026-07-31
+          # Optional, same as claude.yml's: org-level secret; absent = alerts off, smoke still runs.
+          SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
           for v in SHOPIFY_STORE_NAME DRIVER_AGENTS_SCOPES_CLIENT_ID DRIVER_AGENTS_SCOPES_CLIENT_SECRET SHOPIFY_SHOP GH_TOKEN; do
             [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or SHOPIFY_STORE_NAME not filled in above?)"; exit 1; }
@@ -79,6 +81,13 @@ jobs:
             echo "SHOPIFY_STORE_DIR=$RUNNER_TEMP/shopify-stores"
             echo "SHOPIFY_AUDIT_DIR=$RUNNER_TEMP/shopify-audit"
           } >> "$GITHUB_ENV"
+          if [ -n "$SHOPIFY_ALERT_WEBHOOK" ]; then
+            printf '%s\n' "$SHOPIFY_ALERT_WEBHOOK" > "$RUNNER_TEMP/shopify-alert-webhook"
+            {
+              echo "SHOPIFY_ALERT_WEBHOOK_FILE=$RUNNER_TEMP/shopify-alert-webhook"
+              echo "SHOPIFY_ALERT_HOST_LABEL=GitHub Actions run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            } >> "$GITHUB_ENV"
+          fi
 
       - name: Read-only smoke (token mint + shop + metaobject scope)
         run: |
