@@ -68,7 +68,7 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the PR-first and
      Dependabot-report rails (default `mcarter-astronautdev`).
    - **Shopify admin tooling** — only for repos with a store. Set all three secrets
-     `DRIVER_AGENTS_SCOPES_CLIENT_ID`, `DRIVER_AGENTS_SCOPES_CLIENT_SECRET`, `SHOPIFY_STORE` (the
+     `DRIVER_ENGINEERING_APP_CLIENT_ID`, `DRIVER_ENGINEERING_APP_CLIENT_SECRET`, `SHOPIFY_STORE` (the
      myshopify domain) **and** edit `SHOPIFY_STORE_NAME` in the repo's copy of `claude.yml` to the
      store handle. Leave `SHOPIFY_STORE_NAME` empty and the provisioning step self-skips cleanly.
      The handle must be a plain `[A-Za-z0-9._-]` string — it becomes a filename, and anything else

@@ -37,8 +37,8 @@ jobs:
       # something that isn't what actually runs.
       - name: Provision Shopify admin tool
         env:
-          DRIVER_AGENTS_SCOPES_CLIENT_ID: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_ID }}
-          DRIVER_AGENTS_SCOPES_CLIENT_SECRET: ${{ secrets.DRIVER_AGENTS_SCOPES_CLIENT_SECRET }}
+          DRIVER_ENGINEERING_APP_CLIENT_ID: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_ID }}
+          DRIVER_ENGINEERING_APP_CLIENT_SECRET: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_SECRET }}
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
@@ -47,7 +47,7 @@ jobs:
           # Optional, same as claude.yml's: org-level secret; absent = alerts off, smoke still runs.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
-          for v in SHOPIFY_STORE_NAME DRIVER_AGENTS_SCOPES_CLIENT_ID DRIVER_AGENTS_SCOPES_CLIENT_SECRET SHOPIFY_SHOP GH_TOKEN; do
+          for v in SHOPIFY_STORE_NAME DRIVER_ENGINEERING_APP_CLIENT_ID DRIVER_ENGINEERING_APP_CLIENT_SECRET SHOPIFY_SHOP GH_TOKEN; do
             [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or SHOPIFY_STORE_NAME not filled in above?)"; exit 1; }
           done
           case "$SHOPIFY_STORE_NAME" in
@@ -74,7 +74,7 @@ jobs:
           umask 077
           mkdir -p "$RUNNER_TEMP/shopify-stores"
           printf 'SHOP=%s\nCLIENT_ID=%s\nCLIENT_SECRET=%s\n' \
-            "$SHOPIFY_SHOP" "$DRIVER_AGENTS_SCOPES_CLIENT_ID" "$DRIVER_AGENTS_SCOPES_CLIENT_SECRET" \
+            "$SHOPIFY_SHOP" "$DRIVER_ENGINEERING_APP_CLIENT_ID" "$DRIVER_ENGINEERING_APP_CLIENT_SECRET" \
             > "$RUNNER_TEMP/shopify-stores/$SHOPIFY_STORE_NAME.env"
           {
             echo "DRIVER_AGENTS_DIR=$RUNNER_TEMP/driver-agents"
