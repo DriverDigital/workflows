@@ -2,8 +2,8 @@ name: Bonsai status sync
 
 # CALLER STUB — install into a pipeline repo's .github/workflows/.
 # Calls the central bonsai-status-sync reusable, which flips the linked Bonsai
-# task's status off the GitHub issue/PR lifecycle. Inherits secrets (it needs
-# BONSAI_BEARER_TOKEN, an org-level Actions secret).
+# task's status off the GitHub issue/PR lifecycle. Passes ONE secret explicitly,
+# BONSAI_BEARER_TOKEN (org-level) — never `secrets: inherit`; see the secrets block.
 #
 # This REPLACED a 190-line per-repo copy (converted 2026-08-02). The status
 # machine, the actor gate, the linkage logic and the cascade caveat now live in
@@ -16,7 +16,8 @@ name: Bonsai status sync
 #     as written; they are load-bearing (see the reusable's header for the
 #     dismissed-review edge and the draft guards).
 #   • `permissions:` — a called workflow's permissions can only be DOWNGRADED by
-#     the caller. Declare all three or the reusable's `gh` reads 403.
+#     the caller. Declare all three: omitting the block on a read-only-default repo
+#     yields a silent `startup_failure` (no check run, no notification), not a 403.
 #   • `concurrency:` — see the block itself; the rationale is load-bearing and
 #     is NOT the same as pr-first-review's. Do not "harmonise" them.
 

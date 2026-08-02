@@ -211,12 +211,13 @@ revise loop mid-cutover, then drop the old literal.
 > ```
 >
 > Note `209825114` appears in **no workflow file** in this repo (`git grep 209825114 -- ':!docs/'` → zero
-> hits; the only occurrences are in this doc), while all **13** occurrences of `261291955` — recounted
-> 2026-08-02 against this branch, and path-qualified because the same basename now exists in both halves:
-> `templates/github/claude.yml` (6), `templates/github/bonsai-status-sync.yml` (2),
-> `templates/github/ticketed-review.yml` (2), `.github/workflows/bonsai-status-sync.yml` (2, added by the
-> Phase 1 conversion) and `README.md` (1) — are bound to `driver-digital-agents`. The overlap wave introduces
-> the first use of the `claude[bot]` id, and removes it again at the end.
+> hits; the only occurrences are in this doc), while all **11** occurrences of `261291955` — recounted
+> 2026-08-02 after the v1.10.0 repin, and path-qualified because the same basename exists in both halves:
+> `templates/github/claude.yml` (6), `templates/github/ticketed-review.yml` (2),
+> `.github/workflows/bonsai-status-sync.yml` (2) and `README.md` (1) — are bound to `driver-digital-agents`.
+> **`templates/github/bonsai-status-sync.yml` no longer contains the id at all**: it held 2 occurrences until
+> the repin turned it into a stub, and those are now the 2 in the central reusable — not additional sites.
+> The overlap wave introduces the first use of the `claude[bot]` id, and removes it again at the end.
 
 ### 2. Commit attribution stays wrong unless set explicitly
 
@@ -231,7 +232,8 @@ mode is selected, `checkContainsTrigger` returns false, and `run.ts:212` logs "N
 **success without posting a tracking comment**. A human addresses the bot and gets nothing, on a green check.
 
 Four things must move in one commit: the four `contains()` clauses
-(`templates/github/claude.yml:91,95,99,101`), `templates/github/bonsai-status-sync.yml:134`'s grep, a
+(`templates/github/claude.yml:91,95,99,101`), `.github/workflows/bonsai-status-sync.yml:139`'s grep (it moved
+out of `templates/github/` at the v1.10.0 repin — the kit file is now a stub carrying neither), a
 `trigger_phrase` input on the action, and **the out-of-repo cron orchestrator that writes `@claude` into issue
 bodies**.
 
@@ -239,10 +241,11 @@ Note `trigger_phrase` **does not exist in this repo today** (`git grep` → zero
 default phrase. So it must be *added* in the same commit, not edited. That is a small but real difference: the
 first time it appears is the first time it can disagree with the workflow gate, which is the #148 signature.
 
-> **Moving target (2026-08-02).** `bonsai-status-sync.yml` is mid-conversion to a reusable. The grep and the
-> `261291955` gate cited above are still in `templates/github/bonsai-status-sync.yml` today, but at the next
-> repin they move to `.github/workflows/bonsai-status-sync.yml` (currently `:139` and `:141`) and the kit file
-> becomes a stub containing neither. **That changes the mechanics of this wave**, not just the path: the
+> **Moved (2026-08-02, v1.10.0 repin).** `bonsai-status-sync.yml` finished converting. The grep and the
+> `261291955` gate cited above now live ONLY in `.github/workflows/bonsai-status-sync.yml` (`:139` and
+> `:141`); `templates/github/bonsai-status-sync.yml` is a stub containing neither. Note the *fleet* still
+> runs the old 190-line copy until the wave, so until then a consumer repo still carries its own gate at the
+> old per-repo line numbers. **That changes the mechanics of this wave**, not just the path: the
 > mirrored gate would then live in a *centrally pinned* file, so it changes by kit release + fleet repin
 > rather than by the same file copy that carries `claude.yml`'s gate. The two can therefore drift apart for
 > the first time — a repo can sit with a new `claude.yml` and an old pinned reusable, which means the

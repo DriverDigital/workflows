@@ -13,10 +13,11 @@ The README has flagged this as "future work" since the repo split. This document
 > ## Decision — Maria, 2026-08-02: split the project, ship the `bonsai-status-sync` half
 >
 > **APPROVED and IN PROGRESS — `bonsai-status-sync.yml` (Phases 1–3).** The copy-per-repo cost is real
-> and this half was never gated on anything. Phase 1 landed 2026-08-02: the reusable is
-> `.github/workflows/bonsai-status-sync.yml`. The caller stub is **not** part of Phase 1 — it cannot be
-> pinned until a tag containing the reusable exists, so `templates/github/bonsai-status-sync.yml` is still
-> the 190-line copy and only becomes a 51-line stub at the repin. See *Phase 1 landed* below.
+> and this half was never gated on anything. Phase 1 landed 2026-08-02 (`b394c6d`, tag `v1.10.0`): the
+> reusable is `.github/workflows/bonsai-status-sync.yml`. The caller stub followed in the v1.10.0 repin
+> (PR #26, same day) — `templates/github/bonsai-status-sync.yml` is now a 67-line stub, not the 190-line
+> copy. **The fleet has NOT been waved**: consumer repos still run the 190-line copy. See *Phase 1 landed*
+> below, and read README release-order step 3 before waving — this is the wave its traps were written for.
 >
 > **TABLED — `claude.yml` (Phase 0 and Phases 4–8).** Whether Claude App token minting survives inside a
 > cross-repo reusable is a question for another day. `claude.yml` stays a full per-repo file, and remains
@@ -32,7 +33,7 @@ The README has flagged this as "future work" since the repo split. This document
 ## Why
 
 *As of the Phase 1 conversion (2026-08-02) this argument is half-resolved: `bonsai-status-sync.yml` now has a
-central reusable, and the kit copy drops from 190 lines to a 51-line stub at the repin. **`claude.yml`'s 460
+central reusable, and the kit copy dropped from 190 lines to a 67-line stub at the v1.10.0 repin. **`claude.yml`'s 465
 lines remain copied** — still the single largest thing in the kit, and the drift surface that outlives this
 conversion. The original framing follows.*
 
@@ -312,7 +313,8 @@ is ordered by dependency, not by gating — do not read Phase 0 sitting at the t
 
 `bonsai-status-sync.yml` goes first because **it is the only one of the two with any pre-merge test path at
 all**. It has no OIDC path and one secret (`BONSAI_BEARER_TOKEN`,
-`templates/github/bonsai-status-sync.yml:169`).
+`.github/workflows/bonsai-status-sync.yml:175` — it moved out of the kit file at the v1.10.0 repin; the stub
+now just forwards it).
 
 Be precise about how much of it is provable pre-merge, because it is **one leg of three**. Its `on:` block
 (`:41-50`) carries `issues: [opened]`, `pull_request: [opened, reopened, ready_for_review, synchronize]`, and
@@ -342,8 +344,8 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 | 1 | Convert `bonsai-status-sync.yml` + stub + docs + lint | 3h | **done 2026-08-02** |
 | 2 | Pilot it (only the `pull_request` leg is testable pre-merge — see *Sequencing*) | 2h | **next** |
 | 3 | Fleet wave for `bonsai-status-sync` — 18 repo@branch pairs across 11 repos | 3–4h | after Phase 2 |
-| 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | with Phase 3 |
-| | **Approved subtotal** | **9–10h** | Phase 1 done → **6–7h left** |
+| 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | **done 2026-08-02** — tag `v1.10.0` + PR #26 |
+| | **Approved subtotal** | **9–10h** | Phases 1 + 5 done → **pilot + wave left** |
 | 0 | Spike: go/no-go on OIDC-in-reusable | 3–4h | **tabled** |
 | 4 | Convert `claude.yml` — move the 460 lines **faithfully** | 7–9h | **tabled** |
 | 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
@@ -357,21 +359,22 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 the old copy except one added comment; actionlint + shellcheck clean; `BONSAI_BEARER_TOKEN` declared
 `required: true`. Also a new `lint.yml` guard that fails the build on any kit stub carrying a placeholder pin.
 
-**Deliberately NOT shipped: the caller stub.** A new reusable's stub cannot be pinned until the tag containing
-that reusable exists, so it lands in step 2 of the release order, not here. This is the house precedent —
-`dependabot-keep-current`'s reusable landed in `c362604` and its stub arrived later already carrying a real
-SHA. The kit therefore still installs the 190-line copy, which still works, until the repin.
+**Deferred out of Phase 1, landed at the repin: the caller stub.** A new reusable's stub cannot be pinned
+until the tag containing that reusable exists, so it landed in step 2 of the release order, not here. This is
+the house precedent — `dependabot-keep-current`'s reusable landed in `c362604` and its stub arrived later
+already carrying a real SHA. **Landed 2026-08-02 in PR #26 (`3056f75`)**, pinned at `b394c6d` = `v1.10.0`;
+the kit now installs the 67-line stub. The *fleet* still runs the 190-line copy until the wave.
 
-**The stub to land at repin** (replace `templates/github/bonsai-status-sync.yml` wholesale, and set the pin to
-the new tag's SHA + `# vX.Y.Z`):
+**The stub as landed** (it replaced `templates/github/bonsai-status-sync.yml` wholesale; the pin below is the
+real one, not a placeholder — kept here as the canonical source for future conversions):
 
 ```yaml
 name: Bonsai status sync
 
 # CALLER STUB — install into a pipeline repo's .github/workflows/.
 # Calls the central bonsai-status-sync reusable, which flips the linked Bonsai
-# task's status off the GitHub issue/PR lifecycle. Inherits secrets (it needs
-# BONSAI_BEARER_TOKEN, an org-level Actions secret).
+# task's status off the GitHub issue/PR lifecycle. Passes ONE secret explicitly,
+# BONSAI_BEARER_TOKEN (org-level) — never `secrets: inherit`; see the secrets block.
 #
 # This REPLACED a 190-line per-repo copy (converted 2026-08-02). The status
 # machine, the actor gate, the linkage logic and the cascade caveat now live in
@@ -384,7 +387,8 @@ name: Bonsai status sync
 #     as written; they are load-bearing (see the reusable's header for the
 #     dismissed-review edge and the draft guards).
 #   • `permissions:` — a called workflow's permissions can only be DOWNGRADED by
-#     the caller. Declare all three or the reusable's `gh` reads 403.
+#     the caller. Declare all three: omitting the block on a read-only-default repo
+#     yields a silent `startup_failure` (no check run, no notification), not a 403.
 #   • `concurrency:` — see the block itself; the rationale is load-bearing and
 #     is NOT the same as pr-first-review's. Do not "harmonise" them.
 
@@ -423,7 +427,7 @@ jobs:
     # NOTE: the required-status-check context for this job is `sync / sync` (caller job id /
     # reusable job id), NOT the bare `sync` it was as a full workflow. Verified 2026-08-02 that
     # no branch in the org pins either, so this rename breaks nothing — re-check before adding one.
-    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@0000000000000000000000000000000000000000 # UNREPINNED — lint.yml blocks merge until this is a real tag SHA
+    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@b394c6d73c3060ba3d0b352f51ad589af9d548f5 # v1.10.0
     # Explicit, NOT `secrets: inherit`. Two reasons: (1) `inherit` passes whatever set exists, which
     # defeats the reusable's `required: true` — a missing secret would reach the curl and surface as
     # an opaque 401 on the first real flip instead of failing at startup; (2) least privilege — this

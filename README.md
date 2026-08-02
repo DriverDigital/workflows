@@ -123,6 +123,13 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
      wave script rewrites `templates/github/` → `.github/workflows/`, so assert the rewritten diff
      touches no destination path twice before applying — otherwise the reusable can land in a client
      repo *as* the workflow, where it is `workflow_call`-only, fires on nothing, and looks green.
+   - **This wave only — the five pre-existing stubs' pin hunks will not apply.** They patch from
+     `80c35fe` (`v1.8.0`), but every deployed stub holds `a54c91e` (`v1.9.0`): `v1.9.0` shipped without
+     a kit repin commit while the 2026-08-01 wave repinned the fleet anyway, so **no kit revision has
+     ever carried `a54c91e` in a pin line** and no diff base produces a matching `-` line. `git apply`
+     rejects all five on target #1. Apply the kit diff restricted to
+     `templates/github/bonsai-status-sync.yml` (a whole-file replacement) and let the wave script's
+     existing `sed` repin handle the other five pin lines.
 
 **Template pins are manual.** `.github/dependabot.yml` uses `directory: "/"`, which only scans
 `.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check
