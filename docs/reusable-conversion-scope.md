@@ -38,7 +38,7 @@ lines remain copied** — still the single largest thing in the kit, and the dri
 conversion. The original framing follows.*
 
 Of the 916-line kit, **650 lines (71%) were the two files copied verbatim rather than called** —
-`claude.yml` (460) and `bonsai-status-sync.yml` (190). The five caller stubs totalled 154 lines and are
+`claude.yml` (465) and `bonsai-status-sync.yml` (190). The five caller stubs totalled 154 lines and are
 mechanical.
 
 *At v1.6.0 this read 594 of 837 — the same 71%. The flat ratio hides the trend: over three releases the
@@ -63,8 +63,8 @@ and `DRIVER_AGENTS_REF` stays hand-edited fleet-wide for as long as `shopify-too
 file (open decision 1). What conversion removes is the 650 lines of *logic* that a wave could hand-carry a
 subset of — which is the specific failure that produced the Avara incident.
 
-Secondary win: `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:304`) and
-`actions/upload-artifact` (`:456`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
+Secondary win: `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:309`) and
+`actions/upload-artifact` (`:461`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
 which `.github/dependabot.yml` (`directory: "/"`) actually scans — converting **three** documented manual pins
 into bot-managed ones.
 
@@ -194,8 +194,8 @@ Avara would reset `"avara"` to `""` and the provisioning step would self-skip *s
 to degrade quietly when unset.
 
 > **Correction (2026-08-02).** `SHOPIFY_STORE_NAME` now has a **second consumer**. At v1.6.0 it was read
-> only by the provisioning script (`:195`, `:202-206`, `:233`). v1.8.0 also interpolates it into the audit
-> **artifact name** at `templates/github/claude.yml:458`. The `inputs.shopify_store_name` value must be
+> only by the provisioning script (`:200`, `:207-211`, `:238`). v1.8.0 also interpolates it into the audit
+> **artifact name** at `templates/github/claude.yml:463`. The `inputs.shopify_store_name` value must be
 > threaded to **both** sites — wiring only the provisioning step leaves the artifact named
 > `shopify-audit--<run_id>-<attempt>`, which uploads successfully and is therefore another silent failure.
 
@@ -258,19 +258,19 @@ on:
       SHOPIFY_ALERT_WEBHOOK:              { required: false }
 ```
 
-**`SHOPIFY_ALERT_WEBHOOK` is the trap in this block.** Added by v1.7.0 (`templates/github/claude.yml:191`, the
+**`SHOPIFY_ALERT_WEBHOOK` is the trap in this block.** Added by v1.7.0 (`templates/github/claude.yml:196`, the
 `#driver-agents-status` Slack webhook), it is an **org-level** secret — so under an *explicit* `secrets:` map
 it is **not** automatically visible to the called workflow and the stub must pass it or use `secrets: inherit`.
-Omit it and the guard at `:239` (`[ -n "$SHOPIFY_ALERT_WEBHOOK" ]`) simply takes the other branch: Slack
+Omit it and the guard at `:244` (`[ -n "$SHOPIFY_ALERT_WEBHOOK" ]`) simply takes the other branch: Slack
 alerting on destructive Admin API calls goes **silently off fleet-wide**, no error, green run. Interacts
 directly with open decision 2.
 
-All store secrets must stay `required: false` — the script's empty-string early-exit at `:195-197` is exactly
+All store secrets must stay `required: false` — the script's empty-string early-exit at `:200-202` is exactly
 what lets non-store repos self-skip. (The client-id/secret pair was renamed from `DRIVER_AGENTS_SCOPES_*` by
 v1.9.0; live names at `:177-178`.)
 
 `DRIVER_AGENTS_REF` moves **into** the reusable (a win — it removes half the two-files-must-match hazard).
-`ANTHROPIC_API_KEY` stays comment-only (`:311`).
+`ANTHROPIC_API_KEY` stays comment-only (`:316`).
 
 **On declaring secrets — the claim is true, but scope it precisely.** Every secret referenced by a workflow
 **in this repo's `.github/workflows/`** must be declared under its own `on.workflow_call.secrets`, or
@@ -287,7 +287,7 @@ declares both secrets at `.github/workflows/pr-first-review.yml:42-44`. The cons
 
 ### The v1.8.0 artifact leg — new since the original draft
 
-v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:454-460`, mirrored at
+v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:459-465`, mirrored at
 `templates/github/shopify-tool-smoke.yml:106-112`). The step itself moves into a reusable unchanged —
 `always()`, `env.*` read from `$GITHUB_ENV`, and `upload-artifact`'s own `ACTIONS_RUNTIME_TOKEN` auth are all
 unaffected by `workflow_call`. Two things do change:
@@ -296,7 +296,7 @@ unaffected by `workflow_call`. Two things do change:
 - **A called workflow does not get its own run id.** `github.run_id` and `github.run_attempt` resolve to the
   **caller's** run. That is the *desirable* outcome for the collector — the artifact lands in the consuming
   repo's run, where the box's nightly `audit-publish.sh` already looks. But it degrades the collision guard
-  the file calls load-bearing at `:449-452`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
+  the file calls load-bearing at `:454-457`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
   run*. What makes that safe today is simply that `claude.yml` declares **exactly one job** (`jobs.claude`,
   `:65-66`) — not the concurrency group at `:61-63`, which serializes *runs* within a group and says nothing
   about jobs inside a run. Conversion removes that structural guarantee: **call the reusable from two jobs in
@@ -317,11 +317,11 @@ all**. It has no OIDC path and one secret (`BONSAI_BEARER_TOKEN`,
 now just forwards it).
 
 Be precise about how much of it is provable pre-merge, because it is **one leg of three**. Its `on:` block
-(`:41-50`) carries `issues: [opened]`, `pull_request: [opened, reopened, ready_for_review, synchronize]`, and
+(`templates/github/bonsai-status-sync.yml:24-33`) carries `issues: [opened]`, `pull_request: [opened, reopened, ready_for_review, synchronize]`, and
 `pull_request_review: [submitted]`. Only the **`pull_request` leg** runs from the PR merge ref and so tests
 itself on its own cutover PR. By the same default-branch-only rule that strands `claude.yml` (see below),
 `issues` and `pull_request_review` are inert on a cutover branch — and the `issues` leg is where the `@claude`
-grep and the actor gate live (`:134-136`), which is the logic most worth piloting. **Plan to validate those
+grep and the actor gate live (`.github/workflows/bonsai-status-sync.yml:139-141`), which is the logic most worth piloting. **Plan to validate those
 two legs after merge**, and say so in the cutover PR body; do not let "testable pre-merge" imply the whole
 file was exercised.
 
@@ -347,7 +347,7 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 | 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | **done 2026-08-02** — tag `v1.10.0` + PR #26 |
 | | **Approved subtotal** | **9–10h** | Phases 1 + 5 done → **pilot + wave left** |
 | 0 | Spike: go/no-go on OIDC-in-reusable | 3–4h | **tabled** |
-| 4 | Convert `claude.yml` — move the 460 lines **faithfully** | 7–9h | **tabled** |
+| 4 | Convert `claude.yml` — move the 465 lines **faithfully** | 7–9h | **tabled** |
 | 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
 | 7 | Fleet wave for `claude.yml`, same 18 pairs (10 single-branch repos incl. Avara → Palmers ×8) | 4–5h | **tabled** |
 | 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | **tabled** |
@@ -465,11 +465,11 @@ placeholder pin. Do it as part of the Phase 3 wave, not after it.
 **If identity unification ships first, Phase 0 disappears and the total is 26–33h.** And Phases 1–3 (8–11h)
 depend on neither Phase 0 nor the identity decision — that portion is startable now.
 
-*Estimates grew on the 2026-08-02 refresh: Phase 4's payload is 460 lines rather than 404 (6–8h → 7–9h) and
+*Estimates grew on the 2026-08-02 refresh: Phase 4's payload is 465 lines rather than 404 (6–8h → 7–9h) and
 Phase 8's `shopify-tool-smoke.yml` went 89 → 112 lines (2h → 2–3h). The v1.6.0 table also stated 28–36h while
 its own max column summed to 35.*
 
-Phase 4 note: **63%** of `claude.yml` is comments (291 of 460 lines — it was 67% at v1.6.0), and they are the
+Phase 4 note: **63%** of `claude.yml` is comments (296 of 465 lines — it was 67% at v1.6.0), and they are the
 institutional memory — the 2026-06-19 actor-gate incident, the `persist-credentials` 403 on private repos, the
 foundrae #148 prompt-hijack, the Avara #143 install blip. Budget for moving them faithfully, not cut-and-paste.
 
@@ -529,8 +529,8 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
 
 1. **Convert `shopify-tool-smoke.yml` in the same wave — or make the `lint.yml` assertion mandatory.** This is
    no longer the optional add-on the first draft described. The two `DRIVER_AGENTS_REF` pins are currently in
-   lockstep (`templates/github/claude.yml:186` and `templates/github/shopify-tool-smoke.yml:46`, both
-   `0bbb125f36a6cae7bb211145efb6e57f70a883e9`), and the invariant is written into the file as "keep in lockstep
+   lockstep (`templates/github/claude.yml:191` and `templates/github/shopify-tool-smoke.yml:46`, both
+   `4d633714ce0a3c9bf7ec87cfcfb8b13ceaf8240c` as of the 2026-08-02 bump), and the invariant is written into the file as "keep in lockstep
    with `claude.yml`'s `DRIVER_AGENTS_REF` **in this same repo**." Converting `claude.yml` alone **breaks that
    by construction** — the reusable would pin centrally while the smoke test pins whatever the last fleet wave
    copied. The file also carries its own hand-edited job-level `SHOPIFY_STORE_NAME` (`:31`), so it is a third

@@ -33,8 +33,13 @@ reusables have been byte-identical since `v1.6.0`'s `0a3934f`.
 `graphql_guard.py` does not exist at that SHA, so every fleet runner executes `admin-graphql.sh`
 with **no fail-closed allowlist** and the Driver Engineering scope grant is the only control on
 destructive mutations. This is a `claude.yml` change, which stays a per-repo copy — so **no client
-repo is guarded in CI until the next wave copies it out**. Not yet tagged; fold into the v1.10.0
-wave or cut v1.11.0, per the release order below.
+repo is guarded in CI until the next wave copies it out**.
+
+**Decided 2026-08-02: this ships as `v1.11.0`, not folded into the v1.10.0 wave.** Folding it in would
+put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh` compares
+only stub pin lines against the latest tag — never `templates/` content — so it would report the fleet
+uniform and green over the gap. Sequence: merge the repin PR → tag `v1.11.0` at that merge commit →
+repin all six stubs to `v1.11.0` → **one** wave. That is what `v1.7.0` and `v1.8.0` each did.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`

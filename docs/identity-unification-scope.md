@@ -261,7 +261,7 @@ does not cover. Ship identity first.
 ### 4. `AGENTS_GH_PAT`'s live scope is unknown, and the docs contradict each other
 
 `templates/github/claude.yml:180` binds `AGENTS_GH_PAT` as the `GH_TOKEN` that `gh repo clone`s the **private**
-`driver-agents` repo at `:213` — which requires `Contents: read`. There are **two** written descriptions of
+`driver-agents` repo at `:218` — which requires `Contents: read`. There are **two** written descriptions of
 that token and they do not agree: `.github/workflows/pr-first-review.yml:22-23` says "Issues + Pull-requests
 R/W, Contents:READ, no Admin", while `templates/github/README.md:59-61` describes `AGENTS_GH_PAT` and lists
 **no permissions at all**. Neither is verified against the live token.
@@ -380,7 +380,7 @@ echoing a human's request (which contains the trigger phrase) re-enters the gate
    > two apart at `:30-31` — *"the sentinel token is DISTINCT from the round marker, so it never inflates the
    > count"* — and the sentinel is never *matched* in the reusable, appearing there only as a header comment
    > at `:14`; the live matches are `templates/github/ticketed-review.yml:40` (mentioned again at `:5`) and
-   > `templates/github/claude.yml:445`. Collapsing the two in the scope doc invites collapsing them in the
+   > `templates/github/claude.yml:450`. Collapsing the two in the scope doc invites collapsing them in the
    > implementation, which is the one thing that design forbids.
    >
    > **The missed site:** the `select(.user.login=="driver-digital-agents")` hardcode at `:137` has a **twin at
@@ -482,14 +482,14 @@ independently without touching the other 20.
    client-side count of content-generating calls and any `403`/`429` bodies naming the secondary limit.
    Extrapolate both to wave size. *False pass:* reporting primary headroom only — see mitigation 2, the
    secondary limit has no status endpoint and is the one expected to bind.
-9. **Private clone succeeds** — `templates/github/claude.yml:213` actually clones `driver-agents` at the
+9. **Private clone succeeds** — `templates/github/claude.yml:218` actually clones `driver-agents` at the
    pinned revision on the implementer PAT. *False pass:* the step's own degrade path — `::warning::` at
-   `:225` then `exit 0` at `:227`, so the job stays green. Assert on the **absence of that warning**, not on
+   `:230` then `exit 0` at `:232`, so the job stays green. Assert on the **absence of that warning**, not on
    job status. This is the assertion that covers risk 4 (`Contents: read` on a private repo), and leg 2 is
    the only leg that exercises it.
 10. **Store provisioning succeeds** — on a store repo, `SHOPIFY_STORE_NAME` is non-empty, the env file is
-    written (`:233`), and the audit artifact uploads under a name containing the store handle (`:458`).
-    *False pass:* the same silent self-skip — the missing-secret early-exit at `:195-197` is deliberate
+    written (`:238`), and the audit artifact uploads under a name containing the store handle (`:463`).
+    *False pass:* the same silent self-skip — the missing-secret early-exit at `:200-202` is deliberate
     degrade-quietly behaviour, and an artifact named `shopify-audit--<run_id>-…` uploads perfectly happily.
 
 *(Assertions 9 and 10 were added on the 2026-08-02 refresh. Both failure paths were already identified in this
