@@ -14,7 +14,9 @@ The README has flagged this as "future work" since the repo split. This document
 >
 > **APPROVED and IN PROGRESS — `bonsai-status-sync.yml` (Phases 1–3).** The copy-per-repo cost is real
 > and this half was never gated on anything. Phase 1 landed 2026-08-02: the reusable is
-> `.github/workflows/bonsai-status-sync.yml`, the 190-line per-repo copy is now a 51-line caller stub.
+> `.github/workflows/bonsai-status-sync.yml`. The caller stub is **not** part of Phase 1 — it cannot be
+> pinned until a tag containing the reusable exists, so `templates/github/bonsai-status-sync.yml` is still
+> the 190-line copy and only becomes a 51-line stub at the repin. See *Phase 1 landed* below.
 >
 > **TABLED — `claude.yml` (Phase 0 and Phases 4–8).** Whether Claude App token minting survives inside a
 > cross-repo reusable is a question for another day. `claude.yml` stays a full per-repo file, and remains
@@ -29,9 +31,10 @@ The README has flagged this as "future work" since the repo split. This document
 
 ## Why
 
-*As of the Phase 1 conversion (2026-08-02) this argument is half-resolved: `bonsai-status-sync.yml` is now a
-51-line stub calling a central reusable. **`claude.yml`'s 460 lines remain copied** — still the single largest
-thing in the kit and its only remaining drift surface. The original framing follows.*
+*As of the Phase 1 conversion (2026-08-02) this argument is half-resolved: `bonsai-status-sync.yml` now has a
+central reusable, and the kit copy drops from 190 lines to a 51-line stub at the repin. **`claude.yml`'s 460
+lines remain copied** — still the single largest thing in the kit, and the drift surface that outlives this
+conversion. The original framing follows.*
 
 Of the 916-line kit, **650 lines (71%) were the two files copied verbatim rather than called** —
 `claude.yml` (460) and `bonsai-status-sync.yml` (190). The five caller stubs totalled 154 lines and are

@@ -5,7 +5,7 @@ name: Bonsai status sync (reusable)
 # the GitHub issue/PR lifecycle. Home: DriverDigital/workflows.
 # Flips the linked Bonsai task's status by POSTing the Driver Bonsai MCP REST
 # endpoint — serving AI-opened and human-opened PRs alike.
-# Holds BONSAI_BEARER_TOKEN. Callers install the stub from templates/github/.
+# Holds BONSAI_BEARER_TOKEN. Caller stub lands in templates/github/ at the next repin.
 #
 # STATUS MACHINE (Driver Digital board — use the EXACT strings; the update-status tool matches
 # by exact normalized name and returns STATUS_NOT_FOUND / AMBIGUOUS_MATCH on a miss, so a
@@ -48,7 +48,7 @@ name: Bonsai status sync (reusable)
 #   • `github.event.*`  — the caller's full payload, unchanged. The event-type dispatch below
 #     (issues / pull_request / pull_request_review) reads it directly and is unaffected.
 #   • `github.token`    — the CALLER repo's installation token, so the `gh pr view` /
-#     `gh issue view` reads at :110-113 resolve against the caller's repo, as before.
+#     `gh issue view` reads at :115-118 resolve against the caller's repo, as before.
 #   • `vars.BONSAI_URL` — resolves against the CALLER's repository variables, so a per-repo tunnel
 #     override still works.
 # The TRIGGERS and the `concurrency` group live in the caller stub (a called workflow cannot

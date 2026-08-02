@@ -210,10 +210,13 @@ revise loop mid-cutover, then drop the old literal.
 > (login == 'driver-digital-agents'  && id == 261291955)
 > ```
 >
-> Note `209825114` currently appears **nowhere** in this repo (`git grep` → zero hits), while all **11**
-> occurrences of `261291955` — across `README.md`, `templates/github/claude.yml`, `bonsai-status-sync.yml` and
-> `ticketed-review.yml` — are bound to `driver-digital-agents`. The overlap wave introduces the first use of
-> the `claude[bot]` id, and removes it again at the end.
+> Note `209825114` appears in **no workflow file** in this repo (`git grep 209825114 -- ':!docs/'` → zero
+> hits; the only occurrences are in this doc), while all **13** occurrences of `261291955` — recounted
+> 2026-08-02 against this branch, and path-qualified because the same basename now exists in both halves:
+> `templates/github/claude.yml` (6), `templates/github/bonsai-status-sync.yml` (2),
+> `templates/github/ticketed-review.yml` (2), `.github/workflows/bonsai-status-sync.yml` (2, added by the
+> Phase 1 conversion) and `README.md` (1) — are bound to `driver-digital-agents`. The overlap wave introduces
+> the first use of the `claude[bot]` id, and removes it again at the end.
 
 ### 2. Commit attribution stays wrong unless set explicitly
 
