@@ -78,3 +78,35 @@ jobs:
           fi
           echo "all kit stubs carry a real SHA pin"
 
+      - name: claude.yml system prompt survives tokenization
+        # The --append-system-prompt value (conduct block + Shopify operator tripwire) is delimited
+        # by SINGLE QUOTES for claude_args' shell-quote tokenizer. shell-quote does NOT throw on an
+        # unterminated quote — it silently truncates, dropping the tail of the prompt. Every flag
+        # still parses, the YAML stays valid, actionlint exits 0, and the wave copies the truncated
+        # prompt to 18 branches green. One apostrophe typed into the canonical blockquote upstream
+        # is enough. So assert the quote count directly: 4 is the correct total (allowedTools pair
+        # + append-system-prompt pair). Any odd count means something ate a delimiter.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import sys, yaml, re
+          d = yaml.safe_load(open("templates/github/claude.yml"))
+          steps = d["jobs"]["claude"]["steps"]
+          args = [s for s in steps if "claude_args" in (s.get("with") or {})][0]["with"]["claude_args"]
+          q = args.count("'")
+          if q != 4:
+              print(f"::error::claude_args holds {q} single quotes, expected 4. An apostrophe in the "
+                    f"system prompt truncates it silently — shell-quote does not error. Remove it.")
+              sys.exit(1)
+          m = re.search(r"--append-system-prompt '(.*?)'(?:\s|$)", args, re.S)
+          if not m:
+              print("::error::could not locate the --append-system-prompt value in claude_args")
+              sys.exit(1)
+          p = m.group(1)
+          for ch, why in (("'", "truncates the token"), ("$", "shell-expands")):
+              if ch in p:
+                  print(f"::error::system prompt contains {ch!r}, which {why}")
+                  sys.exit(1)
+          print(f"claude_args tokenizes cleanly: 4 quotes, {len(p)}-char system prompt")
+          PY
+

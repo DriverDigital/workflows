@@ -33,7 +33,11 @@ reusables have been byte-identical since `v1.6.0`'s `0a3934f`.
 `graphql_guard.py` does not exist at that SHA, so every fleet runner executes `admin-graphql.sh`
 with **no fail-closed allowlist** and the Driver Engineering scope grant is the only control on
 destructive mutations. This is a `claude.yml` change, which stays a per-repo copy — so **no client
-repo is guarded in CI until the next wave copies it out**.
+repo is guarded in CI until the next wave copies it out**. The same release appends the Shopify
+**operator tripwire** to `claude.yml`'s static `--append-system-prompt` (the blockquote is copied from
+driver-agents `docs/agent-instructions-shopify.md`, which is canonical — edit there first, and preserve
+the kit-side scope lead-in that precedes it), so the fleet gets the wrapper and its instruction block in
+one wave.
 
 **Decided 2026-08-02: this ships as `v1.11.0`, not folded into the v1.10.0 wave.** Folding it in would
 put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh` compares
@@ -113,6 +117,13 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 **Release + repin order (don't skip a step — a wave is only safe once all three are done):**
 
 1. Merge to `main`, then cut the new tag.
+   - **If the release moves `DRIVER_AGENTS_REF`**, re-run the tripwire parity check first: extract the
+     `>` lines from driver-agents `docs/agent-instructions-shopify.md` at the new pin, strip the `> `
+     prefixes, NFC-normalize, **collapse whitespace**, and diff against the blockquote portion of
+     `claude.yml`'s `--append-system-prompt`. The whitespace collapse is mandatory — the kit flattens
+     canonical's paragraph break to a single space (forced by the no-newline constraint), so a strict
+     byte compare reports a false failure. Nothing else re-checks this: `fleet-pin-audit.sh` greps only
+     stub pin lines, and `DRIVER_AGENTS_REF` is a raw SHA in an env var that no bot can bump.
 2. Repin every caller stub in `templates/github/` to that tag's SHA and commit. Until this
    lands, the kit's stubs still point at the PREVIOUS tag's reusables.
    - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
