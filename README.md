@@ -28,6 +28,14 @@ Latest tag **`v1.10.0`** (`b394c6d`) — **not** kit-only: it adds a **sixth reu
 landed in the repin commit for this tag, per step 2 of the release order below. The other five
 reusables have been byte-identical since `v1.6.0`'s `0a3934f`.
 
+**Unreleased on `main` (2026-08-02) — `DRIVER_AGENTS_REF` → `4d63371`, lockstep in `claude.yml` +
+`shopify-tool-smoke.yml`.** The previous pin `0bbb125` predated the Admin API wrapper:
+`graphql_guard.py` does not exist at that SHA, so every fleet runner executes `admin-graphql.sh`
+with **no fail-closed allowlist** and the Driver Engineering scope grant is the only control on
+destructive mutations. This is a `claude.yml` change, which stays a per-repo copy — so **no client
+repo is guarded in CI until the next wave copies it out**. Not yet tagged; fold into the v1.10.0
+wave or cut v1.11.0, per the release order below.
+
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
 here. Deployed fleet stubs were repinned to `v1.9.0` by the 2026-08-01 wave, so between then and this

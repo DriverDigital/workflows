@@ -183,7 +183,12 @@ jobs:
           # store's client credentials sit on the runner's disk, so it must be REVIEWED code, not
           # whatever driver-agents' default branch happens to hold at run time. Bump deliberately,
           # then re-copy the kit in the next fleet wave.
-          DRIVER_AGENTS_REF: 0bbb125f36a6cae7bb211145efb6e57f70a883e9 # main @ 2026-07-31 (audit pipeline)
+          #
+          # 2026-08-02: bumped off 0bbb125, which PREDATED the Admin API wrapper — graphql_guard.py
+          # does not exist at that SHA, so runners executed admin-graphql.sh with no fail-closed
+          # allowlist and the app's scope grant was the only control on destructive mutations.
+          # Until this reaches a repo in a fleet wave, that repo is still unguarded in CI.
+          DRIVER_AGENTS_REF: 4d633714ce0a3c9bf7ec87cfcfb8b13ceaf8240c # main @ 2026-08-02 (audit pipeline + Admin API wrapper)
           # Optional: the #driver-agents-status Slack incoming-webhook URL (org-level secret, set
           # org-wide — nothing per repo). When present, the tool's destructive/failed-call alerts
           # fire from CI runs exactly as they do on the box; absent = alerts off, nothing else
