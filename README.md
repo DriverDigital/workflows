@@ -64,8 +64,53 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 (`allowed_bots: claude[bot]`, so the bot-opened round 1 actually reviews) → `v1.5.3` (always-latest
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
-1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → **`v1.8.0`** (all below).
-`v1.3.0` was never tagged.
+1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
+**`v1.11.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.11.0` (`90f0d06`, 2026-08-02)
+
+Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale.
+
+- **`bonsai-status-sync.yml` conversion completed.** The 190-line per-repo copy became a 67-line
+  caller stub — the status machine, actor gate, linkage logic and cascade caveat now live in one
+  central file. The reusable itself landed one tag earlier (see `v1.10.0`), so the conversion spans
+  the two tags: a new reusable's stub cannot be pinned until the tag containing it exists.
+- **kit `claude.yml` + `shopify-tool-smoke.yml`:** `DRIVER_AGENTS_REF` → `4d63371`. The previous pin
+  `0bbb125` predated `graphql_guard.py`, so every fleet runner executed `admin-graphql.sh` with no
+  fail-closed allowlist and the Driver Engineering scope grant was the only control on destructive
+  mutations.
+- **Shopify operator tripwire** appended to `claude.yml`'s static `--append-system-prompt`, pairing
+  with that wrapper. The blockquote is copied verbatim from driver-agents
+  `docs/agent-instructions-shopify.md` (canonical — edit there first); a non-canonical kit-side
+  lead-in precedes it, un-scoping the block from the conduct rules above and telling the model how to
+  report a trip on a rail that cannot set a job exit code.
+- **this repo's own CI:** `lint.yml` gained a tokenization guard asserting `claude_args` holds
+  exactly four single quotes and the system prompt contains no apostrophe or `$`. One apostrophe
+  typed into canonical upstream silently *truncates* the prompt — `shell-quote` does not throw, every
+  flag still parses, and the wave would copy the truncated prompt fleet-wide green.
+- **Piloted before the wave:** `vars.BONSAI_URL` proven to resolve against the caller, so the
+  per-repo tunnel override survives the conversion. See
+  [`docs/fleet-operations.md`](docs/fleet-operations.md).
+
+### `v1.10.0` (`b394c6d`, 2026-08-02)
+
+- **New sixth reusable: `.github/workflows/bonsai-status-sync.yml`.** Its `jobs:` body is
+  byte-identical to the old per-repo copy except one added comment. Deliberately shipped without its
+  caller stub — see `v1.11.0`.
+- **`lint.yml` placeholder-pin guard:** fails the build on any kit stub still carrying an all-zero
+  pin, so a stub that cannot resolve can never reach `main`.
+- Never waved on its own; superseded by `v1.11.0` two commits later.
+
+### `v1.9.0` (`a54c91e`, 2026-08-01, kit-only)
+
+- **Store app secrets renamed** `DRIVER_AGENTS_SCOPES_CLIENT_ID/_SECRET` →
+  `DRIVER_ENGINEERING_APP_CLIENT_ID/_SECRET`, tied to the per-org "Driver Engineering" app that
+  replaced "Driver Agents Scopes" (retired 2026-08-01). Waved to all 21 targets; Avara's smoke test
+  green on the new names, old-name secrets deleted.
+- **Reusables unchanged.** Note this release **never got its kit repin commit** — `templates/` sat at
+  `v1.8.0`'s SHA while the deployed fleet was waved to `a54c91e`, leaving the fleet a release *ahead*
+  of the kit templates until `v1.11.0` closed it. That gap is invisible to
+  `tools/fleet-pin-audit.sh`; see [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
 ### `v1.8.0` (2026-07-31, kit-only)
 
@@ -140,13 +185,13 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
      wave script rewrites `templates/github/` → `.github/workflows/`, so assert the rewritten diff
      touches no destination path twice before applying — otherwise the reusable can land in a client
      repo *as* the workflow, where it is `workflow_call`-only, fires on nothing, and looks green.
-   - **This wave only — the five pre-existing stubs' pin hunks will not apply.** They patch from
-     `80c35fe` (`v1.8.0`), but every deployed stub holds `a54c91e` (`v1.9.0`): `v1.9.0` shipped without
-     a kit repin commit while the 2026-08-01 wave repinned the fleet anyway, so **no kit revision has
-     ever carried `a54c91e` in a pin line** and no diff base produces a matching `-` line. `git apply`
-     rejects all five on target #1. Apply the kit diff restricted to
-     `templates/github/bonsai-status-sync.yml` (a whole-file replacement) and let the wave script's
-     existing `sed` repin handle the other five pin lines.
+   - **Sed pin lines; never `git apply` them.** A pin hunk patches from whatever SHA the kit held,
+     which is not necessarily what the fleet holds — at v1.11.0 the kit diff patched from `80c35fe`
+     (v1.8.0) while every deployed stub held `a54c91e` (v1.9.0), a SHA no kit revision had ever
+     carried in a pin line, so no diff base produced a matching `-` line and `git apply` would have
+     rejected all five files on target #1.
+   - Wave mechanics, the guards worth keeping, and what the pin audit cannot see:
+     [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
 **Template pins are manual.** `.github/dependabot.yml` uses `directory: "/"`, which only scans
 `.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check

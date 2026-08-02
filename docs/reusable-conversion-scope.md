@@ -1,6 +1,6 @@
 # Scope: convert `claude.yml` + `bonsai-status-sync.yml` into reusable workflows
 
-**Status:** `bonsai-status-sync` half IN PROGRESS (Phase 1 done); `claude.yml` half TABLED. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0` = `0a3934f`).
+**Status:** `bonsai-status-sync` half **COMPLETE** (shipped `v1.11.0`, waved 2026-08-02); `claude.yml` half TABLED. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0` = `0a3934f`).
 **Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`). Three releases landed underneath the
 original draft — v1.7.0 (Slack alerting), v1.8.0 (audit context + artifact leg), v1.9.0 (store-secret rename).
 Every `file:line` citation below was re-verified again on 2026-08-02 against the **v1.11.0** release branch
@@ -345,10 +345,10 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 | Phase | Work | Est. | Status |
 |---|---|---|---|
 | 1 | Convert `bonsai-status-sync.yml` + stub + docs + lint | 3h | **done 2026-08-02** |
-| 2 | Pilot it (only the `pull_request` leg is testable pre-merge — see *Sequencing*) | 2h | **next** |
-| 3 | Fleet wave for `bonsai-status-sync` — 18 repo@branch pairs across 11 repos | 3–4h | after Phase 2 |
+| 2 | Pilot it (only the `pull_request` leg is testable pre-merge — see *Sequencing*) | 2h | **done 2026-08-02** — passed |
+| 3 | Fleet wave for `bonsai-status-sync` — 18 repo@branch pairs across 11 repos | 3–4h | **done 2026-08-02** — waved 21 targets |
 | 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | **done 2026-08-02** — tag `v1.11.0` + PRs #26/#27 |
-| | **Approved subtotal** | **9–10h** | Phases 1 + 5 done → **pilot + wave left** |
+| | **Approved subtotal** | **9–10h** | **COMPLETE 2026-08-02** — shipped as `v1.11.0` |
 | 0 | Spike: go/no-go on OIDC-in-reusable | 3–4h | **tabled** |
 | 4 | Convert `claude.yml` — move the 477 lines **faithfully** | 7–9h | **tabled** |
 | 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
@@ -460,6 +460,21 @@ the per-repo escape hatch being the untested path.
 
 **Assertion:** on the pilot repo, set `BONSAI_URL` as a repository variable to a deliberately bogus host and
 confirm the run goes **red**. Thirty seconds, and it converts the assumption into evidence.
+
+> **RESOLVED 2026-08-02 — the assumption held.** Run log on `vite-plugin-shopify-clean`:
+> `BONSAI_URL: https://pilot-bogus-host.invalid` then `curl: (6) Could not resolve host`, exit 6.
+> The variable resolves against the **caller**, so the per-repo tunnel override survives the
+> conversion. Leg 1 on `foundrae-blackridge@staging` separately proved a *private* consumer resolves
+> the public cross-repo reusable and reads the caller's event payload
+> (`event=pull_request action=opened draft=false -> status=Internal Review`).
+>
+> Two design corrections worth carrying into the `claude.yml` pilot, both recorded in
+> [`fleet-operations.md`](fleet-operations.md): the `issues` leg is **not pilotable** (its `@claude`
+> grep is mirrored by `claude.yml`'s gate, so tripping it wakes a real implementer on a client repo),
+> and `closingIssuesReferences` only populates for PRs targeting the **default** branch — so a
+> scratch-base PR dodges the theme deploy but resolves `uuid=<none>` and passes green having tested
+> nothing. Assert on which host the log names, not on the run colour: a wrong-way resolution falls
+> back to the hardcoded default and fails too.
 
 **Phase 5 moved up.** It was written as "tag + repin" after the `claude.yml` conversion, but the
 `bonsai-status-sync` half needs its own tag and repin to be usable at all — the new stub ships with a
