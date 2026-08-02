@@ -1,7 +1,8 @@
 # Scope: drop the Claude App, unify the GitHub surface on `driver-digital-agents`
 
 **Status:** scoped, not started. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0`).
-**Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`). Line references re-verified and now
+**Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`), then re-verified again the same day
+against the **v1.11.0** release branch (`claude.yml` 460 → 477 lines). Line references re-verified and now
 **path-qualified** — several filenames exist in both `templates/github/` and `.github/workflows/` with
 different content and lengths, and the original draft cited both under one bare name. **Six corrections change
 what someone would build** — they are listed in *Provenance* and marked **Correction** where they appear. The
@@ -251,8 +252,9 @@ first time it appears is the first time it can disagree with the workflow gate, 
 > the first time — a repo can sit with a new `claude.yml` and an old pinned reusable, which means the
 > implementer runs while the Bonsai task never leaves its prior status, green everywhere. Sequence both into
 > one wave, and re-verify these line numbers before starting.
-*(The five numeric references above were re-verified unchanged at `a54c91e`: every edit to `claude.yml` since
-v1.6.0 landed at line 142 or later, leaving the whole actor-gate and trigger region untouched.)*
+*(The five numeric references above were re-verified unchanged at `a54c91e`, and again on the v1.11.0 release
+branch: every edit to `claude.yml` since v1.6.0 landed at line 142 or later — the v1.11.0 pair land at `:183`
+(`DRIVER_AGENTS_REF`) and `:403` (the tripwire) — leaving the whole actor-gate and trigger region untouched.)*
 
 **Therefore: identity and phrase are separable, and should be separate waves.** Swapping the token is a
 zero-UX-change move. Flipping the phrase is a coordinated one-literal cutover including a repo this scope
@@ -380,7 +382,7 @@ echoing a human's request (which contains the trigger phrase) re-enters the gate
    > two apart at `:30-31` — *"the sentinel token is DISTINCT from the round marker, so it never inflates the
    > count"* — and the sentinel is never *matched* in the reusable, appearing there only as a header comment
    > at `:14`; the live matches are `templates/github/ticketed-review.yml:40` (mentioned again at `:5`) and
-   > `templates/github/claude.yml:450`. Collapsing the two in the scope doc invites collapsing them in the
+   > `templates/github/claude.yml:462`. Collapsing the two in the scope doc invites collapsing them in the
    > implementation, which is the one thing that design forbids.
    >
    > **The missed site:** the `select(.user.login=="driver-digital-agents")` hardcode at `:137` has a **twin at
@@ -488,7 +490,7 @@ independently without touching the other 20.
    job status. This is the assertion that covers risk 4 (`Contents: read` on a private repo), and leg 2 is
    the only leg that exercises it.
 10. **Store provisioning succeeds** — on a store repo, `SHOPIFY_STORE_NAME` is non-empty, the env file is
-    written (`:238`), and the audit artifact uploads under a name containing the store handle (`:463`).
+    written (`:238`), and the audit artifact uploads under a name containing the store handle (`:475`).
     *False pass:* the same silent self-skip — the missing-secret early-exit at `:200-202` is deliberate
     degrade-quietly behaviour, and an artifact named `shopify-audit--<run_id>-…` uploads perfectly happily.
 
@@ -528,7 +530,8 @@ five findings are silent-failure class and are treated as requirements above. So
 `anthropics/claude-code-action` at pinned SHA `be7b93b1907a4abad570368f3c74b6fe3807510b`, live `gh api` queries
 against the DriverDigital org, and this repo's own files.
 
-**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0), with the rate-limit section re-derived from live
+**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0) and re-verified against the v1.11.0 release
+branch, with the rate-limit section re-derived from live
 org data and current GitHub documentation. **The recommendation is unchanged and the headline finding
 survives** (58.0–61.2%). Six corrections changed what someone would build — the self-authored guard, the
 dual-accept id pairing, the measurement instrument, the loop invariant's scope, the second round-counter site,

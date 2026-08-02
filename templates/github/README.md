@@ -80,9 +80,13 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
      set org-wide, nothing per repo) is provisioned to the runner and the alert is labeled with the
      run URL; if that secret is ever absent, alerts are silently off and nothing else changes.
      The implementer's system prompt carries the Shopify operator tripwire (never bypass the
-     wrapper; never evade an exit-3 refusal) — copied verbatim from driver-agents
+     wrapper; never evade an exit-3 refusal) — the blockquote is copied verbatim from driver-agents
      `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy here on
-     the next kit bump.
+     the next kit bump, **preserving the kit-side scope lead-in that precedes it** (it is not
+     canonical text — it un-scopes the block from the conduct rules above and tells the model how to
+     report a trip on a rail with no exit code; see the comment in `claude.yml`). The whole value
+     rides inside a **single-quoted** CLI token: **no apostrophes anywhere in it** — one apostrophe
+     silently truncates the prompt instead of erroring. `lint.yml` asserts the quote count.
 3. **Orchestrator PAT (the cascade requirement).** GitHub does **not** re-trigger workflows from
    events caused by the default `GITHUB_TOKEN`. The cron orchestrator must create issues with a
    **single fine-grained PAT owned by the `driver-digital-agents` machine-user account** —

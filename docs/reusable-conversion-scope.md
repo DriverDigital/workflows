@@ -3,7 +3,9 @@
 **Status:** `bonsai-status-sync` half IN PROGRESS (Phase 1 done); `claude.yml` half TABLED. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0` = `0a3934f`).
 **Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`). Three releases landed underneath the
 original draft — v1.7.0 (Slack alerting), v1.8.0 (audit context + artifact leg), v1.9.0 (store-secret rename).
-Every `file:line` citation below is re-verified against `a54c91e`; every number is recomputed. Citations are
+Every `file:line` citation below was re-verified again on 2026-08-02 against the **v1.11.0** release branch
+(`templates/github/claude.yml` is 477 lines there, not the 460 it was at `a54c91e`); every number is
+recomputed. Citations are
 now **path-qualified**, because several filenames exist in both `templates/github/` (short caller stubs) and
 `.github/workflows/` (long reusables) with entirely different content — the original draft cited both under
 one bare name.
@@ -33,12 +35,12 @@ The README has flagged this as "future work" since the repo split. This document
 ## Why
 
 *As of the Phase 1 conversion (2026-08-02) this argument is half-resolved: `bonsai-status-sync.yml` now has a
-central reusable, and the kit copy dropped from 190 lines to a 67-line stub at the v1.10.0 repin. **`claude.yml`'s 465
+central reusable, and the kit copy dropped from 190 lines to a 67-line stub at the v1.10.0 repin. **`claude.yml`'s 477
 lines remain copied** — still the single largest thing in the kit, and the drift surface that outlives this
 conversion. The original framing follows.*
 
 Of the 916-line kit, **650 lines (71%) were the two files copied verbatim rather than called** —
-`claude.yml` (465) and `bonsai-status-sync.yml` (190). The five caller stubs totalled 154 lines and are
+`claude.yml` (460) and `bonsai-status-sync.yml` (190). The five caller stubs totalled 154 lines and are
 mechanical.
 
 *At v1.6.0 this read 594 of 837 — the same 71%. The flat ratio hides the trend: over three releases the
@@ -64,7 +66,7 @@ file (open decision 1). What conversion removes is the 650 lines of *logic* that
 subset of — which is the specific failure that produced the Avara incident.
 
 Secondary win: `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:309`) and
-`actions/upload-artifact` (`:461`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
+`actions/upload-artifact` (`:473`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
 which `.github/dependabot.yml` (`directory: "/"`) actually scans — converting **three** documented manual pins
 into bot-managed ones.
 
@@ -195,7 +197,7 @@ to degrade quietly when unset.
 
 > **Correction (2026-08-02).** `SHOPIFY_STORE_NAME` now has a **second consumer**. At v1.6.0 it was read
 > only by the provisioning script (`:200`, `:207-211`, `:238`). v1.8.0 also interpolates it into the audit
-> **artifact name** at `templates/github/claude.yml:463`. The `inputs.shopify_store_name` value must be
+> **artifact name** at `templates/github/claude.yml:475`. The `inputs.shopify_store_name` value must be
 > threaded to **both** sites — wiring only the provisioning step leaves the artifact named
 > `shopify-audit--<run_id>-<attempt>`, which uploads successfully and is therefore another silent failure.
 
@@ -287,7 +289,7 @@ declares both secrets at `.github/workflows/pr-first-review.yml:42-44`. The cons
 
 ### The v1.8.0 artifact leg — new since the original draft
 
-v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:459-465`, mirrored at
+v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:471-477`, mirrored at
 `templates/github/shopify-tool-smoke.yml:106-112`). The step itself moves into a reusable unchanged —
 `always()`, `env.*` read from `$GITHUB_ENV`, and `upload-artifact`'s own `ACTIONS_RUNTIME_TOKEN` auth are all
 unaffected by `workflow_call`. Two things do change:
@@ -296,7 +298,7 @@ unaffected by `workflow_call`. Two things do change:
 - **A called workflow does not get its own run id.** `github.run_id` and `github.run_attempt` resolve to the
   **caller's** run. That is the *desirable* outcome for the collector — the artifact lands in the consuming
   repo's run, where the box's nightly `audit-publish.sh` already looks. But it degrades the collision guard
-  the file calls load-bearing at `:454-457`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
+  the file calls load-bearing at `:466-469`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
   run*. What makes that safe today is simply that `claude.yml` declares **exactly one job** (`jobs.claude`,
   `:65-66`) — not the concurrency group at `:61-63`, which serializes *runs* within a group and says nothing
   about jobs inside a run. Conversion removes that structural guarantee: **call the reusable from two jobs in
@@ -347,7 +349,7 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 | 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | **done 2026-08-02** — tag `v1.10.0` + PR #26 |
 | | **Approved subtotal** | **9–10h** | Phases 1 + 5 done → **pilot + wave left** |
 | 0 | Spike: go/no-go on OIDC-in-reusable | 3–4h | **tabled** |
-| 4 | Convert `claude.yml` — move the 465 lines **faithfully** | 7–9h | **tabled** |
+| 4 | Convert `claude.yml` — move the 477 lines **faithfully** | 7–9h | **tabled** |
 | 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
 | 7 | Fleet wave for `claude.yml`, same 18 pairs (10 single-branch repos incl. Avara → Palmers ×8) | 4–5h | **tabled** |
 | 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | **tabled** |
@@ -465,11 +467,11 @@ placeholder pin. Do it as part of the Phase 3 wave, not after it.
 **If identity unification ships first, Phase 0 disappears and the total is 26–33h.** And Phases 1–3 (8–11h)
 depend on neither Phase 0 nor the identity decision — that portion is startable now.
 
-*Estimates grew on the 2026-08-02 refresh: Phase 4's payload is 465 lines rather than 404 (6–8h → 7–9h) and
+*Estimates grew on the 2026-08-02 refresh: Phase 4's payload is 477 lines rather than 404 (6–8h → 7–9h) and
 Phase 8's `shopify-tool-smoke.yml` went 89 → 112 lines (2h → 2–3h). The v1.6.0 table also stated 28–36h while
 its own max column summed to 35.*
 
-Phase 4 note: **63%** of `claude.yml` is comments (296 of 465 lines — it was 67% at v1.6.0), and they are the
+Phase 4 note: **64%** of `claude.yml` is comments (308 of 477 lines — it was 67% at v1.6.0), and they are the
 institutional memory — the 2026-06-19 actor-gate incident, the `persist-credentials` 403 on private repos, the
 foundrae #148 prompt-hijack, the Avara #143 install blip. Budget for moving them faithfully, not cut-and-paste.
 
@@ -586,8 +588,10 @@ then put to an adversarial challenge agent instructed to refute it; **all six we
 sourced to official GitHub Actions docs, `anthropics/claude-code-action` source at the pinned SHA
 `be7b93b1907a4abad570368f3c74b6fe3807510b`, issue #443, and this repo's own files.
 
-**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0), after three releases landed underneath the draft.
-Every in-repo `file:line` citation was re-read at that SHA and every arithmetic claim recomputed; citations are
+**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0), after three releases landed underneath the draft,
+and **re-verified again the same day against the v1.11.0 release branch** — the `bonsai-status-sync` stub
+conversion and the `DRIVER_AGENTS_REF` + tripwire commits both moved `claude.yml` line numbers after that
+first pass. Every in-repo `file:line` citation was re-read and every arithmetic claim recomputed; citations are
 now path-qualified. Five findings from the CodeRabbit review of PR #21 were adopted and one **rejected on
 evidence** — see *On declaring secrets* above. The **external** citations into `anthropics/claude-code-action`
 were *not* re-verified; they remain as originally researched at the pinned SHA.
