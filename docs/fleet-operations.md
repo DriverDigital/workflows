@@ -109,21 +109,26 @@ checked; the script runs them in this order and exits non-zero if any fires:
    tag called the fleet uniform throughout. When this fires, nothing below it means anything —
    fix step 2 of the README's release order first.
 2. **Pins** — each deployed caller stub's `uses:` SHA vs that tag. The original check, unchanged.
-3. **Content** — the whole waved file vs its `templates/github/` source, byte for byte. This is
+3. **Content** — the whole waved file vs its `templates/github/` source, line for line. This is
    what closes the other two holes: a file with **no `uses:` line at all** (an unconverted 190-line
    copy of what is now a 66-line stub) is no longer invisible, and `DRIVER_AGENTS_REF` — a raw SHA
    in an `env:` block that no bot can bump — is now compared like any other line.
 
 Two things worth knowing about check 3:
 
-- **Only `SHOPIFY_STORE_NAME` is normalized away.** It is the one difference a correctly-waved repo
-  is *supposed* to have. Everything else that differs is reported, third-party action pins included:
-  a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth seeing, and it
-  means the kit is behind, not that the repo is wrong.
+- **Exactly two things are normalized away.** First, `SHOPIFY_STORE_NAME` — the one difference a
+  correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
+  the three stub-rails-only pairs (`Team-Laird@develop`, `The-Gathery@develop`,
+  `driver-bonsai-mcp@main`) were waved without a final newline and are otherwise identical, and nine
+  permanently-red rows for a byte nobody can act on is how a detector stops being read. Internal
+  blank lines *are* compared. Everything else that differs is reported, third-party action pins
+  included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
+  seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
   which share basenames with the stubs that call them — `pr-first-review.yml` is a ~200-line
   reusable there and a 25-line stub in the kit — so comparing it against `templates/` would report
-  six phantom drifts.
+  seven phantom drifts — the six stubs plus `lint.yml`, whose kit copy is a trimmed version of
+  this repo's own CI file of the same name.
 
 **Still unchecked: the tripwire parity between `templates/` and canonical.** The audit proves the
 fleet matches `templates/github/claude.yml`; it cannot prove that file's `--append-system-prompt`
@@ -171,8 +176,18 @@ the installed stub — the wave covers it anyway.
 
 `enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
 branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
-protection endpoint). Every other kit branch is protected. The kit's onboarding steps assume a
-human-approver rule exists, so on those two a bot signal alone could satisfy a merge.
+protection endpoint). Every other kit branch has a protection object — but **having one is not the
+same as requiring a human**, and the gap is wider than those two. Surveyed across all 21 pairs
+2026-08-02:
+
+| Pairs | `required_approving_review_count` | |
+|---|---|---|
+| 11 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-bonsai-mcp, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
+| **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
+| **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
+
+The kit's onboarding steps assume a human-approver rule exists. On **10** of the 21 pairs it does
+not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`
 had `strict: true` but empty `contexts`, so `lint.yml` could report red without being able to block).
@@ -196,9 +211,18 @@ check does not make it unbypassable for Maria — it makes it unbypassable for e
 puts a red X in front of an admin who would otherwise have had nothing to override. That is the
 actual value, and it was worth having either way.
 
-Flipping it to `true` was considered and rejected. The fleet-wide `false` exists because direct-push
-repin waves depend on it, and that reasoning genuinely does *not* apply to this repo: no wave has ever
-pushed here, and every commit on `main` is a PR merge. The reason to leave it alone anyway is
-uniformity — one repo with a different admin rule is a thing to remember at exactly the wrong moment,
-and the failure mode it would prevent (an admin knowingly merging red) is not one that has happened.
-Revisit if it ever does.
+Flipping it to `true` was considered and rejected, and the reason is stronger than uniformity: **this
+repo is itself pushed to directly.** No repin *wave* targets it, but six commits on `main` have no
+associated PR — including `a54c91e`, the v1.9.0 release commit, pushed 2026-08-01:
+
+```
+a54c91e  feat(kit): rename store app secrets to DRIVER_ENGINEERING_APP_* (v1.9.0)
+5bee8c4  Onboarding kit moves here from driver-bonsai-mcp (repo-split Stage 0)
+34826c9  fix: dependabot-validate falls back to npm install when no lockfile — v1.5.4
+c960ec1  fix: allowed_bots claude[bot] so round-1 actually reviews — v1.5.2
+69bd828  fix: drop the gh-based author re-check — v1.5.1
+499a51e  feat: ticketed-review reusable (Phase 3 ticketed-rail auto-review loop) — v1.5.0
+```
+
+`enforce_admins: true` would have blocked every one of those. Releases here have repeatedly gone out
+as direct pushes, so the flag stays `false` until that stops being true.

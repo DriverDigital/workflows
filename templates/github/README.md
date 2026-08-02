@@ -135,12 +135,21 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**.
 
    On a partial install with no `dependabot-validate`, `actionlint` is the one check that runs on
-   every PR unconditionally, so it is the right thing to require. Do **not** require
-   `review / review` on its own: `pr-first-review` skips drafts, forks, bot authors and ticketed
-   PRs by design, and a *skipped* required check counts as not-passed — it would block exactly the
-   PRs it is meant to leave alone. (`dependabot-validate` avoids this by always running and
-   branching internally, which is why it must never be `if:`-skipped.) Also add a rule requiring a
-   **human** approver (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
+   every PR unconditionally, so it is the right thing to require — but **run it once and let it go
+   green before you pin it**. `lint.yml` lints every workflow the repo already has, not just the
+   ones this kit ships, so a repo with its own hand-written workflows can have findings to fix on
+   day one. (`actionlint` fails on *info*-level shellcheck findings too. The kit already excludes
+   `SC2015`, which the runner's older shellcheck still reports and upstream has since dropped; add
+   further exclusions to `SHELLCHECK_OPTS` in that repo's copy if it needs them.)
+
+   Do **not** require `review / review`. The reason is its **trigger list**, not its `if:` guards:
+   `pr-first-review.yml` fires on `opened`, `ready_for_review` and `reopened` — deliberately *not*
+   `synchronize`. Push a follow-up commit and no run is created for that head SHA at all, so the
+   required context is **missing** rather than skipped, and a missing required check blocks the merge
+   indefinitely. (A job that *runs* and reports `skipped` is a different case, and GitHub does accept
+   that as satisfying a required check — so reason from whether a check run exists for the head
+   commit, not from the word "skipped".) Also add a rule requiring a **human** approver (e.g.
+   CODEOWNERS) so no bot signal satisfies the merge gate.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 

@@ -230,10 +230,12 @@ carries the six caller stubs above plus `claude.yml` (the implementer, still a f
 workflows) and `pull_request_template.md`.
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
-`pr-first-review.yml` + `lint.yml` alone and skip the rest as inert weight —
-[`driver-agents`](https://github.com/DriverDigital/driver-agents) and
-[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app) run exactly that subset.
-The trade-off is written up in `templates/github/README.md` under *Partial install*.
+`pr-first-review.yml` + `lint.yml` alone and skip the rest as inert weight. That subset is proposed for
+[`driver-agents`](https://github.com/DriverDigital/driver-agents/pull/6) and
+[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app/pull/2) — **both PRs are open,
+not merged**, and they should land only *after* this repo ships `templates/github/lint.yml`, since until
+then the file they install has no upstream source to be re-copied from. The trade-off is written up in
+`templates/github/README.md` under *Partial install*.
 
 **`bonsai-status-sync.yml` finished converting at `v1.11.0`.** The reusable landed 2026-08-02 and its stub
 landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
@@ -263,7 +265,8 @@ pins, and asserts `claude.yml`'s system prompt still tokenizes. Both use the job
 required-check context string is the same either way. `enforce_admins` stays **`false`** here, deliberately
 — which means an admin can still merge past a red `actionlint`. Requiring the check makes it binding for
 everyone else and puts a red X in front of an admin who previously had nothing to override; that was worth
-having on its own. Flipping the flag was considered and rejected for uniformity — reasoning in
+having on its own. Flipping the flag would break this repo's own release habit — six commits on `main`,
+`v1.9.0`'s included, were pushed directly with no PR. Detail in
 [`docs/fleet-operations.md`](docs/fleet-operations.md#branch-protection).
 
 ## The three identities
@@ -324,8 +327,12 @@ task. The `config/reviewers.json` copy in **this** repo is reference only — no
 
 ## First-run / required-check
 
-The `dependabot-validate` job **always runs and branches internally** (non-Dependabot PRs no-op green) — a
-*skipped* required check counts as not-passed and would block every human PR, so it must never be `if:`-skipped.
+The `dependabot-validate` job **always runs and branches internally** (non-Dependabot PRs no-op green), and
+must never be `if:`-skipped. The mechanism is worth stating precisely, because the intuitive version is
+wrong: GitHub *does* accept a check run whose conclusion is `skipped`. The problem is that `if:`-skipping
+the **caller** job means the reusable never starts, so the nested `validate / validate` context is never
+created at all — and a required context with **no check run** for the head commit blocks forever. Reason
+about whether a check run exists for the head SHA, not about the word "skipped".
 After the first run on a test PR: pin the **exact required-check context GitHub reports** — for a
 reusable-workflow job it is `<caller-job-id> / <reusable-job-id>`, expected **`validate / validate`** (the
 workflow display name is NOT part of the context; copy the literal string from the first run's checks list).

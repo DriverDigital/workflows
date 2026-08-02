@@ -50,8 +50,19 @@ jobs:
           echo "${SHA256}  actionlint.tar.gz" | sha256sum -c -
           tar -xzf actionlint.tar.gz actionlint
 
-      # With no paths actionlint globs .github/workflows/ itself.
+      # With no paths actionlint globs .github/workflows/ itself — every workflow the installing
+      # repo has, not just the ones this kit ships.
       - name: Lint .github/workflows/
+        env:
+          # SC2015 ("A && B || C is not if-then-else") is the ONLY exclusion, and it is a false
+          # positive on the shape it fires for here: `cond && action || true`, where the trailing C
+          # is a literal `true` — a no-op that exists so `set -e` doesn't abort when cond is false.
+          # C running "unexpectedly" is precisely the intent. Upstream agrees: shellcheck 0.11 no
+          # longer reports this shape at all, so the finding only appears on the older shellcheck
+          # preinstalled on the runner. Kept because actionlint treats an INFO-level shellcheck
+          # finding as a hard failure, and this job is meant to be a required check — without the
+          # exclusion, ordinary defensive shell in a repo's own workflows blocks every PR.
+          SHELLCHECK_OPTS: --exclude=SC2015
         run: |
           set -euo pipefail
           ./actionlint -color
