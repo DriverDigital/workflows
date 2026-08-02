@@ -42,8 +42,9 @@ one wave.
 
 **Decided 2026-08-02: shipped as `v1.11.0` rather than folded into the v1.10.0 wave.** Folding it in
 would have put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh`
-compares only stub pin lines against the latest tag — never `templates/` content — so it would have
-reported the fleet uniform and green over the gap. Executed as: merge → tag `v1.11.0` at that merge
+compared only stub pin lines against the latest tag — never `templates/` content — so it would have
+reported the fleet uniform and green over the gap. (That blind spot is now closed: the audit also
+checks `templates/` against the latest tag and every waved file against `templates/`.) Executed as: merge → tag `v1.11.0` at that merge
 commit → repin all six stubs to `v1.11.0` → **one** wave. That is what `v1.7.0` and `v1.8.0` each did.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
@@ -109,8 +110,9 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
   green on the new names, old-name secrets deleted.
 - **Reusables unchanged.** Note this release **never got its kit repin commit** — `templates/` sat at
   `v1.8.0`'s SHA while the deployed fleet was waved to `a54c91e`, leaving the fleet a release *ahead*
-  of the kit templates until `v1.11.0` closed it. That gap is invisible to
-  `tools/fleet-pin-audit.sh`; see [`docs/fleet-operations.md`](docs/fleet-operations.md).
+  of the kit templates until `v1.11.0` closed it. That gap was invisible to
+  `tools/fleet-pin-audit.sh` at the time; its reference check now catches exactly this shape — see
+  [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
 ### `v1.8.0` (2026-07-31, kit-only)
 
@@ -168,8 +170,11 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
      prefixes, NFC-normalize, **collapse whitespace**, and diff against the blockquote portion of
      `claude.yml`'s `--append-system-prompt`. The whitespace collapse is mandatory — the kit flattens
      canonical's paragraph break to a single space (forced by the no-newline constraint), so a strict
-     byte compare reports a false failure. Nothing else re-checks this: `fleet-pin-audit.sh` greps only
-     stub pin lines, and `DRIVER_AGENTS_REF` is a raw SHA in an env var that no bot can bump.
+     byte compare reports a false failure. **Nothing else re-checks this.** `fleet-pin-audit.sh` proves
+     the fleet matches `templates/github/claude.yml` — it cannot prove that file's blockquote still
+     matches canonical at the new pin, and `DRIVER_AGENTS_REF` is a raw SHA in an env var that no bot
+     can bump. The audit catches a *fleet* that fell behind `templates/`; only this step catches
+     `templates/` falling behind driver-agents.
 2. Repin every caller stub in `templates/github/` to that tag's SHA and commit. Until this
    lands, the kit's stubs still point at the PREVIOUS tag's reusables.
    - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
@@ -178,7 +183,8 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
      `bonsai-status-sync.yml`'s stub landed at `v1.11.0`. `lint.yml` fails the build on any stub left
      carrying a placeholder pin, so this step cannot be silently skipped.
 3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
-   to confirm the fleet converged afterwards).
+   to confirm the fleet converged afterwards — it now checks waved file **content** against
+   `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
@@ -220,15 +226,24 @@ produces a silent `startup_failure` — no check run, no notification).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
 carries the six caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
-`shopify-tool-smoke.yml` (store repos only) and `pull_request_template.md`.
+`shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
+workflows) and `pull_request_template.md`.
+
+**Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
+`pr-first-review.yml` + `lint.yml` alone and skip the rest as inert weight —
+[`driver-agents`](https://github.com/DriverDigital/driver-agents) and
+[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app) run exactly that subset.
+The trade-off is written up in `templates/github/README.md` under *Partial install*.
 
 **`bonsai-status-sync.yml` finished converting at `v1.11.0`.** The reusable landed 2026-08-02 and its stub
 landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
 see *Release + repin order* above and [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
 The two-step was deliberate and matches how `dependabot-keep-current` was added: a new reusable's stub cannot
 be pinned until the tag containing that reusable exists, so the reusable lands first and the stub follows in
-the repin commit. `lint.yml` fails the build on any stub still carrying a placeholder pin. **The fleet has not
-been waved yet** — consumer repos still run the 190-line copy until the v1.11.0 wave.
+the repin commit. `lint.yml` fails the build on any stub still carrying a placeholder pin. **The v1.11.0 wave
+has landed** — `tools/fleet-pin-audit.sh` reads clean across all 21 repo@branch pairs (108 pin rows at
+`90f0d066`, 127 files byte-identical to `templates/` after store-handle normalization, verified 2026-08-02),
+so every consumer repo now runs the 66-line stub.
 
 **`claude.yml` stays a per-repo copy** — that half of the conversion is tabled pending the OIDC spike (whether
 Claude App token minting survives inside a cross-repo reusable), so it remains the kit's main drift surface
@@ -236,10 +251,19 @@ and the reason re-copies still need care.
 
 Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
-broken workflow can't reach consumer repos — it reports red on the PR, but **pin `actionlint` as a
-required check** if you want it to actually block a merge) and `dependabot-auto-merge.yml` (auto-merges
-this repo's own `github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded,
-so those land by hand).
+broken workflow can't reach consumer repos) and `dependabot-auto-merge.yml` (auto-merges this repo's own
+`github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded, so those land by
+hand).
+
+**`actionlint` is a required status check on `main`** (set 2026-08-02) — before that, `lint.yml` could
+report red without being able to block. Note the name collision: this repo's own `lint.yml` and the kit's
+`templates/github/lint.yml` are **different files**. The kit one runs actionlint over the installing repo's
+`.github/workflows/` and nothing else; this one additionally lints `templates/github/`, gates on placeholder
+pins, and asserts `claude.yml`'s system prompt still tokenizes. Both use the job id `actionlint`, so the
+required-check context string is the same either way. `enforce_admins` stays **`false`** here, deliberately:
+it is `false` fleet-wide because direct-push repin waves depend on it, and while no wave has ever pushed
+directly to *this* repo, diverging from the fleet default would make the one exception the thing to
+remember. The 1-approval review rule is what actually gates merges.
 
 ## The three identities
 

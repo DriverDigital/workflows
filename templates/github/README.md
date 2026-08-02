@@ -12,6 +12,7 @@ lifecycle.
 | `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the sync can resolve the task. AI PRs link automatically via the issue's development branch. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
+| `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 
@@ -105,22 +106,41 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    cp templates/github/dependabot-validate.yml  .github/workflows/
    cp templates/github/dependabot-report.yml    .github/workflows/
    cp templates/github/dependabot-keep-current.yml .github/workflows/
+   cp templates/github/lint.yml                 .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    ```
    **Re-copying into a repo that already has the kit?** Preserve that repo's own Dependabot action
    pins — re-copy the workflow bodies, but don't clobber pins Dependabot has since bumped there.
+   **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
+   be silently clobbered by the kit's, which is the only kit filename likely to already exist.
+
+   **Partial install (`pr-first-review.yml` + `lint.yml` only).** For a repo that is *not* on the
+   Bonsai → PR pipeline — no orchestrator issues, no ticketed rail — these two are the useful subset
+   and the rest are inert weight. This is what `driver-agents` and `driver-agents-app` run. Know what
+   you are giving up: `pr-first-review.yml` deliberately excludes `dependabot[bot]` authors and
+   self-skips on any PR whose linked issue carries a Bonsai uuid, so with nothing else installed a
+   Dependabot PR or a ticketed PR gets **zero** automated review rather than a different one. Add the
+   Dependabot pair if and when that repo turns Dependabot on.
 5. **Board strings are no longer edited here.** As of v1.11.0 `bonsai-status-sync.yml` is a caller
    stub; the exact Bonsai status strings live only in the central reusable
    (`DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml`). A board rename is therefore
    a kit release + fleet repin, not a local edit — changing the strings in one repo does nothing.
    A miss still fails the workflow loudly with `STATUS_NOT_FOUND` rather than flipping silently.
 6. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
-   check context GitHub reports** — for a reusable-workflow job that is
-   `<caller-job-id> / <reusable-job-id>`, expected **`validate / validate`**. Copy the literal
-   string from the first run's checks list; the workflow display name is not part of it. Also add a
-   rule requiring a **human** approver (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
-   `dependabot-validate` always runs and branches internally — never `if:`-skip it, because a
-   *skipped* required check counts as not-passed and would block every human PR.
+   check context GitHub reports**. Copy the literal string from the first run's checks list; the
+   workflow display **name** is never part of it. Two shapes:
+   - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
+     that is **`validate / validate`** (`dependabot-validate`), and `pr-first-review` reports
+     **`review / review`**.
+   - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**.
+
+   On a partial install with no `dependabot-validate`, `actionlint` is the one check that runs on
+   every PR unconditionally, so it is the right thing to require. Do **not** require
+   `review / review` on its own: `pr-first-review` skips drafts, forks, bot authors and ticketed
+   PRs by design, and a *skipped* required check counts as not-passed — it would block exactly the
+   PRs it is meant to leave alone. (`dependabot-validate` avoids this by always running and
+   branching internally, which is why it must never be `if:`-skipped.) Also add a rule requiring a
+   **human** approver (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 

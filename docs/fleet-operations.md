@@ -95,22 +95,40 @@ Dependabot drift — but survey, don't assume.
 
 ---
 
-## What the pin audit cannot see
+## What the pin audit checks — and the one thing it still cannot see
 
-`tools/fleet-pin-audit.sh` greps only
-`DriverDigital/workflows/.github/workflows/<name>@<sha>` and compares the SHA to the latest tag.
-Three consequences:
+`tools/fleet-pin-audit.sh` used to grep only
+`DriverDigital/workflows/.github/workflows/<name>@<sha>` and compare that SHA to the latest tag,
+which left three holes. Two of them let the v1.9.0 gap read green for a day. All three are now
+checked; the script runs them in this order and exits non-zero if any fires:
 
-- **A file with no `uses:` line is invisible.** An unconverted 190-line copy has none, so the audit
-  cannot tell a repo that was skipped by a stub conversion from one that never carried the file.
-- **Content is never compared.** `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, and the
-  system-prompt text is just text. A fleet running kit content from no tag reports clean.
-- **The reference itself can drift.** The audit compares against the latest *tag*, never against
-  `templates/`. When those disagree the audit reports uniform while real drift sits in the source of
-  truth — which is exactly how the v1.9.0 gap went unnoticed for a day.
+1. **Reference** — every `uses:` pin in `templates/github/*.yml` equals the latest tag's SHA.
+   Checks 2 and 3 measure the fleet *against* `templates/`, so a stale reference makes both of them
+   lie. This is the v1.9.0 failure exactly: the wave repinned the fleet to `a54c91e` while the kit's
+   own stubs still said `80c35fe`, and an audit that only ever compared deployed pins to the latest
+   tag called the fleet uniform throughout. When this fires, nothing below it means anything —
+   fix step 2 of the README's release order first.
+2. **Pins** — each deployed caller stub's `uses:` SHA vs that tag. The original check, unchanged.
+3. **Content** — the whole waved file vs its `templates/github/` source, byte for byte. This is
+   what closes the other two holes: a file with **no `uses:` line at all** (an unconverted 190-line
+   copy of what is now a 66-line stub) is no longer invisible, and `DRIVER_AGENTS_REF` — a raw SHA
+   in an `env:` block that no bot can bump — is now compared like any other line.
 
-This is why the release order requires the tag to contain what gets waved, and why a
-`DRIVER_AGENTS_REF` bump must re-run the canonical parity check by hand.
+Two things worth knowing about check 3:
+
+- **Only `SHOPIFY_STORE_NAME` is normalized away.** It is the one difference a correctly-waved repo
+  is *supposed* to have. Everything else that differs is reported, third-party action pins included:
+  a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth seeing, and it
+  means the kit is behind, not that the repo is wrong.
+- **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
+  which share basenames with the stubs that call them — `pr-first-review.yml` is a ~200-line
+  reusable there and a 25-line stub in the kit — so comparing it against `templates/` would report
+  six phantom drifts.
+
+**Still unchecked: the tripwire parity between `templates/` and canonical.** The audit proves the
+fleet matches `templates/github/claude.yml`; it cannot prove that file's `--append-system-prompt`
+blockquote still matches driver-agents `docs/agent-instructions-shopify.md` at the pinned
+`DRIVER_AGENTS_REF`. That comparison is by hand, at release time — step 1 of the release order.
 
 ---
 
