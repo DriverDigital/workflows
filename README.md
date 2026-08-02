@@ -23,12 +23,13 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.10.0`** (`b394c6d`) — **not** kit-only: it adds a **sixth reusable**,
-`bonsai-status-sync.yml`, converted from a copied per-repo workflow on 2026-08-02. Its caller stub
-landed in the repin commit for this tag, per step 2 of the release order below. The other five
-reusables have been byte-identical since `v1.6.0`'s `0a3934f`.
+Latest tag **`v1.11.0`** (`90f0d06`, 2026-08-02) — **not** kit-only. It carries three things: the
+`bonsai-status-sync.yml` **caller stub** (the reusable itself landed one tag earlier at `v1.10.0` =
+`b394c6d`, so the conversion spans the two), the `DRIVER_AGENTS_REF` bump, and the Shopify operator
+tripwire. The other five reusables have been byte-identical since `v1.6.0`'s `0a3934f`. All six stubs
+are pinned to `90f0d06`.
 
-**Unreleased on `main` (2026-08-02) — `DRIVER_AGENTS_REF` → `4d63371`, lockstep in `claude.yml` +
+**In `v1.11.0` — `DRIVER_AGENTS_REF` → `4d63371`, lockstep in `claude.yml` +
 `shopify-tool-smoke.yml`.** The previous pin `0bbb125` predated the Admin API wrapper:
 `graphql_guard.py` does not exist at that SHA, so every fleet runner executes `admin-graphql.sh`
 with **no fail-closed allowlist** and the Driver Engineering scope grant is the only control on
@@ -39,16 +40,16 @@ driver-agents `docs/agent-instructions-shopify.md`, which is canonical — edit 
 the kit-side scope lead-in that precedes it), so the fleet gets the wrapper and its instruction block in
 one wave.
 
-**Decided 2026-08-02: this ships as `v1.11.0`, not folded into the v1.10.0 wave.** Folding it in would
-put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh` compares
-only stub pin lines against the latest tag — never `templates/` content — so it would report the fleet
-uniform and green over the gap. Sequence: merge the repin PR → tag `v1.11.0` at that merge commit →
-repin all six stubs to `v1.11.0` → **one** wave. That is what `v1.7.0` and `v1.8.0` each did.
+**Decided 2026-08-02: shipped as `v1.11.0` rather than folded into the v1.10.0 wave.** Folding it in
+would have put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh`
+compares only stub pin lines against the latest tag — never `templates/` content — so it would have
+reported the fleet uniform and green over the gap. Executed as: merge → tag `v1.11.0` at that merge
+commit → repin all six stubs to `v1.11.0` → **one** wave. That is what `v1.7.0` and `v1.8.0` each did.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
 here. Deployed fleet stubs were repinned to `v1.9.0` by the 2026-08-01 wave, so between then and this
-tag the fleet was *ahead* of the kit templates. The v1.10.0 wave resolves both. Deployed fleet stubs are
+tag the fleet was *ahead* of the kit templates. The v1.11.0 wave resolves both. Deployed fleet stubs are
 repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins in practice
 (zero such PRs fleet-wide; debugging why is on the backlog). Org Actions secrets (`AGENTS_GH_PAT`,
 `CLAUDE_CODE_OAUTH_TOKEN`, `BONSAI_BEARER_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions
@@ -129,12 +130,12 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
    - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
      reusable — the tag it must pin does not exist until step 1. That is why
      `dependabot-keep-current`'s reusable and its stub landed in different commits, and how
-     `bonsai-status-sync.yml`'s stub landed at `v1.10.0`. `lint.yml` fails the build on any stub left
+     `bonsai-status-sync.yml`'s stub landed at `v1.11.0`. `lint.yml` fails the build on any stub left
      carrying a placeholder pin, so this step cannot be silently skipped.
 3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
    to confirm the fleet converged afterwards).
-   - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did at `v1.10.0` — this
-     applies to the v1.10.0 wave specifically), the wave diff
+   - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
+     v1.11.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
      wave script rewrites `templates/github/` → `.github/workflows/`, so assert the rewritten diff
      touches no destination path twice before applying — otherwise the reusable can land in a client
@@ -176,13 +177,13 @@ produces a silent `startup_failure` — no check run, no notification).
 carries the six caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
 `shopify-tool-smoke.yml` (store repos only) and `pull_request_template.md`.
 
-**`bonsai-status-sync.yml` finished converting at `v1.10.0`.** The reusable landed 2026-08-02 and its stub
+**`bonsai-status-sync.yml` finished converting at `v1.11.0`.** The reusable landed 2026-08-02 and its stub
 landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
 see *Release + repin order* above and [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
 The two-step was deliberate and matches how `dependabot-keep-current` was added: a new reusable's stub cannot
 be pinned until the tag containing that reusable exists, so the reusable lands first and the stub follows in
 the repin commit. `lint.yml` fails the build on any stub still carrying a placeholder pin. **The fleet has not
-been waved yet** — consumer repos still run the 190-line copy until the v1.10.0 wave.
+been waved yet** — consumer repos still run the 190-line copy until the v1.11.0 wave.
 
 **`claude.yml` stays a per-repo copy** — that half of the conversion is tabled pending the OIDC spike (whether
 Claude App token minting survives inside a cross-repo reusable), so it remains the kit's main drift surface

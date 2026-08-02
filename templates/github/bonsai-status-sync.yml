@@ -56,7 +56,7 @@ jobs:
     # NOTE: the required-status-check context for this job is `sync / sync` (caller job id /
     # reusable job id), NOT the bare `sync` it was as a full workflow. Verified 2026-08-02 that
     # no branch in the org pins either, so this rename breaks nothing — re-check before adding one.
-    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@b394c6d73c3060ba3d0b352f51ad589af9d548f5 # v1.10.0
+    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@90f0d066c140c356c44d5b3d83d795c0256a7b82 # v1.11.0
     # Explicit, NOT `secrets: inherit`. Two reasons: (1) `inherit` passes whatever set exists, which
     # defeats the reusable's `required: true` — a missing secret would reach the curl and surface as
     # an opaque 401 on the first real flip instead of failing at startup; (2) least privilege — this
