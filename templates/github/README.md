@@ -10,17 +10,17 @@ lifecycle.
 | File | Goes to | Does |
 |---|---|---|
 | `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). |
-| `bonsai-status-sync.yml` | `.github/workflows/bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the sync can resolve the task. AI PRs link automatically via the issue's development branch. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 
-All five go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
+All six go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
 trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is recorded.
 
 | File | Rail |
 |---|---|
+| `bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. Converted from a 190-line per-repo copy at v1.10.0. |
 | `pr-first-review.yml` | Human, no-ticket PR → `/code-review` comments + request a human reviewer. |
 | `ticketed-review.yml` | `claude[bot]` **ticketed** PR → capped `/code-review` revise loop (max 3 passes) → Bonsai reviewer handoff. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
@@ -79,6 +79,14 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
      `#driver-agents-status` from CI too — the org-level `SHOPIFY_ALERT_WEBHOOK` secret (already
      set org-wide, nothing per repo) is provisioned to the runner and the alert is labeled with the
      run URL; if that secret is ever absent, alerts are silently off and nothing else changes.
+     The implementer's system prompt carries the Shopify operator tripwire (never bypass the
+     wrapper; never evade an exit-3 refusal) — the blockquote is copied verbatim from driver-agents
+     `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy here on
+     the next kit bump, **preserving the kit-side scope lead-in that precedes it** (it is not
+     canonical text — it un-scopes the block from the conduct rules above and tells the model how to
+     report a trip on a rail with no exit code; see the comment in `claude.yml`). The whole value
+     rides inside a **single-quoted** CLI token: **no apostrophes anywhere in it** — one apostrophe
+     silently truncates the prompt instead of erroring. `lint.yml` asserts the quote count.
 3. **Orchestrator PAT (the cascade requirement).** GitHub does **not** re-trigger workflows from
    events caused by the default `GITHUB_TOKEN`. The cron orchestrator must create issues with a
    **single fine-grained PAT owned by the `driver-digital-agents` machine-user account** —
@@ -101,9 +109,11 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    ```
    **Re-copying into a repo that already has the kit?** Preserve that repo's own Dependabot action
    pins — re-copy the workflow bodies, but don't clobber pins Dependabot has since bumped there.
-5. **Confirm the board strings.** `bonsai-status-sync.yml` hardcodes the exact Bonsai status
-   strings. If the board is ever renamed, update them here — a miss fails the workflow loudly
-   with `STATUS_NOT_FOUND` rather than flipping silently.
+5. **Board strings are no longer edited here.** As of v1.10.0 `bonsai-status-sync.yml` is a caller
+   stub; the exact Bonsai status strings live only in the central reusable
+   (`DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml`). A board rename is therefore
+   a kit release + fleet repin, not a local edit — changing the strings in one repo does nothing.
+   A miss still fails the workflow loudly with `STATUS_NOT_FOUND` rather than flipping silently.
 6. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports** — for a reusable-workflow job that is
    `<caller-job-id> / <reusable-job-id>`, expected **`validate / validate`**. Copy the literal

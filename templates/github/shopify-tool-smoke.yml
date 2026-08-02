@@ -43,7 +43,7 @@ jobs:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
           # different revision than the implementer actually runs would defeat the purpose.
-          DRIVER_AGENTS_REF: 0bbb125f36a6cae7bb211145efb6e57f70a883e9 # main @ 2026-07-31 (audit pipeline)
+          DRIVER_AGENTS_REF: 4d633714ce0a3c9bf7ec87cfcfb8b13ceaf8240c # main @ 2026-08-02 (audit pipeline + Admin API wrapper)
           # Optional, same as claude.yml's: org-level secret; absent = alerts off, smoke still runs.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |

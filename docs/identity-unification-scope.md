@@ -1,7 +1,8 @@
 # Scope: drop the Claude App, unify the GitHub surface on `driver-digital-agents`
 
 **Status:** scoped, not started. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0`).
-**Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`). Line references re-verified and now
+**Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`), then re-verified again the same day
+against the **v1.11.0** release branch (`claude.yml` 460 → 477 lines). Line references re-verified and now
 **path-qualified** — several filenames exist in both `templates/github/` and `.github/workflows/` with
 different content and lengths, and the original draft cited both under one bare name. **Six corrections change
 what someone would build** — they are listed in *Provenance* and marked **Correction** where they appear. The
@@ -211,12 +212,13 @@ revise loop mid-cutover, then drop the old literal.
 > ```
 >
 > Note `209825114` appears in **no workflow file** in this repo (`git grep 209825114 -- ':!docs/'` → zero
-> hits; the only occurrences are in this doc), while all **13** occurrences of `261291955` — recounted
-> 2026-08-02 against this branch, and path-qualified because the same basename now exists in both halves:
-> `templates/github/claude.yml` (6), `templates/github/bonsai-status-sync.yml` (2),
-> `templates/github/ticketed-review.yml` (2), `.github/workflows/bonsai-status-sync.yml` (2, added by the
-> Phase 1 conversion) and `README.md` (1) — are bound to `driver-digital-agents`. The overlap wave introduces
-> the first use of the `claude[bot]` id, and removes it again at the end.
+> hits; the only occurrences are in this doc), while all **11** occurrences of `261291955` — recounted
+> 2026-08-02 after the v1.10.0 repin, and path-qualified because the same basename exists in both halves:
+> `templates/github/claude.yml` (6), `templates/github/ticketed-review.yml` (2),
+> `.github/workflows/bonsai-status-sync.yml` (2) and `README.md` (1) — are bound to `driver-digital-agents`.
+> **`templates/github/bonsai-status-sync.yml` no longer contains the id at all**: it held 2 occurrences until
+> the repin turned it into a stub, and those are now the 2 in the central reusable — not additional sites.
+> The overlap wave introduces the first use of the `claude[bot]` id, and removes it again at the end.
 
 ### 2. Commit attribution stays wrong unless set explicitly
 
@@ -231,7 +233,8 @@ mode is selected, `checkContainsTrigger` returns false, and `run.ts:212` logs "N
 **success without posting a tracking comment**. A human addresses the bot and gets nothing, on a green check.
 
 Four things must move in one commit: the four `contains()` clauses
-(`templates/github/claude.yml:91,95,99,101`), `templates/github/bonsai-status-sync.yml:134`'s grep, a
+(`templates/github/claude.yml:91,95,99,101`), `.github/workflows/bonsai-status-sync.yml:139`'s grep (it moved
+out of `templates/github/` at the v1.10.0 repin — the kit file is now a stub carrying neither), a
 `trigger_phrase` input on the action, and **the out-of-repo cron orchestrator that writes `@claude` into issue
 bodies**.
 
@@ -239,17 +242,19 @@ Note `trigger_phrase` **does not exist in this repo today** (`git grep` → zero
 default phrase. So it must be *added* in the same commit, not edited. That is a small but real difference: the
 first time it appears is the first time it can disagree with the workflow gate, which is the #148 signature.
 
-> **Moving target (2026-08-02).** `bonsai-status-sync.yml` is mid-conversion to a reusable. The grep and the
-> `261291955` gate cited above are still in `templates/github/bonsai-status-sync.yml` today, but at the next
-> repin they move to `.github/workflows/bonsai-status-sync.yml` (currently `:139` and `:141`) and the kit file
-> becomes a stub containing neither. **That changes the mechanics of this wave**, not just the path: the
+> **Moved (2026-08-02, v1.10.0 repin).** `bonsai-status-sync.yml` finished converting. The grep and the
+> `261291955` gate cited above now live ONLY in `.github/workflows/bonsai-status-sync.yml` (`:139` and
+> `:141`); `templates/github/bonsai-status-sync.yml` is a stub containing neither. Note the *fleet* still
+> runs the old 190-line copy until the wave, so until then a consumer repo still carries its own gate at the
+> old per-repo line numbers. **That changes the mechanics of this wave**, not just the path: the
 > mirrored gate would then live in a *centrally pinned* file, so it changes by kit release + fleet repin
 > rather than by the same file copy that carries `claude.yml`'s gate. The two can therefore drift apart for
 > the first time — a repo can sit with a new `claude.yml` and an old pinned reusable, which means the
 > implementer runs while the Bonsai task never leaves its prior status, green everywhere. Sequence both into
 > one wave, and re-verify these line numbers before starting.
-*(The five numeric references above were re-verified unchanged at `a54c91e`: every edit to `claude.yml` since
-v1.6.0 landed at line 142 or later, leaving the whole actor-gate and trigger region untouched.)*
+*(The five numeric references above were re-verified unchanged at `a54c91e`, and again on the v1.11.0 release
+branch: every edit to `claude.yml` since v1.6.0 landed at line 142 or later — the v1.11.0 pair land at `:183`
+(`DRIVER_AGENTS_REF`) and `:403` (the tripwire) — leaving the whole actor-gate and trigger region untouched.)*
 
 **Therefore: identity and phrase are separable, and should be separate waves.** Swapping the token is a
 zero-UX-change move. Flipping the phrase is a coordinated one-literal cutover including a repo this scope
@@ -258,7 +263,7 @@ does not cover. Ship identity first.
 ### 4. `AGENTS_GH_PAT`'s live scope is unknown, and the docs contradict each other
 
 `templates/github/claude.yml:180` binds `AGENTS_GH_PAT` as the `GH_TOKEN` that `gh repo clone`s the **private**
-`driver-agents` repo at `:213` — which requires `Contents: read`. There are **two** written descriptions of
+`driver-agents` repo at `:218` — which requires `Contents: read`. There are **two** written descriptions of
 that token and they do not agree: `.github/workflows/pr-first-review.yml:22-23` says "Issues + Pull-requests
 R/W, Contents:READ, no Admin", while `templates/github/README.md:59-61` describes `AGENTS_GH_PAT` and lists
 **no permissions at all**. Neither is verified against the live token.
@@ -377,7 +382,7 @@ echoing a human's request (which contains the trigger phrase) re-enters the gate
    > two apart at `:30-31` — *"the sentinel token is DISTINCT from the round marker, so it never inflates the
    > count"* — and the sentinel is never *matched* in the reusable, appearing there only as a header comment
    > at `:14`; the live matches are `templates/github/ticketed-review.yml:40` (mentioned again at `:5`) and
-   > `templates/github/claude.yml:445`. Collapsing the two in the scope doc invites collapsing them in the
+   > `templates/github/claude.yml:462`. Collapsing the two in the scope doc invites collapsing them in the
    > implementation, which is the one thing that design forbids.
    >
    > **The missed site:** the `select(.user.login=="driver-digital-agents")` hardcode at `:137` has a **twin at
@@ -479,14 +484,14 @@ independently without touching the other 20.
    client-side count of content-generating calls and any `403`/`429` bodies naming the secondary limit.
    Extrapolate both to wave size. *False pass:* reporting primary headroom only — see mitigation 2, the
    secondary limit has no status endpoint and is the one expected to bind.
-9. **Private clone succeeds** — `templates/github/claude.yml:213` actually clones `driver-agents` at the
+9. **Private clone succeeds** — `templates/github/claude.yml:218` actually clones `driver-agents` at the
    pinned revision on the implementer PAT. *False pass:* the step's own degrade path — `::warning::` at
-   `:225` then `exit 0` at `:227`, so the job stays green. Assert on the **absence of that warning**, not on
+   `:230` then `exit 0` at `:232`, so the job stays green. Assert on the **absence of that warning**, not on
    job status. This is the assertion that covers risk 4 (`Contents: read` on a private repo), and leg 2 is
    the only leg that exercises it.
 10. **Store provisioning succeeds** — on a store repo, `SHOPIFY_STORE_NAME` is non-empty, the env file is
-    written (`:233`), and the audit artifact uploads under a name containing the store handle (`:458`).
-    *False pass:* the same silent self-skip — the missing-secret early-exit at `:195-197` is deliberate
+    written (`:238`), and the audit artifact uploads under a name containing the store handle (`:475`).
+    *False pass:* the same silent self-skip — the missing-secret early-exit at `:200-202` is deliberate
     degrade-quietly behaviour, and an artifact named `shopify-audit--<run_id>-…` uploads perfectly happily.
 
 *(Assertions 9 and 10 were added on the 2026-08-02 refresh. Both failure paths were already identified in this
@@ -525,7 +530,8 @@ five findings are silent-failure class and are treated as requirements above. So
 `anthropics/claude-code-action` at pinned SHA `be7b93b1907a4abad570368f3c74b6fe3807510b`, live `gh api` queries
 against the DriverDigital org, and this repo's own files.
 
-**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0), with the rate-limit section re-derived from live
+**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0) and re-verified against the v1.11.0 release
+branch, with the rate-limit section re-derived from live
 org data and current GitHub documentation. **The recommendation is unchanged and the headline finding
 survives** (58.0–61.2%). Six corrections changed what someone would build — the self-authored guard, the
 dual-accept id pairing, the measurement instrument, the loop invariant's scope, the second round-counter site,

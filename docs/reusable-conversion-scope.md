@@ -3,7 +3,9 @@
 **Status:** `bonsai-status-sync` half IN PROGRESS (Phase 1 done); `claude.yml` half TABLED. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0` = `0a3934f`).
 **Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`). Three releases landed underneath the
 original draft — v1.7.0 (Slack alerting), v1.8.0 (audit context + artifact leg), v1.9.0 (store-secret rename).
-Every `file:line` citation below is re-verified against `a54c91e`; every number is recomputed. Citations are
+Every `file:line` citation below was re-verified again on 2026-08-02 against the **v1.11.0** release branch
+(`templates/github/claude.yml` is 477 lines there, not the 460 it was at `a54c91e`); every number is
+recomputed. Citations are
 now **path-qualified**, because several filenames exist in both `templates/github/` (short caller stubs) and
 `.github/workflows/` (long reusables) with entirely different content — the original draft cited both under
 one bare name.
@@ -13,10 +15,11 @@ The README has flagged this as "future work" since the repo split. This document
 > ## Decision — Maria, 2026-08-02: split the project, ship the `bonsai-status-sync` half
 >
 > **APPROVED and IN PROGRESS — `bonsai-status-sync.yml` (Phases 1–3).** The copy-per-repo cost is real
-> and this half was never gated on anything. Phase 1 landed 2026-08-02: the reusable is
-> `.github/workflows/bonsai-status-sync.yml`. The caller stub is **not** part of Phase 1 — it cannot be
-> pinned until a tag containing the reusable exists, so `templates/github/bonsai-status-sync.yml` is still
-> the 190-line copy and only becomes a 51-line stub at the repin. See *Phase 1 landed* below.
+> and this half was never gated on anything. Phase 1 landed 2026-08-02 (`b394c6d`, tag `v1.10.0`): the
+> reusable is `.github/workflows/bonsai-status-sync.yml`. The caller stub followed in the v1.10.0 repin
+> (PR #26, same day) — `templates/github/bonsai-status-sync.yml` is now a 67-line stub, not the 190-line
+> copy. **The fleet has NOT been waved**: consumer repos still run the 190-line copy. See *Phase 1 landed*
+> below, and read README release-order step 3 before waving — this is the wave its traps were written for.
 >
 > **TABLED — `claude.yml` (Phase 0 and Phases 4–8).** Whether Claude App token minting survives inside a
 > cross-repo reusable is a question for another day. `claude.yml` stays a full per-repo file, and remains
@@ -32,7 +35,7 @@ The README has flagged this as "future work" since the repo split. This document
 ## Why
 
 *As of the Phase 1 conversion (2026-08-02) this argument is half-resolved: `bonsai-status-sync.yml` now has a
-central reusable, and the kit copy drops from 190 lines to a 51-line stub at the repin. **`claude.yml`'s 460
+central reusable, and the kit copy dropped from 190 lines to a 67-line stub at the v1.10.0 repin. **`claude.yml`'s 477
 lines remain copied** — still the single largest thing in the kit, and the drift surface that outlives this
 conversion. The original framing follows.*
 
@@ -62,8 +65,8 @@ and `DRIVER_AGENTS_REF` stays hand-edited fleet-wide for as long as `shopify-too
 file (open decision 1). What conversion removes is the 650 lines of *logic* that a wave could hand-carry a
 subset of — which is the specific failure that produced the Avara incident.
 
-Secondary win: `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:304`) and
-`actions/upload-artifact` (`:456`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
+Secondary win: `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:309`) and
+`actions/upload-artifact` (`:473`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
 which `.github/dependabot.yml` (`directory: "/"`) actually scans — converting **three** documented manual pins
 into bot-managed ones.
 
@@ -193,8 +196,8 @@ Avara would reset `"avara"` to `""` and the provisioning step would self-skip *s
 to degrade quietly when unset.
 
 > **Correction (2026-08-02).** `SHOPIFY_STORE_NAME` now has a **second consumer**. At v1.6.0 it was read
-> only by the provisioning script (`:195`, `:202-206`, `:233`). v1.8.0 also interpolates it into the audit
-> **artifact name** at `templates/github/claude.yml:458`. The `inputs.shopify_store_name` value must be
+> only by the provisioning script (`:200`, `:207-211`, `:238`). v1.8.0 also interpolates it into the audit
+> **artifact name** at `templates/github/claude.yml:475`. The `inputs.shopify_store_name` value must be
 > threaded to **both** sites — wiring only the provisioning step leaves the artifact named
 > `shopify-audit--<run_id>-<attempt>`, which uploads successfully and is therefore another silent failure.
 
@@ -257,19 +260,19 @@ on:
       SHOPIFY_ALERT_WEBHOOK:              { required: false }
 ```
 
-**`SHOPIFY_ALERT_WEBHOOK` is the trap in this block.** Added by v1.7.0 (`templates/github/claude.yml:191`, the
+**`SHOPIFY_ALERT_WEBHOOK` is the trap in this block.** Added by v1.7.0 (`templates/github/claude.yml:196`, the
 `#driver-agents-status` Slack webhook), it is an **org-level** secret — so under an *explicit* `secrets:` map
 it is **not** automatically visible to the called workflow and the stub must pass it or use `secrets: inherit`.
-Omit it and the guard at `:239` (`[ -n "$SHOPIFY_ALERT_WEBHOOK" ]`) simply takes the other branch: Slack
+Omit it and the guard at `:244` (`[ -n "$SHOPIFY_ALERT_WEBHOOK" ]`) simply takes the other branch: Slack
 alerting on destructive Admin API calls goes **silently off fleet-wide**, no error, green run. Interacts
 directly with open decision 2.
 
-All store secrets must stay `required: false` — the script's empty-string early-exit at `:195-197` is exactly
+All store secrets must stay `required: false` — the script's empty-string early-exit at `:200-202` is exactly
 what lets non-store repos self-skip. (The client-id/secret pair was renamed from `DRIVER_AGENTS_SCOPES_*` by
 v1.9.0; live names at `:177-178`.)
 
 `DRIVER_AGENTS_REF` moves **into** the reusable (a win — it removes half the two-files-must-match hazard).
-`ANTHROPIC_API_KEY` stays comment-only (`:311`).
+`ANTHROPIC_API_KEY` stays comment-only (`:316`).
 
 **On declaring secrets — the claim is true, but scope it precisely.** Every secret referenced by a workflow
 **in this repo's `.github/workflows/`** must be declared under its own `on.workflow_call.secrets`, or
@@ -286,7 +289,7 @@ declares both secrets at `.github/workflows/pr-first-review.yml:42-44`. The cons
 
 ### The v1.8.0 artifact leg — new since the original draft
 
-v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:454-460`, mirrored at
+v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:471-477`, mirrored at
 `templates/github/shopify-tool-smoke.yml:106-112`). The step itself moves into a reusable unchanged —
 `always()`, `env.*` read from `$GITHUB_ENV`, and `upload-artifact`'s own `ACTIONS_RUNTIME_TOKEN` auth are all
 unaffected by `workflow_call`. Two things do change:
@@ -295,7 +298,7 @@ unaffected by `workflow_call`. Two things do change:
 - **A called workflow does not get its own run id.** `github.run_id` and `github.run_attempt` resolve to the
   **caller's** run. That is the *desirable* outcome for the collector — the artifact lands in the consuming
   repo's run, where the box's nightly `audit-publish.sh` already looks. But it degrades the collision guard
-  the file calls load-bearing at `:449-452`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
+  the file calls load-bearing at `:466-469`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
   run*. What makes that safe today is simply that `claude.yml` declares **exactly one job** (`jobs.claude`,
   `:65-66`) — not the concurrency group at `:61-63`, which serializes *runs* within a group and says nothing
   about jobs inside a run. Conversion removes that structural guarantee: **call the reusable from two jobs in
@@ -312,14 +315,15 @@ is ordered by dependency, not by gating — do not read Phase 0 sitting at the t
 
 `bonsai-status-sync.yml` goes first because **it is the only one of the two with any pre-merge test path at
 all**. It has no OIDC path and one secret (`BONSAI_BEARER_TOKEN`,
-`templates/github/bonsai-status-sync.yml:169`).
+`.github/workflows/bonsai-status-sync.yml:175` — it moved out of the kit file at the v1.10.0 repin; the stub
+now just forwards it).
 
 Be precise about how much of it is provable pre-merge, because it is **one leg of three**. Its `on:` block
-(`:41-50`) carries `issues: [opened]`, `pull_request: [opened, reopened, ready_for_review, synchronize]`, and
+(`templates/github/bonsai-status-sync.yml:24-33`) carries `issues: [opened]`, `pull_request: [opened, reopened, ready_for_review, synchronize]`, and
 `pull_request_review: [submitted]`. Only the **`pull_request` leg** runs from the PR merge ref and so tests
 itself on its own cutover PR. By the same default-branch-only rule that strands `claude.yml` (see below),
 `issues` and `pull_request_review` are inert on a cutover branch — and the `issues` leg is where the `@claude`
-grep and the actor gate live (`:134-136`), which is the logic most worth piloting. **Plan to validate those
+grep and the actor gate live (`.github/workflows/bonsai-status-sync.yml:139-141`), which is the logic most worth piloting. **Plan to validate those
 two legs after merge**, and say so in the cutover PR body; do not let "testable pre-merge" imply the whole
 file was exercised.
 
@@ -342,10 +346,10 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 | 1 | Convert `bonsai-status-sync.yml` + stub + docs + lint | 3h | **done 2026-08-02** |
 | 2 | Pilot it (only the `pull_request` leg is testable pre-merge — see *Sequencing*) | 2h | **next** |
 | 3 | Fleet wave for `bonsai-status-sync` — 18 repo@branch pairs across 11 repos | 3–4h | after Phase 2 |
-| 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | with Phase 3 |
-| | **Approved subtotal** | **9–10h** | Phase 1 done → **6–7h left** |
+| 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | **done 2026-08-02** — tag `v1.10.0` + PR #26 |
+| | **Approved subtotal** | **9–10h** | Phases 1 + 5 done → **pilot + wave left** |
 | 0 | Spike: go/no-go on OIDC-in-reusable | 3–4h | **tabled** |
-| 4 | Convert `claude.yml` — move the 460 lines **faithfully** | 7–9h | **tabled** |
+| 4 | Convert `claude.yml` — move the 477 lines **faithfully** | 7–9h | **tabled** |
 | 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
 | 7 | Fleet wave for `claude.yml`, same 18 pairs (10 single-branch repos incl. Avara → Palmers ×8) | 4–5h | **tabled** |
 | 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | **tabled** |
@@ -357,21 +361,22 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 the old copy except one added comment; actionlint + shellcheck clean; `BONSAI_BEARER_TOKEN` declared
 `required: true`. Also a new `lint.yml` guard that fails the build on any kit stub carrying a placeholder pin.
 
-**Deliberately NOT shipped: the caller stub.** A new reusable's stub cannot be pinned until the tag containing
-that reusable exists, so it lands in step 2 of the release order, not here. This is the house precedent —
-`dependabot-keep-current`'s reusable landed in `c362604` and its stub arrived later already carrying a real
-SHA. The kit therefore still installs the 190-line copy, which still works, until the repin.
+**Deferred out of Phase 1, landed at the repin: the caller stub.** A new reusable's stub cannot be pinned
+until the tag containing that reusable exists, so it landed in step 2 of the release order, not here. This is
+the house precedent — `dependabot-keep-current`'s reusable landed in `c362604` and its stub arrived later
+already carrying a real SHA. **Landed 2026-08-02 in PR #26 (`3056f75`)**, pinned at `b394c6d` = `v1.10.0`;
+the kit now installs the 67-line stub. The *fleet* still runs the 190-line copy until the wave.
 
-**The stub to land at repin** (replace `templates/github/bonsai-status-sync.yml` wholesale, and set the pin to
-the new tag's SHA + `# vX.Y.Z`):
+**The stub as landed** (it replaced `templates/github/bonsai-status-sync.yml` wholesale; the pin below is the
+real one, not a placeholder — kept here as the canonical source for future conversions):
 
 ```yaml
 name: Bonsai status sync
 
 # CALLER STUB — install into a pipeline repo's .github/workflows/.
 # Calls the central bonsai-status-sync reusable, which flips the linked Bonsai
-# task's status off the GitHub issue/PR lifecycle. Inherits secrets (it needs
-# BONSAI_BEARER_TOKEN, an org-level Actions secret).
+# task's status off the GitHub issue/PR lifecycle. Passes ONE secret explicitly,
+# BONSAI_BEARER_TOKEN (org-level) — never `secrets: inherit`; see the secrets block.
 #
 # This REPLACED a 190-line per-repo copy (converted 2026-08-02). The status
 # machine, the actor gate, the linkage logic and the cascade caveat now live in
@@ -384,7 +389,8 @@ name: Bonsai status sync
 #     as written; they are load-bearing (see the reusable's header for the
 #     dismissed-review edge and the draft guards).
 #   • `permissions:` — a called workflow's permissions can only be DOWNGRADED by
-#     the caller. Declare all three or the reusable's `gh` reads 403.
+#     the caller. Declare all three: omitting the block on a read-only-default repo
+#     yields a silent `startup_failure` (no check run, no notification), not a 403.
 #   • `concurrency:` — see the block itself; the rationale is load-bearing and
 #     is NOT the same as pr-first-review's. Do not "harmonise" them.
 
@@ -423,7 +429,7 @@ jobs:
     # NOTE: the required-status-check context for this job is `sync / sync` (caller job id /
     # reusable job id), NOT the bare `sync` it was as a full workflow. Verified 2026-08-02 that
     # no branch in the org pins either, so this rename breaks nothing — re-check before adding one.
-    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@0000000000000000000000000000000000000000 # UNREPINNED — lint.yml blocks merge until this is a real tag SHA
+    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@b394c6d73c3060ba3d0b352f51ad589af9d548f5 # v1.10.0
     # Explicit, NOT `secrets: inherit`. Two reasons: (1) `inherit` passes whatever set exists, which
     # defeats the reusable's `required: true` — a missing secret would reach the curl and surface as
     # an opaque 401 on the first real flip instead of failing at startup; (2) least privilege — this
@@ -461,11 +467,11 @@ placeholder pin. Do it as part of the Phase 3 wave, not after it.
 **If identity unification ships first, Phase 0 disappears and the total is 26–33h.** And Phases 1–3 (8–11h)
 depend on neither Phase 0 nor the identity decision — that portion is startable now.
 
-*Estimates grew on the 2026-08-02 refresh: Phase 4's payload is 460 lines rather than 404 (6–8h → 7–9h) and
+*Estimates grew on the 2026-08-02 refresh: Phase 4's payload is 477 lines rather than 404 (6–8h → 7–9h) and
 Phase 8's `shopify-tool-smoke.yml` went 89 → 112 lines (2h → 2–3h). The v1.6.0 table also stated 28–36h while
 its own max column summed to 35.*
 
-Phase 4 note: **63%** of `claude.yml` is comments (291 of 460 lines — it was 67% at v1.6.0), and they are the
+Phase 4 note: **64%** of `claude.yml` is comments (308 of 477 lines — it was 67% at v1.6.0), and they are the
 institutional memory — the 2026-06-19 actor-gate incident, the `persist-credentials` 403 on private repos, the
 foundrae #148 prompt-hijack, the Avara #143 install blip. Budget for moving them faithfully, not cut-and-paste.
 
@@ -525,8 +531,8 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
 
 1. **Convert `shopify-tool-smoke.yml` in the same wave — or make the `lint.yml` assertion mandatory.** This is
    no longer the optional add-on the first draft described. The two `DRIVER_AGENTS_REF` pins are currently in
-   lockstep (`templates/github/claude.yml:186` and `templates/github/shopify-tool-smoke.yml:46`, both
-   `0bbb125f36a6cae7bb211145efb6e57f70a883e9`), and the invariant is written into the file as "keep in lockstep
+   lockstep (`templates/github/claude.yml:191` and `templates/github/shopify-tool-smoke.yml:46`, both
+   `4d633714ce0a3c9bf7ec87cfcfb8b13ceaf8240c` as of the 2026-08-02 bump), and the invariant is written into the file as "keep in lockstep
    with `claude.yml`'s `DRIVER_AGENTS_REF` **in this same repo**." Converting `claude.yml` alone **breaks that
    by construction** — the reusable would pin centrally while the smoke test pins whatever the last fleet wave
    copied. The file also carries its own hand-edited job-level `SHOPIFY_STORE_NAME` (`:31`), so it is a third
@@ -582,8 +588,10 @@ then put to an adversarial challenge agent instructed to refute it; **all six we
 sourced to official GitHub Actions docs, `anthropics/claude-code-action` source at the pinned SHA
 `be7b93b1907a4abad570368f3c74b6fe3807510b`, issue #443, and this repo's own files.
 
-**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0), after three releases landed underneath the draft.
-Every in-repo `file:line` citation was re-read at that SHA and every arithmetic claim recomputed; citations are
+**Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0), after three releases landed underneath the draft,
+and **re-verified again the same day against the v1.11.0 release branch** — the `bonsai-status-sync` stub
+conversion and the `DRIVER_AGENTS_REF` + tripwire commits both moved `claude.yml` line numbers after that
+first pass. Every in-repo `file:line` citation was re-read and every arithmetic claim recomputed; citations are
 now path-qualified. Five findings from the CodeRabbit review of PR #21 were adopted and one **rejected on
 evidence** — see *On declaring secrets* above. The **external** citations into `anthropics/claude-code-action`
 were *not* re-verified; they remain as originally researched at the pinned SHA.
