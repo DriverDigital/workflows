@@ -20,7 +20,7 @@ trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is
 
 | File | Rail |
 |---|---|
-| `bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. Converted from a 190-line per-repo copy at v1.10.0. |
+| `bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. Converted from a 190-line per-repo copy at v1.11.0. |
 | `pr-first-review.yml` | Human, no-ticket PR → `/code-review` comments + request a human reviewer. |
 | `ticketed-review.yml` | `claude[bot]` **ticketed** PR → capped `/code-review` revise loop (max 3 passes) → Bonsai reviewer handoff. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
@@ -109,7 +109,7 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    ```
    **Re-copying into a repo that already has the kit?** Preserve that repo's own Dependabot action
    pins — re-copy the workflow bodies, but don't clobber pins Dependabot has since bumped there.
-5. **Board strings are no longer edited here.** As of v1.10.0 `bonsai-status-sync.yml` is a caller
+5. **Board strings are no longer edited here.** As of v1.11.0 `bonsai-status-sync.yml` is a caller
    stub; the exact Bonsai status strings live only in the central reusable
    (`DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml`). A board rename is therefore
    a kit release + fleet repin, not a local edit — changing the strings in one repo does nothing.
