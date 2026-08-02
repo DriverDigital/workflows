@@ -33,7 +33,11 @@ reusables have been byte-identical since `v1.6.0`'s `0a3934f`.
 `graphql_guard.py` does not exist at that SHA, so every fleet runner executes `admin-graphql.sh`
 with **no fail-closed allowlist** and the Driver Engineering scope grant is the only control on
 destructive mutations. This is a `claude.yml` change, which stays a per-repo copy — so **no client
-repo is guarded in CI until the next wave copies it out**.
+repo is guarded in CI until the next wave copies it out**. The same release appends the Shopify
+**operator tripwire** to `claude.yml`'s static `--append-system-prompt` (the blockquote is copied from
+driver-agents `docs/agent-instructions-shopify.md`, which is canonical — edit there first, and preserve
+the kit-side scope lead-in that precedes it), so the fleet gets the wrapper and its instruction block in
+one wave.
 
 **Decided 2026-08-02: this ships as `v1.11.0`, not folded into the v1.10.0 wave.** Folding it in would
 put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh` compares

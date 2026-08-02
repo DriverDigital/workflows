@@ -79,6 +79,10 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
      `#driver-agents-status` from CI too — the org-level `SHOPIFY_ALERT_WEBHOOK` secret (already
      set org-wide, nothing per repo) is provisioned to the runner and the alert is labeled with the
      run URL; if that secret is ever absent, alerts are silently off and nothing else changes.
+     The implementer's system prompt carries the Shopify operator tripwire (never bypass the
+     wrapper; never evade an exit-3 refusal) — copied verbatim from driver-agents
+     `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy here on
+     the next kit bump.
 3. **Orchestrator PAT (the cascade requirement).** GitHub does **not** re-trigger workflows from
    events caused by the default `GITHUB_TOKEN`. The cron orchestrator must create issues with a
    **single fine-grained PAT owned by the `driver-digital-agents` machine-user account** —
