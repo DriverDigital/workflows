@@ -260,10 +260,11 @@ report red without being able to block. Note the name collision: this repo's own
 `templates/github/lint.yml` are **different files**. The kit one runs actionlint over the installing repo's
 `.github/workflows/` and nothing else; this one additionally lints `templates/github/`, gates on placeholder
 pins, and asserts `claude.yml`'s system prompt still tokenizes. Both use the job id `actionlint`, so the
-required-check context string is the same either way. `enforce_admins` stays **`false`** here, deliberately:
-it is `false` fleet-wide because direct-push repin waves depend on it, and while no wave has ever pushed
-directly to *this* repo, diverging from the fleet default would make the one exception the thing to
-remember. The 1-approval review rule is what actually gates merges.
+required-check context string is the same either way. `enforce_admins` stays **`false`** here, deliberately
+— which means an admin can still merge past a red `actionlint`. Requiring the check makes it binding for
+everyone else and puts a red X in front of an admin who previously had nothing to override; that was worth
+having on its own. Flipping the flag was considered and rejected for uniformity — reasoning in
+[`docs/fleet-operations.md`](docs/fleet-operations.md#branch-protection).
 
 ## The three identities
 

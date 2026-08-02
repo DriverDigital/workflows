@@ -174,6 +174,31 @@ branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@
 protection endpoint). Every other kit branch is protected. The kit's onboarding steps assume a
 human-approver rule exists, so on those two a bot signal alone could satisfy a merge.
 
-On this repo, `main` has `required_status_checks` with `strict: true` but empty `contexts` — so
-`lint.yml` reports red without being able to block. The context string to add is **`actionlint`**
-(the job id at `.github/workflows/lint.yml:28`; the workflow-level `name:` is not part of it).
+On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`
+had `strict: true` but empty `contexts`, so `lint.yml` could report red without being able to block).
+The context is the **job id** at `.github/workflows/lint.yml:28` — the workflow-level `name:` is not
+part of it. Applied through the narrow sub-resource, never a whole-object `PUT`:
+
+```bash
+gh api -X PATCH repos/DriverDigital/workflows/branches/main/protection/required_status_checks \
+  -f 'contexts[]=actionlint'
+```
+
+`PUT /branches/{branch}/protection` **replaces** the entire protection object, so any field left out
+of the body is silently deleted — the 1-approval review rule included. The `PATCH` above touches
+`required_status_checks` and nothing else; diffing the full object before and after confirmed only
+`contexts`/`checks` moved. GitHub bound the context to the Actions app (`app_id: 15368`) on its own,
+which is the stricter outcome: only a check run from Actions can satisfy it.
+
+**`enforce_admins` stays `false` here — deliberately, and know what that buys.** With it `false`, an
+admin can merge past *everything*: a red `actionlint`, no approval, `strict` or not. So requiring the
+check does not make it unbypassable for Maria — it makes it unbypassable for everyone else, and it
+puts a red X in front of an admin who would otherwise have had nothing to override. That is the
+actual value, and it was worth having either way.
+
+Flipping it to `true` was considered and rejected. The fleet-wide `false` exists because direct-push
+repin waves depend on it, and that reasoning genuinely does *not* apply to this repo: no wave has ever
+pushed here, and every commit on `main` is a PR merge. The reason to leave it alone anyway is
+uniformity — one repo with a different admin rule is a thing to remember at exactly the wrong moment,
+and the failure mode it would prevent (an admin knowingly merging red) is not one that has happened.
+Revisit if it ever does.
