@@ -1,0 +1,153 @@
+# Fleet operations — waves, pilots, and what the audit cannot see
+
+How kit changes actually reach the fleet, and the traps that have bitten. The **authoritative
+release sequence is [`README.md`](../README.md) → *Release + repin order*** — this document does not
+restate it. What lives here is the operational knowledge around it: how a wave is executed, what a
+pilot can and cannot prove, and where the drift detector is blind.
+
+Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
+
+---
+
+## The fleet
+
+**21 repo@branch pairs**, and the split matters because two different numbers are correct depending
+on the question:
+
+| Set | Size | What it is |
+|---|---|---|
+| **Repin-wave targets** | **21** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Full-kit targets** | **18** | Pairs carrying `claude.yml` *and* `bonsai-status-sync.yml`. Verified branch-by-branch across all 618 org branches: zero rows where one is present without the other, so a wave touching one can touch both. |
+| **Difference** | **3** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main` — stub rails only, neither full workflow. They still need the pin repin. |
+
+Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
+`-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
+
+**Avara is the only provisioned store repo** — the only pair carrying `shopify-tool-smoke.yml`, and
+the only one whose `claude.yml` has a non-empty `SHOPIFY_STORE_NAME`.
+
+---
+
+## Waves are direct pushes, not PRs
+
+Decided at the v1.7.0 wave (2026-07-31) and used for every wave since. A mechanical,
+centrally-reviewed kit change is pushed **straight to each branch with `[skip ci]` in the commit
+message**, rather than opening 21 PRs.
+
+Why:
+
+- **Zero review runs.** 21 PRs would each fire `pr-first-review` and burn quota on a change that was
+  already reviewed centrally.
+- **Zero theme deploys.** Recon found `develop`/`staging` deploy workflows on ~10 fleet branches that
+  a bare push *would* have fired. `[skip ci]` suppresses them.
+- Branch protection does not enforce for admins (`enforce_admins: false` fleet-wide), so the push
+  lands as Maria without a review round-trip.
+
+**Reserve PR waves for changes that genuinely want per-repo review.** A kit change that is
+byte-identical everywhere does not.
+
+`[skip ci]` suppresses workflow triggers but **not** GitHub's own "Dependabot Updates" scheduler —
+seeing one of those fire after a wave is expected and benign.
+
+### Execution shape
+
+One atomic commit per branch via the Git Data API (blobs → tree → commit → ref patch), not one
+commit per file. Per target:
+
+1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
+2. `bonsai-status-sync.yml` ← kit stub, **whole-file replacement**.
+3. The other five stubs ← **sed the pin line only**, so any per-repo edit survives.
+4. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
+5. `actionlint` every file about to be written, then commit `[skip ci]` and patch the ref.
+
+Guards worth keeping in any wave script: assert no destination path is written twice, assert the
+store handle survived, assert no stale pin remains, and dry-run the whole fleet before writing
+anything.
+
+---
+
+## Three traps
+
+**1. Same basename in both halves of the diff.** When a full workflow becomes a stub, the kit diff
+carries `templates/github/<name>.yml` *and* `.github/workflows/<name>.yml`. The wave rewrites
+`templates/github/` → `.github/workflows/`, so both collapse onto one destination. Apply them
+blindly and the *reusable* can land in a client repo **as** the workflow — where it is
+`workflow_call`-only, fires on nothing, and looks green. Assert no destination is touched twice.
+
+**2. Pin hunks patch from a base the fleet was never on.** At v1.11.0 the kit diff patched from
+`80c35fe` (v1.8.0) while every deployed stub held `a54c91e` (v1.9.0) — because v1.9.0 shipped
+without a kit repin commit even though the wave repinned the fleet. No kit revision had *ever*
+carried `a54c91e` in a pin line, so no diff base produced a matching `-` line and `git apply` would
+have rejected all five files on target #1. **Sed the pin; don't patch it.**
+
+**3. Per-repo state that must survive.** `SHOPIFY_STORE_NAME` in `claude.yml` and
+`shopify-tool-smoke.yml`, and any Dependabot-bumped action pins. Surveyed at v1.11.0: the fleet's
+`claude.yml` copies were byte-identical to the kit except Avara's store handle, and there was no
+Dependabot drift — but survey, don't assume.
+
+---
+
+## What the pin audit cannot see
+
+`tools/fleet-pin-audit.sh` greps only
+`DriverDigital/workflows/.github/workflows/<name>@<sha>` and compares the SHA to the latest tag.
+Three consequences:
+
+- **A file with no `uses:` line is invisible.** An unconverted 190-line copy has none, so the audit
+  cannot tell a repo that was skipped by a stub conversion from one that never carried the file.
+- **Content is never compared.** `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, and the
+  system-prompt text is just text. A fleet running kit content from no tag reports clean.
+- **The reference itself can drift.** The audit compares against the latest *tag*, never against
+  `templates/`. When those disagree the audit reports uniform while real drift sits in the source of
+  truth — which is exactly how the v1.9.0 gap went unnoticed for a day.
+
+This is why the release order requires the tag to contain what gets waved, and why a
+`DRIVER_AGENTS_REF` bump must re-run the canonical parity check by hand.
+
+---
+
+## Piloting a cross-repo reusable
+
+The v1.11.0 pilot proved `vars.BONSAI_URL` resolves against the **caller**, so a per-repo tunnel
+override still works after conversion. Two things made it harder than expected, both worth knowing
+before designing the next one.
+
+**The `issues` leg is not pilotable.** `bonsai-status-sync`'s issues gate greps the issue body for
+`@claude`, and `claude.yml`'s issues gate does the same — deliberately mirrored. Any issue that
+trips the status flip also wakes a real implementer run on a client repo. Use the PR leg.
+
+**`closingIssuesReferences` only populates for PRs targeting the default branch.** A PR into a
+scratch base dodges the theme-deploy workflows (they filter on `branches: [staging, dev-staging]`)
+but resolves `uuid=<none>`, so the run never reaches the `curl` and passes green having tested
+nothing. If the assertion needs the network call, the PR must target the default branch.
+
+**Split the legs by what each can actually prove.** Leg 1 on a private consumer
+(`foundrae-blackridge@staging`) proves a private repo resolves the public cross-repo reusable and
+reads the caller's event payload — that is the visibility question. Variable resolution is
+repo-agnostic, so leg 2 belongs wherever it is cheapest: `vite-plugin-shopify-clean` is public,
+single-branch, and has no Shopify store attached, so nothing but node tests fire.
+
+**Assert on the log line, not the colour.** Setting `BONSAI_URL` to a bogus host and checking for a
+red run is not sufficient — a wrong-way resolution falls back to the hardcoded default and *also*
+fails. The discriminator is which host the log names:
+
+```
+BONSAI_URL: https://pilot-bogus-host.invalid
+curl: (6) Could not resolve host: pilot-bogus-host.invalid
+```
+
+Clean up afterwards: delete the variable, close the issue and PR, delete the scratch branches. Leave
+the installed stub — the wave covers it anyway.
+
+---
+
+## Branch protection
+
+`enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
+branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
+protection endpoint). Every other kit branch is protected. The kit's onboarding steps assume a
+human-approver rule exists, so on those two a bot signal alone could satisfy a merge.
+
+On this repo, `main` has `required_status_checks` with `strict: true` but empty `contexts` — so
+`lint.yml` reports red without being able to block. The context string to add is **`actionlint`**
+(the job id at `.github/workflows/lint.yml:28`; the workflow-level `name:` is not part of it).
