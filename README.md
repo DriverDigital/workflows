@@ -230,12 +230,18 @@ carries the six caller stubs above plus `claude.yml` (the implementer, still a f
 workflows) and `pull_request_template.md`.
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
-`pr-first-review.yml` + `lint.yml` alone and skip the rest as inert weight. That subset is proposed for
-[`driver-agents`](https://github.com/DriverDigital/driver-agents/pull/6) and
-[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app/pull/2) — **both PRs are open,
-not merged**, and they should land only *after* this repo ships `templates/github/lint.yml`, since until
-then the file they install has no upstream source to be re-copied from. The trade-off is written up in
+`pr-first-review.yml` + `lint.yml` alone and skip the rest as inert weight.
+[`driver-agents`](https://github.com/DriverDigital/driver-agents) and
+[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app) run that subset as of
+2026-08-02 — neither had any `.github/workflows` before. The trade-off is written up in
 `templates/github/README.md` under *Partial install*.
+
+**A kit-only addition does not need a tag or a wave.** `lint.yml` shipped without either, and that was
+correct: it changes no reusable, repins no stub, and carries no `uses: DriverDigital/workflows@<sha>` of
+its own, so nothing deployed had to move. Note the direction of the obligation — **cutting the tag is what
+creates the wave**, because the moment the latest tag is not `90f0d066` the audit's reference check fires
+against all six stubs and `templates/` must be repinned and re-copied everywhere. Let a kit-only file ride
+along with the next release that actually changes a reusable.
 
 **`bonsai-status-sync.yml` finished converting at `v1.11.0`.** The reusable landed 2026-08-02 and its stub
 landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
@@ -243,9 +249,10 @@ see *Release + repin order* above and [`docs/reusable-conversion-scope.md`](docs
 The two-step was deliberate and matches how `dependabot-keep-current` was added: a new reusable's stub cannot
 be pinned until the tag containing that reusable exists, so the reusable lands first and the stub follows in
 the repin commit. `lint.yml` fails the build on any stub still carrying a placeholder pin. **The v1.11.0 wave
-has landed** — `tools/fleet-pin-audit.sh` reads clean across all 21 repo@branch pairs (108 pin rows at
-`90f0d066`, 127 files byte-identical to `templates/` after store-handle normalization, verified 2026-08-02),
-so every consumer repo now runs the 66-line stub.
+has landed** — `tools/fleet-pin-audit.sh` reads clean across all **23** repo@branch pairs (110 pin rows at
+`90f0d066`, 131 files matching `templates/` after the two documented normalizations, verified 2026-08-02),
+so every consumer repo now runs the 66-line stub. The count moved 21 → 23 the same day, when `driver-agents`
+and `driver-agents-app` took the partial install below; the wave itself covered the original 21.
 
 **`claude.yml` stays a per-repo copy** — that half of the conversion is tabled pending the OIDC spike (whether
 Claude App token minting survives inside a cross-repo reusable), so it remains the kit's main drift surface
