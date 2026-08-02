@@ -470,6 +470,18 @@ foundrae #148 prompt-hijack, the Avara #143 install blip. Budget for moving them
 
 ## Pilot design — two legs, four assertions
 
+> **This section was written for `claude.yml`. For the `bonsai-status-sync` pilot (Phase 2), run the legs in
+> the OPPOSITE order — private first.** The public-first reasoning below is specific to `claude.yml`'s
+> App-token path and its `persist-credentials` private-fetch failure, neither of which exists in
+> `bonsai-status-sync.yml`. What is untested for *this* file is a **private consumer resolving a public
+> cross-repo reusable**, and 10 of the 11 target repos are private — so `foundrae-blackridge (staging)` is the
+> leg that can actually fail, and `vite-plugin-shopify-clean` is the cheap confirmation afterwards. The
+> "do not pilot here" list below still applies for a different reason: those repos are fine for *this* rail
+> (it does not need `claude[bot]` history), but keep the pilot on the designated test beds anyway.
+>
+> Assertions for this rail are in *Phase 2 pilot* above — the `vars.BONSAI_URL` red-run check is the one that
+> converts the last assumption into evidence. The four assertions below are `claude.yml`'s and do not apply.
+
 **Leg 1: `vite-plugin-shopify-clean`.** Public, single `main`, both files installed, **7 prior `claude[bot]`
 PRs** so the App-token path is already proven there, no client and no store secrets, and public logs are
 readable without access friction.
