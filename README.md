@@ -23,12 +23,15 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.9.0`** (`a54c91e`) — a **kit-only** release (the store-secret rename; the five
-pre-existing reusables have been byte-identical since `v1.6.0`'s `0a3934f`); as with `v1.7.0` and
-`v1.8.0`, the caller stubs get repinned to the new tag's SHA anyway so `tools/fleet-pin-audit.sh`'s
-latest-tag comparison stays meaningful. **The next tag adds a sixth reusable** —
-`bonsai-status-sync.yml`, converted from a copied per-repo workflow on 2026-08-02 — so unlike the
-last three it is *not* kit-only, and its new stub must be pinned before any wave. Deployed fleet stubs are
+Latest tag **`v1.10.0`** (`b394c6d`) — **not** kit-only: it adds a **sixth reusable**,
+`bonsai-status-sync.yml`, converted from a copied per-repo workflow on 2026-08-02. Its caller stub
+landed in the repin commit for this tag, per step 2 of the release order below. The other five
+reusables have been byte-identical since `v1.6.0`'s `0a3934f`.
+
+**Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
+commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
+here. Deployed fleet stubs were repinned to `v1.9.0` by the 2026-08-01 wave, so between then and this
+tag the fleet was *ahead* of the kit templates. The v1.10.0 wave resolves both. Deployed fleet stubs are
 repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins in practice
 (zero such PRs fleet-wide; debugging why is on the backlog). Org Actions secrets (`AGENTS_GH_PAT`,
 `CLAUDE_CODE_OAUTH_TOKEN`, `BONSAI_BEARER_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions
@@ -101,12 +104,13 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
    lands, the kit's stubs still point at the PREVIOUS tag's reusables.
    - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
      reusable — the tag it must pin does not exist until step 1. That is why
-     `dependabot-keep-current`'s reusable and its stub landed in different commits, and why
-     `bonsai-status-sync.yml`'s stub is still pending. `lint.yml` fails the build on any stub left
+     `dependabot-keep-current`'s reusable and its stub landed in different commits, and how
+     `bonsai-status-sync.yml`'s stub landed at `v1.10.0`. `lint.yml` fails the build on any stub left
      carrying a placeholder pin, so this step cannot be silently skipped.
 3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
    to confirm the fleet converged afterwards).
-   - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` is doing), the wave diff
+   - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did at `v1.10.0` — this
+     applies to the v1.10.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
      wave script rewrites `templates/github/` → `.github/workflows/`, so assert the rewritten diff
      touches no destination path twice before applying — otherwise the reusable can land in a client
@@ -138,15 +142,16 @@ produces a silent `startup_failure` — no check run, no notification).
 | `bonsai-status-sync.yml` | Bonsai token only | `issues` + `pull_request` + `pull_request_review` | deterministic (no-agent) Bonsai status flips off the issue/PR lifecycle; resolves the **linked issue** and reads the task URL from the **issue** body |
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries the five caller stubs above plus the two full per-repo workflows — `claude.yml` (the implementer)
-and `bonsai-status-sync.yml` (deterministic status flips) — and `pull_request_template.md`.
+carries the six caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
+`shopify-tool-smoke.yml` (store repos only) and `pull_request_template.md`.
 
-**`bonsai-status-sync.yml` is mid-conversion.** The reusable exists (in the table above, added 2026-08-02);
-the kit still installs the 190-line copy, and swaps to a thin stub at the next repin — see *Release + repin
-order* above and [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md). The two-step is
-deliberate and matches how `dependabot-keep-current` was added: a new reusable's stub cannot be pinned until
-the tag containing that reusable exists, so the reusable lands first and the stub follows in the repin commit.
-`lint.yml` fails the build on any stub still carrying a placeholder pin.
+**`bonsai-status-sync.yml` finished converting at `v1.10.0`.** The reusable landed 2026-08-02 and its stub
+landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
+see *Release + repin order* above and [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
+The two-step was deliberate and matches how `dependabot-keep-current` was added: a new reusable's stub cannot
+be pinned until the tag containing that reusable exists, so the reusable lands first and the stub follows in
+the repin commit. `lint.yml` fails the build on any stub still carrying a placeholder pin. **The fleet has not
+been waved yet** — consumer repos still run the 190-line copy until the v1.10.0 wave.
 
 **`claude.yml` stays a per-repo copy** — that half of the conversion is tabled pending the OIDC spike (whether
 Claude App token minting survives inside a cross-repo reusable), so it remains the kit's main drift surface
