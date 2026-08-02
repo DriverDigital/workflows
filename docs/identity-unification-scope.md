@@ -9,6 +9,20 @@ headline rate-limit finding **survives re-checking**.
 **Decision made:** the GitHub agent stays in GitHub Actions. Only the identity underneath it changes.
 Nothing moves to a server. A Slack agent is a separate entity, explicitly out of scope.
 
+> ## ⏸ DEFERRED — Maria, 2026-08-02
+>
+> **Not scheduled.** We are not ready to drop the Claude App and run the whole GitHub surface as
+> `driver-digital-agents`. This is a future project, kept scoped so it can be picked up without
+> re-researching.
+>
+> Consequence for the sibling project: the OIDC spike in
+> [`reusable-conversion-scope.md`](reusable-conversion-scope.md) does **not** get retired, so the
+> `claude.yml` half of that conversion stays gated — and has itself been tabled for now. The
+> `bonsai-status-sync` half proceeded independently, which was always possible because that file has
+> no App-token path.
+>
+> Everything below is unchanged and still accurate as of `main` @ `a54c91e` (v1.9.0).
+
 ---
 
 ## Goal
@@ -221,6 +235,16 @@ bodies**.
 Note `trigger_phrase` **does not exist in this repo today** (`git grep` → zero hits) — the action runs on its
 default phrase. So it must be *added* in the same commit, not edited. That is a small but real difference: the
 first time it appears is the first time it can disagree with the workflow gate, which is the #148 signature.
+
+> **Moving target (2026-08-02).** `bonsai-status-sync.yml` is mid-conversion to a reusable. The grep and the
+> `261291955` gate cited above are still in `templates/github/bonsai-status-sync.yml` today, but at the next
+> repin they move to `.github/workflows/bonsai-status-sync.yml` (currently `:139` and `:141`) and the kit file
+> becomes a stub containing neither. **That changes the mechanics of this wave**, not just the path: the
+> mirrored gate would then live in a *centrally pinned* file, so it changes by kit release + fleet repin
+> rather than by the same file copy that carries `claude.yml`'s gate. The two can therefore drift apart for
+> the first time — a repo can sit with a new `claude.yml` and an old pinned reusable, which means the
+> implementer runs while the Bonsai task never leaves its prior status, green everywhere. Sequence both into
+> one wave, and re-verify these line numbers before starting.
 *(The five numeric references above were re-verified unchanged at `a54c91e`: every edit to `claude.yml` since
 v1.6.0 landed at line 142 or later, leaving the whole actor-gate and trigger region untouched.)*
 

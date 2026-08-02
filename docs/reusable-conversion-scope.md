@@ -1,6 +1,6 @@
 # Scope: convert `claude.yml` + `bonsai-status-sync.yml` into reusable workflows
 
-**Status:** scoped, not started. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0` = `0a3934f`).
+**Status:** `bonsai-status-sync` half IN PROGRESS (Phase 1 done); `claude.yml` half TABLED. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0` = `0a3934f`).
 **Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`). Three releases landed underneath the
 original draft — v1.7.0 (Slack alerting), v1.8.0 (audit context + artifact leg), v1.9.0 (store-secret rename).
 Every `file:line` citation below is re-verified against `a54c91e`; every number is recomputed. Citations are
@@ -10,12 +10,31 @@ one bare name.
 
 The README has flagged this as "future work" since the repo split. This document is the scope to execute it.
 
+> ## Decision — Maria, 2026-08-02: split the project, ship the `bonsai-status-sync` half
+>
+> **APPROVED and IN PROGRESS — `bonsai-status-sync.yml` (Phases 1–3).** The copy-per-repo cost is real
+> and this half was never gated on anything. Phase 1 landed 2026-08-02: the reusable is
+> `.github/workflows/bonsai-status-sync.yml`, the 190-line per-repo copy is now a 51-line caller stub.
+>
+> **TABLED — `claude.yml` (Phase 0 and Phases 4–8).** Whether Claude App token minting survives inside a
+> cross-repo reusable is a question for another day. `claude.yml` stays a full per-repo file, and remains
+> the kit's one drift surface. Do not start Phase 4 without re-opening this decision.
+>
+> **DEFERRED — [`identity-unification-scope.md`](identity-unification-scope.md).** Not ready to drop the
+> Claude App, so the Phase 0 spike is *not* retired by that project shipping first.
+>
+> Three open decisions were closed by this decision or by direct verification — see *Open decisions* below.
+
 ---
 
 ## Why
 
-Of the 916-line kit, **650 lines (71%) are the two files that are copied verbatim rather than called** —
-`claude.yml` (460) and `bonsai-status-sync.yml` (190). The five caller stubs total 154 lines and are
+*As of the Phase 1 conversion (2026-08-02) this argument is half-resolved: `bonsai-status-sync.yml` is now a
+51-line stub calling a central reusable. **`claude.yml`'s 460 lines remain copied** — still the single largest
+thing in the kit and its only remaining drift surface. The original framing follows.*
+
+Of the 916-line kit, **650 lines (71%) were the two files copied verbatim rather than called** —
+`claude.yml` (460) and `bonsai-status-sync.yml` (190). The five caller stubs totalled 154 lines and are
 mechanical.
 
 *At v1.6.0 this read 594 of 837 — the same 71%. The flat ratio hides the trend: over three releases the
@@ -54,8 +73,9 @@ Nothing structurally prevents this. But one undocumented behaviour decides wheth
 form at all, and it must be settled before **any work on `claude.yml`**.
 
 **It does not gate the whole project.** `bonsai-status-sync.yml` has no OIDC path and no App token, so Phases
-1–3 (**8–11h**) are unaffected by the spike's outcome *and* unaffected by the identity decision. They are the
-one piece of either project that could start today. Everything below about Phase 0 concerns `claude.yml` only.
+1–3 + 5 (**9–10h**) are unaffected by the spike's outcome *and* unaffected by the identity decision. That is
+exactly why they were split off and approved on 2026-08-02 while this spike was tabled. Everything below about
+Phase 0 concerns `claude.yml` only.
 
 ### THE GO/NO-GO — Phase 0 spike
 
@@ -314,18 +334,126 @@ file to match the default-branch version, so forcing a run returns the 401. **A 
 thing — `@claude` on the cutover PR — will see a red run and wrongly conclude the conversion is broken.** Say
 so in the PR body. Merge on review of the diff alone; validate after merge.
 
-| Phase | Work | Est. |
-|---|---|---|
-| 0 | Spike: go/no-go on OIDC-in-reusable (see above) | 3–4h |
-| 1 | Convert `bonsai-status-sync.yml` + stub + docs + lint | 3h |
-| 2 | Pilot it (public leg + private leg; testable pre-merge) | 2h |
-| 3 | Fleet wave for `bonsai-status-sync`, 18 targets | 3–4h |
-| 4 | Convert `claude.yml` — move the 460 lines **faithfully** | 7–9h |
-| 5 | Tag + repin kit stubs (README's mandatory 3-step release order) | 1h |
-| 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h |
-| 7 | Fleet wave: 10 single-branch repos → Avara → Palmers as one 8-branch batch | 4–5h |
-| 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h |
-| | **Total** | **29–37h** |
+| Phase | Work | Est. | Status |
+|---|---|---|---|
+| 1 | Convert `bonsai-status-sync.yml` + stub + docs + lint | 3h | **done 2026-08-02** |
+| 2 | Pilot it (only the `pull_request` leg is testable pre-merge — see *Sequencing*) | 2h | **next** |
+| 3 | Fleet wave for `bonsai-status-sync` — 18 repo@branch pairs across 11 repos | 3–4h | after Phase 2 |
+| 5 | Tag + repin the kit stubs (README's mandatory 3-step release order) | 1h | with Phase 3 |
+| | **Approved subtotal** | **9–10h** | Phase 1 done → **6–7h left** |
+| 0 | Spike: go/no-go on OIDC-in-reusable | 3–4h | **tabled** |
+| 4 | Convert `claude.yml` — move the 460 lines **faithfully** | 7–9h | **tabled** |
+| 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
+| 7 | Fleet wave for `claude.yml`, same 18 pairs (10 single-branch repos incl. Avara → Palmers ×8) | 4–5h | **tabled** |
+| 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | **tabled** |
+| | **Tabled subtotal** | **20–27h** | |
+
+### Phase 1 landed 2026-08-02 — what shipped, and what deliberately did not
+
+**Shipped:** `.github/workflows/bonsai-status-sync.yml`, the reusable. Its `jobs:` body is byte-identical to
+the old copy except one added comment; actionlint + shellcheck clean; `BONSAI_BEARER_TOKEN` declared
+`required: true`. Also a new `lint.yml` guard that fails the build on any kit stub carrying a placeholder pin.
+
+**Deliberately NOT shipped: the caller stub.** A new reusable's stub cannot be pinned until the tag containing
+that reusable exists, so it lands in step 2 of the release order, not here. This is the house precedent —
+`dependabot-keep-current`'s reusable landed in `c362604` and its stub arrived later already carrying a real
+SHA. The kit therefore still installs the 190-line copy, which still works, until the repin.
+
+**The stub to land at repin** (replace `templates/github/bonsai-status-sync.yml` wholesale, and set the pin to
+the new tag's SHA + `# vX.Y.Z`):
+
+```yaml
+name: Bonsai status sync
+
+# CALLER STUB — install into a pipeline repo's .github/workflows/.
+# Calls the central bonsai-status-sync reusable, which flips the linked Bonsai
+# task's status off the GitHub issue/PR lifecycle. Inherits secrets (it needs
+# BONSAI_BEARER_TOKEN, an org-level Actions secret).
+#
+# This REPLACED a 190-line per-repo copy (converted 2026-08-02). The status
+# machine, the actor gate, the linkage logic and the cascade caveat now live in
+# ONE file — see DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml.
+# Nothing below is repo-specific: this stub is byte-identical across the fleet.
+#
+# WHAT STAYS HERE, AND WHY:
+#   • the TRIGGERS — a called workflow cannot declare `on:`, so the event
+#     subscription is necessarily the caller's. Keep the `types:` lists exactly
+#     as written; they are load-bearing (see the reusable's header for the
+#     dismissed-review edge and the draft guards).
+#   • `permissions:` — a called workflow's permissions can only be DOWNGRADED by
+#     the caller. Declare all three or the reusable's `gh` reads 403.
+#   • `concurrency:` — see the block itself; the rationale is load-bearing and
+#     is NOT the same as pr-first-review's. Do not "harmonise" them.
+
+on:
+  issues:
+    types: [opened]
+  pull_request:
+    # 'reopened' is included so a closed-then-reopened non-draft PR re-asserts Internal Review
+    # (a bare reopen fires neither 'opened' nor 'synchronize' — without it the flip is silently
+    # dropped). The draft guard in the reusable still keeps a reopened draft PR as WIP.
+    types: [opened, reopened, ready_for_review, synchronize]
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+# One status flip per ref at a time — a rapid push/review burst can't race conflicting writes
+# onto the same task through the single shared browser lock; the backend browser lock serializes
+# the actual writes. Deliberately per-ref, NOT repo-wide: with cancel-in-progress:false GitHub
+# keeps only ONE pending run per group and cancels the prior pending one, so a repo-wide group
+# would let an unrelated task's flip silently cancel another's during a burst. Cross-ref ordering
+# (a late issue->In Progress landing after a PR->Internal Review) is a narrow window — the issue
+# event precedes the PR by the whole implementation time — and self-heals: the next PR event
+# re-flips.
+# DO NOT set cancel-in-progress: true here to match pr-first-review's stub — that rail reviews
+# once and is safe to cancel; this one WRITES STATUS and a cancelled flip is a dropped write.
+concurrency:
+  group: bonsai-status-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    # NOTE: the required-status-check context for this job is `sync / sync` (caller job id /
+    # reusable job id), NOT the bare `sync` it was as a full workflow. Verified 2026-08-02 that
+    # no branch in the org pins either, so this rename breaks nothing — re-check before adding one.
+    uses: DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml@0000000000000000000000000000000000000000 # UNREPINNED — lint.yml blocks merge until this is a real tag SHA
+    # Explicit, NOT `secrets: inherit`. Two reasons: (1) `inherit` passes whatever set exists, which
+    # defeats the reusable's `required: true` — a missing secret would reach the curl and surface as
+    # an opaque 401 on the first real flip instead of failing at startup; (2) least privilege — this
+    # rail needs one secret, and `inherit` would hand a centrally-pinned file that fires on
+    # `issues: [opened]` every org secret the repo holds (AGENTS_GH_PAT, CLAUDE_CODE_OAUTH_TOKEN,
+    # the store credentials). Matches ticketed-review.yml's stub, which enumerates for the same reason.
+    secrets:
+      BONSAI_BEARER_TOKEN: ${{ secrets.BONSAI_BEARER_TOKEN }}
+```
+
+Then update these three, which are correct today and become wrong the moment the stub lands:
+- `templates/github/README.md` — move `bonsai-status-sync.yml` from *Full workflows* to *Caller stubs*, and
+  rewrite onboarding step 5 ("Confirm the board strings … update them **here**") — after the swap the status
+  strings live only in the central reusable, so a board rename is a kit release + fleet repin, not a local edit.
+- `README.md` — the kit paragraph, and "Repin the five caller stubs" → six.
+- `.github/workflows/lint.yml` header — "six reusables" is already correct; check the count again if another lands.
+
+### Phase 2 pilot — assert the one thing that is still assumed
+
+Everything else in the conversion was verified statically. `vars.BONSAI_URL` was not: the claim that a
+repository *variable* resolves against the **caller** rests on `vars.PR_REVIEWER_HANDLE` working inside
+`.github/workflows/pr-first-review.yml:192`, which only proves it does not error — if no repo has ever set
+that variable, only the untaken fallback branch has run. If the assumption is wrong, `vars.BONSAI_URL`
+resolves against `DriverDigital/workflows` (where it does not exist) and silently falls back to the hardcoded
+default — and that default now lives in ONE file, so a tunnel move would break all 18 targets together with
+the per-repo escape hatch being the untested path.
+
+**Assertion:** on the pilot repo, set `BONSAI_URL` as a repository variable to a deliberately bogus host and
+confirm the run goes **red**. Thirty seconds, and it converts the assumption into evidence.
+
+**Phase 5 moved up.** It was written as "tag + repin" after the `claude.yml` conversion, but the
+`bonsai-status-sync` half needs its own tag and repin to be usable at all — the new stub ships with a
+placeholder pin. Do it as part of the Phase 3 wave, not after it.
 
 **If identity unification ships first, Phase 0 disappears and the total is 26–33h.** And Phases 1–3 (8–11h)
 depend on neither Phase 0 nor the identity decision — that portion is startable now.
@@ -396,21 +524,35 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
    listed, and forgetting it disables Slack alerting fleet-wide on a green run (see *Proposed interfaces*).
    `inherit` makes that omission impossible and matches `pr-first-review`; explicit makes the
    `ANTHROPIC_API_KEY` precedence trap impossible.
-3. **Reconcile the target count before Phase 3 sizes a wave off the wrong number.** Phase 3 below says **18
-   targets**; the pilot section describes the `claude.yml` wave as "10 single-branch repos → Avara → Palmers
-   as one 8-branch batch" (= 19 repo@branch); `identity-unification-scope.md` says **21** throughout. These
-   are probably counting different things — distinct repos, repo@branch pairs, or repos carrying *this
-   particular* file, and Palmers alone contributes 8 branches — but nobody has written down which. Settle it
-   with `tools/fleet-pin-audit.sh` and put the definition next to the number.
-4. **`BONSAI_BEARER_TOKEN`: `required: false`** (recommended) **vs `required: true`** (matching
-   `ticketed-review`). This is the only interface choice with a silent-failure downside.
+3. ~~**Reconcile the target count.**~~ **CLOSED 2026-08-02 — verified against the org.** All three numbers
+   were right; they count different things. Use these definitions and put them next to the number:
+   - **18 repo@branch pairs, across 11 distinct repos**, carry `bonsai-status-sync.yml` on a long-lived
+     branch. **This is the Phase 3 wave size.** Palmers contributes 8 of the 18.
+   - **21** is the *repin-wave* target list (what `tools/fleet-pin-audit.sh` enumerates) — it additionally
+     counts `Team-Laird@develop`, `The-Gathery@develop` and `driver-bonsai-mcp@main`, which carry only the
+     `pr-first-review` stub and neither of the two full workflows. That is the number
+     `identity-unification-scope.md` correctly uses.
+   - The pilot section's "10 single-branch repos → Avara → Palmers ×8" was **off by one**: there are 10
+     single-branch kit repos *including* Avara, so 10 + 8 = 18.
+   - `claude.yml` sits on **exactly the same 18 pairs** — verified branch-by-branch across all 618 org
+     branches, zero rows where one file is present without the other. A wave touching one can touch both.
+4. ~~**`BONSAI_BEARER_TOKEN`: `required: false` vs `required: true`.**~~ **CLOSED 2026-08-02 —
+   `required: true`.** It is an org-level Actions secret available to every consuming repo, so there is no
+   legitimate caller that installs this rail without it. `required: true` fails at startup validation naming
+   the shortfall; `required: false` would let the run reach the `curl` and surface as an opaque 401 mid-run.
+   Also matches `ticketed-review`. One line to flip if that reasoning ever stops holding.
 5. **Confirm the Claude GitHub App is installed on all kit repos**, not just the 4 with prior `claude[bot]`
    PRs. If it is missing in `plugins` / `client-workspaces` / `studio-sulzer`, they fail on their first real
-   ticket after the wave and it gets blamed on the conversion. **Moot if
-   [`identity-unification-scope.md`](identity-unification-scope.md) ships first** — that project removes the
-   App from the path entirely, which is one more reason to sequence it ahead of this one.
-6. **Confirm no repo pins `claude` or `sync` as a required status check** (expected: none, but the rename is
-   silent if one does).
+   ticket after the wave and it gets blamed on the conversion. **Applies to the tabled `claude.yml` half
+   only** — not a blocker for Phases 1–3.
+6. ~~**Confirm no repo pins `claude` or `sync` as a required status check.**~~ **CLOSED 2026-08-02 — none
+   do, so the `sync` → `sync / sync` rename breaks nothing.** Verified rather than assumed: all 42 protected
+   branches across the 15 kit-touching repos were checked. 36 have no `required_status_checks` block at all;
+   6 have the block with `strict: true` but **both** `contexts: []` and `checks: []` (the newer `checks[]`
+   array was checked too — a `contexts`-only query would have missed a modern pin). Org rulesets are empty,
+   and the single repo ruleset (`vite-plugin-shopify-clean`) has only a Copilot-review rule. Two live kit
+   branches are **unprotected entirely** — `studio-sulzer@main` and `Team-Laird@develop` — which is worth
+   knowing independently of this question.
 7. **Pin policy:** immutable SHAs vs a moving `@v1` tag for this first-party repo. A moving tag removes waves
    entirely, at the cost of deleting the only staging gate between a merge to `main` and the fleet. Genuine
    tradeoff — decide deliberately, do not drift into it.

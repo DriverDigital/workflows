@@ -2,13 +2,13 @@ name: Lint workflows
 
 # THIS REPO'S OWN CI — not a reusable, not part of the kit.
 #
-# The five reusables in .github/workflows/ are `workflow_call`-only, so they never run on this
+# The six reusables in .github/workflows/ are `workflow_call`-only, so they never run on this
 # repo's own PRs; `dependabot-auto-merge.yml` is the one other file here that does, and it lints
 # nothing. So before this file existed, nothing checked the workflows this repo SHIPS: a YAML or
 # shell error in templates/github/ would sail through review and land in every consumer repo on the
 # next fleet wave, where it surfaces as a silent `startup_failure` rather than a red check here.
 #
-# Lints BOTH halves — the five reusables in .github/workflows/ AND the kit in templates/github/,
+# Lints BOTH halves — the six reusables in .github/workflows/ AND the kit in templates/github/,
 # which is the actual product. actionlint also runs shellcheck over every `run:` block (shellcheck
 # is preinstalled on ubuntu-latest), so the kit's shell is covered too.
 
@@ -63,3 +63,18 @@ jobs:
           # actually install would go unchecked, which is the whole point of this job.
           ./actionlint -color
           ./actionlint -color templates/github/*.yml
+
+      - name: Every kit stub is pinned to a real SHA
+        # A new reusable's stub ships with an all-zero placeholder pin so it cannot be installed
+        # before the release tag exists. An unresolvable `uses:` ref fails the consumer's run as
+        # `startup_failure` — which this repo's README documents as SILENT (no check run, no
+        # notification). So the placeholder must never reach main: this is the gate that stops it.
+        # Step 2 of the README's release order (repin the stubs) is what clears it.
+        run: |
+          set -euo pipefail
+          if grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/; then
+            echo "::error::A kit caller stub still carries the all-zero placeholder pin. Repin it to the release tag's SHA (README: 'Release + repin order', step 2) before merging."
+            exit 1
+          fi
+          echo "all kit stubs carry a real SHA pin"
+
