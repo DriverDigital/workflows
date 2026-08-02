@@ -49,6 +49,14 @@ byte-identical everywhere does not.
 `[skip ci]` suppresses workflow triggers but **not** GitHub's own "Dependabot Updates" scheduler —
 seeing one of those fire after a wave is expected and benign.
 
+> **Never write the literal token in a commit message that is not itself a wave.** GitHub scans the
+> **whole** commit message, not just the subject line, so a commit that merely *describes* the
+> technique suppresses its own CI. This bit the commit that first added this document: it explained
+> the wave pattern in its body, and the resulting PR came back with **zero check runs** — not failed,
+> not queued, simply absent, which reads exactly like a healthy PR whose checks have not started yet.
+> Write it as `skip-ci` in prose, and if a PR ever reports no checks at all, grep the commit message
+> before looking anywhere else.
+
 ### Execution shape
 
 One atomic commit per branch via the Git Data API (blobs → tree → commit → ref patch), not one
