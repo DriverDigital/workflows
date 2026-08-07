@@ -36,6 +36,13 @@ Observe on the first few PRs: the bot's login/id, whether it submits **formal** 
 is the integration's input contract; the login/id matters if any deterministic rail ever needs to
 gate on it.
 
+First observation (workflows#34, the retirement PR itself, 2026-08-08): login **`macroscopeapp`**;
+two check runs ("Macroscope - Approvability Check" / "Macroscope - Correctness Check", conclusion
+`skipping` — non-blocking); one PR comment with an approvability verdict ("Needs human review");
+one review submitted with state **`COMMENTED`** — no formal approve/request-changes on that PR.
+Whether it ever submits a formal APPROVE (the case the retired review leg would have mis-mapped)
+is still unobserved — keep watching.
+
 ## The build (Phase 2 — not scheduled)
 
 A webhook receiver on the bridge server (**driver-bonsai-mcp** — it owns Bonsai access and the
