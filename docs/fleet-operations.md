@@ -11,14 +11,19 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
 
 ## The fleet
 
-**23 repo@branch pairs**, and the split matters because two different numbers are correct depending
-on the question:
+**21 repo@branch pairs** since the v1.12.0 retirement wave (2026-08-08), and the split matters
+because two different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **23** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **21** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml` *and* `bonsai-status-sync.yml`. Verified branch-by-branch across all 618 org branches: zero rows where one is present without the other, so a wave touching one can touch both. |
-| **Difference** | **5** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main`, and (2026-08-02) `driver-agents@main` + `driver-agents-app@main` — stub rails only, neither full workflow. They still need the pin repin. |
+| **Difference** | **3** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main` — stub rails only, neither full workflow. They still need the pin repin. |
+
+`driver-agents@main` and `driver-agents-app@main` counted as repin targets 23 between 2026-08-02
+and the v1.12.0 wave, when their only pinned stub (`pr-first-review.yml`) was deleted. They now
+carry just the kit `lint.yml` — **no pin rows, but still content-checked** (the audit compares any
+fleet file whose basename exists in `templates/`), so drift there is still visible.
 
 Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
 `-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
@@ -36,8 +41,9 @@ message**, rather than opening 21 PRs.
 
 Why:
 
-- **Zero review runs.** 21 PRs would each fire `pr-first-review` and burn quota on a change that was
-  already reviewed centrally.
+- **Zero review runs.** 21 PRs would each have fired `pr-first-review` and burned quota on a change
+  that was already reviewed centrally. (That rail retired at v1.12.0 — Macroscope now reviews PRs
+  instead, so the PR-noise argument still holds.)
 - **Zero theme deploys.** Recon found `develop`/`staging` deploy workflows on ~10 fleet branches that
   a bare push *would* have fired. `[skip ci]` suppresses them.
 - Branch protection does not enforce for admins (`enforce_admins: false` fleet-wide), so the push
@@ -64,9 +70,14 @@ commit per file. Per target:
 
 1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
 2. `bonsai-status-sync.yml` ← kit stub, **whole-file replacement**.
-3. The other five stubs ← **sed the pin line only**, so any per-repo edit survives.
+3. The other three stubs ← **sed the pin line only**, so any per-repo edit survives.
 4. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
 5. `actionlint` every file about to be written, then commit `[skip ci]` and patch the ref.
+
+A wave can also **delete** — the Git Data API tree op takes `sha: null` for a path. The v1.12.0
+wave removed `pr-first-review.yml` + `ticketed-review.yml` from every pair carrying them in the
+same atomic commit as the repin; delete by presence (enumerate the repo's files first), not by an
+assumed install list — the partial-install pairs never had both.
 
 Guards worth keeping in any wave script: assert no destination path is written twice, assert the
 store handle survived, assert no stale pin remains, and dry-run the whole fleet before writing
@@ -125,9 +136,9 @@ Two things worth knowing about check 3:
   included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
   seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
-  which share basenames with the stubs that call them — `pr-first-review.yml` is a ~200-line
-  reusable there and a 25-line stub in the kit — so comparing it against `templates/` would report
-  seven phantom drifts — the six stubs plus `lint.yml`, whose kit copy is a trimmed version of
+  which share basenames with the stubs that call them — `bonsai-status-sync.yml` is a ~180-line
+  reusable there and a ~65-line stub in the kit — so comparing it against `templates/` would report
+  five phantom drifts — the four stubs plus `lint.yml`, whose kit copy is a trimmed version of
   this repo's own CI file of the same name.
 
 **Still unchecked: the tripwire parity between `templates/` and canonical.** The audit proves the

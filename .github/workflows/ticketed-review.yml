@@ -1,5 +1,14 @@
 name: Ticketed review (reusable)
 
+# ═════════════════════════════════════════════════════════════════════════════
+# RETIRED 2026-08-08 (v1.12.0) — PR review moved to Macroscope. The caller stub
+# left templates/github/ and is deleted fleet-wide by the v1.12.0 wave; this file is
+# workflow_call-only, so with no caller it fires on nothing. Preserved deliberately
+# for possible re-activation: restore the stub from git history (templates/github/
+# pre-v1.12.0), cut a tag, and wave it back out. Context and the Macroscope plan:
+# docs/macroscope-integration-scope.md.
+# ═════════════════════════════════════════════════════════════════════════════
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Central reusable (DriverDigital/workflows) — Phase 3 ticketed-rail auto-review loop.
 # Auto-reviews a claude[bot] TICKETED PR (one that resolves a Bonsai ticket) with
