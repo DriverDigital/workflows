@@ -23,15 +23,15 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.12.0`** (2026-08-08) — **the review-rail retirement.** PR review is Macroscope's
+Latest tag **`v1.12.0`** (`b1fcb78`, 2026-08-08) — **the review-rail retirement.** PR review is Macroscope's
 job now (decided 2026-08-08): the `pr-first-review.yml` + `ticketed-review.yml` caller stubs left
 the kit and were deleted fleet-wide, the two reusables stay here **caller-less** (`workflow_call`-only,
 fire on nothing, still linted, retirement banners at the top of each), and `bonsai-status-sync`
 lost its **review leg** (formal review → Revisions Requested / Ready for QA). The Dependabot rails,
 `claude.yml` and the two remaining status legs are untouched. Context, the interim manual-status
 state, and the Macroscope→Bonsai build plan:
-[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). The four remaining
-stubs repin to the `v1.12.0` SHA in the release's repin commit (release order step 2, below).
+[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). All four remaining
+stubs are pinned to `b1fcb78`.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
@@ -54,7 +54,7 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
 `v1.11.0` → **`v1.12.0`** (all below). `v1.3.0` was never tagged.
 
-### `v1.12.0` (2026-08-08)
+### `v1.12.0` (`b1fcb78`, 2026-08-08)
 
 The review-rail retirement — see the headline above for what and why. Waved 2026-08-08: the two
 review stubs **deleted** from every fleet pair that carried them, `bonsai-status-sync.yml`
