@@ -56,11 +56,13 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 
 ### `v1.12.0` (`b1fcb78`, 2026-08-08)
 
-The review-rail retirement — see the headline above for what and why. Waved 2026-08-08: the two
-review stubs **deleted** from every fleet pair that carried them, `bonsai-status-sync.yml`
-whole-file replaced on the full-kit pairs, remaining stubs repinned. After this wave
-`driver-agents@main` and `driver-agents-app@main` carry only the kit `lint.yml` — no caller stub,
-no pin rows — so the repin-target count returns to **21** (see `docs/fleet-operations.md`).
+The review-rail retirement — see the headline above for what and why. Waved 2026-08-08 to all 23
+pairs: the two review stubs **deleted** from every fleet pair that carried them (41 pin rows
+removed), `bonsai-status-sync.yml` whole-file replaced on 18 pairs, remaining stubs repinned.
+Audit clean same day: **69 pins at `b1fcb78c`, 90 files matching `templates/`, zero drift.** Three
+pairs' only pinned stub was `pr-first-review.yml` — `driver-agents@main`, `driver-agents-app@main`,
+`driver-bonsai-mcp@main` — so they now carry no pins at all (still content-checked) and the
+repin-target count lands at **20** (see `docs/fleet-operations.md`).
 
 - **Review rails retired, not removed.** Stubs deleted (kit + fleet); reusables preserved inert
   with retirement banners carrying the re-activation path (restore stubs from git history, tag,

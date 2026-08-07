@@ -11,19 +11,21 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
 
 ## The fleet
 
-**21 repo@branch pairs** since the v1.12.0 retirement wave (2026-08-08), and the split matters
-because two different numbers are correct depending on the question:
+**20 repo@branch pairs** since the v1.12.0 retirement wave (2026-08-08; verified by a live audit
+run — 69 pins at `b1fcb78c`, 90 content matches, zero drift), and the split matters because two
+different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **21** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml` *and* `bonsai-status-sync.yml`. Verified branch-by-branch across all 618 org branches: zero rows where one is present without the other, so a wave touching one can touch both. |
-| **Difference** | **3** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main` — stub rails only, neither full workflow. They still need the pin repin. |
+| **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 
-`driver-agents@main` and `driver-agents-app@main` counted as repin targets 23 between 2026-08-02
-and the v1.12.0 wave, when their only pinned stub (`pr-first-review.yml`) was deleted. They now
-carry just the kit `lint.yml` — **no pin rows, but still content-checked** (the audit compares any
-fleet file whose basename exists in `templates/`), so drift there is still visible.
+Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
+`pr-first-review.yml`: `driver-agents@main`, `driver-agents-app@main` (repin targets only between
+2026-08-02 and the wave), and `driver-bonsai-mcp@main`. They now carry no caller stub — **no pin
+rows, but still content-checked** (the audit compares any fleet file whose basename exists in
+`templates/`), so drift in what remains (e.g. the kit `lint.yml`) is still visible.
 
 Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
 `-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
