@@ -47,7 +47,7 @@ name: Bonsai status sync (reusable)
 #   • `github.event.*`  — the caller's full payload, unchanged. The event-type dispatch below
 #     (issues / pull_request) reads it directly and is unaffected.
 #   • `github.token`    — the CALLER repo's installation token, so the `gh pr view` /
-#     `gh issue view` reads at :115-118 resolve against the caller's repo, as before.
+#     `gh issue view` reads at :113-116 resolve against the caller's repo, as before.
 #   • `vars.BONSAI_URL` — resolves against the CALLER's repository variables, so a per-repo tunnel
 #     override still works.
 # The TRIGGERS and the `concurrency` group live in the caller stub (a called workflow cannot
@@ -132,8 +132,8 @@ jobs:
               # 2026-06-19), so without it the In Progress flip would skip for the orchestrator's OWN
               # issues even though claude.yml runs — leaving the task stuck. On a PUBLIC repo the
               # whole gate still stops a stranger from flipping a Bonsai task via a crafted @claude
-              # issue body (this step holds BONSAI_TOKEN). PR events are bot driven and
-              # deliberately ungated (gating PR author_association would skip claude[bot] PRs).
+              # issue body (this step holds BONSAI_TOKEN). PR events are deliberately ungated
+              # (gating PR author_association would skip claude[bot] PRs).
               if printf '%s' "$ISSUE_BODY" | grep -qi '@claude' \
                  && { printf '%s' "$ISSUE_AUTHOR_ASSOC" | grep -qE '^(OWNER|MEMBER|COLLABORATOR)$' \
                       || { [ "$ISSUE_USER_LOGIN" = 'driver-digital-agents' ] && [ "$ISSUE_USER_ID" = '261291955' ]; }; }; then

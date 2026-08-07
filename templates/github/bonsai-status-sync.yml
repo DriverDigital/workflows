@@ -13,7 +13,7 @@ name: Bonsai status sync
 # WHAT STAYS HERE, AND WHY:
 #   • the TRIGGERS — a called workflow cannot declare `on:`, so the event
 #     subscription is necessarily the caller's. Keep the `types:` lists exactly
-#     as written; they are load-bearing (see the reusable's header for the
+#     as written; they are load-bearing (see the reusable's case body for the
 #     draft guards). There is deliberately NO pull_request_review trigger —
 #     the review leg was retired at v1.12.0 (Macroscope reviews PRs now); see
 #     the reusable's header. Do not re-add it here without the reusable
@@ -21,8 +21,7 @@ name: Bonsai status sync
 #   • `permissions:` — a called workflow's permissions can only be DOWNGRADED by
 #     the caller. Declare all three: omitting the block on a read-only-default repo
 #     yields a silent `startup_failure` (no check run, no notification), not a 403.
-#   • `concurrency:` — see the block itself; the rationale is load-bearing and
-#     is NOT the same as pr-first-review's. Do not "harmonise" them.
+#   • `concurrency:` — see the block itself; the rationale is load-bearing.
 
 on:
   issues:

@@ -30,8 +30,8 @@ fire on nothing, still linted, retirement banners at the top of each), and `bons
 lost its **review leg** (formal review → Revisions Requested / Ready for QA). The Dependabot rails,
 `claude.yml` and the two remaining status legs are untouched. Context, the interim manual-status
 state, and the Macroscope→Bonsai build plan:
-[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). All four remaining
-stubs are pinned to the `v1.12.0` SHA.
+[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). The four remaining
+stubs repin to the `v1.12.0` SHA in the release's repin commit (release order step 2, below).
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`

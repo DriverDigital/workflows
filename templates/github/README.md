@@ -184,7 +184,8 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   by `claude[bot]`** appears in the Actions log and flips the task to **Internal Review** — not
   merely that "a PR exists" (a human clicking Claude's prefilled PR link would false-pass). If you
   see only a prefill link and no `pull_request` event, the implementer didn't drive the flow — see
-  `docs/phase2-github-setup.md` step 5. Then walk it to Ready for QA.
+  `docs/phase2-github-setup.md` step 5. Statuses past Internal Review are moved by hand since
+  v1.12.0, so Internal Review is where the automated part of the walk ends.
 
 ## Operational dependency
 
