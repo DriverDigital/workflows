@@ -23,29 +23,15 @@ reusables implement, review, and sync status back to Bonsai.
 
 ## Status & versions
 
-Latest tag **`v1.11.0`** (`90f0d06`, 2026-08-02) — **not** kit-only. It carries three things: the
-`bonsai-status-sync.yml` **caller stub** (the reusable itself landed one tag earlier at `v1.10.0` =
-`b394c6d`, so the conversion spans the two), the `DRIVER_AGENTS_REF` bump, and the Shopify operator
-tripwire. The other five reusables have been byte-identical since `v1.6.0`'s `0a3934f`. All six stubs
-are pinned to `90f0d06`.
-
-**In `v1.11.0` — `DRIVER_AGENTS_REF` → `4d63371`, lockstep in `claude.yml` +
-`shopify-tool-smoke.yml`.** The previous pin `0bbb125` predated the Admin API wrapper:
-`graphql_guard.py` does not exist at that SHA, so every fleet runner executes `admin-graphql.sh`
-with **no fail-closed allowlist** and the Driver Engineering scope grant is the only control on
-destructive mutations. This is a `claude.yml` change, which stays a per-repo copy — so **no client
-repo is guarded in CI until the next wave copies it out**. The same release appends the Shopify
-**operator tripwire** to `claude.yml`'s static `--append-system-prompt` (the blockquote is copied from
-driver-agents `docs/agent-instructions-shopify.md`, which is canonical — edit there first, and preserve
-the kit-side scope lead-in that precedes it), so the fleet gets the wrapper and its instruction block in
-one wave.
-
-**Decided 2026-08-02: shipped as `v1.11.0` rather than folded into the v1.10.0 wave.** Folding it in
-would have put `claude.yml` content on 18 branches that exists in no tag, and `tools/fleet-pin-audit.sh`
-compared only stub pin lines against the latest tag — never `templates/` content — so it would have
-reported the fleet uniform and green over the gap. (That blind spot is now closed: the audit also
-checks `templates/` against the latest tag and every waved file against `templates/`.) Executed as: merge → tag `v1.11.0` at that merge
-commit → repin all six stubs to `v1.11.0` → **one** wave. That is what `v1.7.0` and `v1.8.0` each did.
+Latest tag **`v1.12.0`** (2026-08-08) — **the review-rail retirement.** PR review is Macroscope's
+job now (decided 2026-08-08): the `pr-first-review.yml` + `ticketed-review.yml` caller stubs left
+the kit and were deleted fleet-wide, the two reusables stay here **caller-less** (`workflow_call`-only,
+fire on nothing, still linted, retirement banners at the top of each), and `bonsai-status-sync`
+lost its **review leg** (formal review → Revisions Requested / Ready for QA). The Dependabot rails,
+`claude.yml` and the two remaining status legs are untouched. Context, the interim manual-status
+state, and the Macroscope→Bonsai build plan:
+[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). All four remaining
+stubs are pinned to the `v1.12.0` SHA.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
@@ -66,7 +52,32 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-**`v1.11.0`** (all below). `v1.3.0` was never tagged.
+`v1.11.0` → **`v1.12.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.12.0` (2026-08-08)
+
+The review-rail retirement — see the headline above for what and why. Waved 2026-08-08: the two
+review stubs **deleted** from every fleet pair that carried them, `bonsai-status-sync.yml`
+whole-file replaced on the full-kit pairs, remaining stubs repinned. After this wave
+`driver-agents@main` and `driver-agents-app@main` carry only the kit `lint.yml` — no caller stub,
+no pin rows — so the repin-target count returns to **21** (see `docs/fleet-operations.md`).
+
+- **Review rails retired, not removed.** Stubs deleted (kit + fleet); reusables preserved inert
+  with retirement banners carrying the re-activation path (restore stubs from git history, tag,
+  wave). Deletion over `gh workflow disable` because disabled-state is invisible to the pin audit —
+  the fleet's files should say what actually runs.
+- **`bonsai-status-sync` review leg removed** — the stub's `pull_request_review` trigger AND the
+  reusable's handler, deliberately **not** actor-gated: Macroscope's bot behavior (formal reviews
+  vs. comments) is unobserved as of this tag, and if it submits formal reviews the old mapping
+  would flip statuses with the wrong semantics (a bot approval is not "Ready for QA"). Statuses
+  past Internal Review are a PM's job until the Macroscope→Bonsai integration lands.
+- **`claude.yml` deliberately untouched**, including the ticketed-loop machinery (round-marker
+  prompt branch, actor carve-out, re-request step). It looks dead with `ticketed-review` gone; it
+  is the designed re-entry point for the Macroscope-driven revise loop — do not strip it in a
+  future wave.
+- **`DRIVER_AGENTS_REF` did not move.** The queued canonical-blockquote re-copy stays pending for
+  the next `claude.yml`-touching release — deliberately not folded in here, so this wave changes
+  review behavior and nothing else.
 
 ### `v1.11.0` (`90f0d06`, 2026-08-02)
 
@@ -217,31 +228,35 @@ produces a silent `startup_failure` — no check run, no notification).
 
 | Reusable (`.github/workflows/`) | Privilege | Trigger (in the caller) | Job |
 |---|---|---|---|
-| `pr-first-review.yml` | secrets (PAT + OAuth) | `pull_request` | human no-ticket PR → `/code-review` (comments) + request a human reviewer |
-| `ticketed-review.yml` | secrets (PAT + OAuth + Bonsai) | `pull_request` + `issue_comment` | claude[bot] **ticketed** PR → capped `/code-review` revise loop (max 3 passes) → hand off to a human (Bonsai reassign via the server's `/tasks/reviewer-handoff`) |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
-| `bonsai-status-sync.yml` | Bonsai token only | `issues` + `pull_request` + `pull_request_review` | deterministic (no-agent) Bonsai status flips off the issue/PR lifecycle; resolves the **linked issue** and reads the task URL from the **issue** body |
+| `bonsai-status-sync.yml` | Bonsai token only | `issues` + `pull_request` | deterministic (no-agent) Bonsai status flips off the issue/PR lifecycle; resolves the **linked issue** and reads the task URL from the **issue** body |
+
+Two more reusables sit in `.github/workflows/` **retired** (v1.12.0, 2026-08-08): `pr-first-review.yml`
+(human no-ticket PR → `/code-review` + reviewer request) and `ticketed-review.yml` (claude[bot] ticketed
+PR → capped revise loop → Bonsai reviewer handoff). Macroscope reviews all PRs now; both files are
+`workflow_call`-only with **no callers anywhere**, preserved for re-activation — see the banner in each
+and [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries the six caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
+carries the four caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
 `shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
 workflows) and `pull_request_template.md`.
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
-`pr-first-review.yml` + `lint.yml` alone and skip the rest as inert weight.
+`lint.yml` alone and skip the rest as inert weight.
 [`driver-agents`](https://github.com/DriverDigital/driver-agents) and
-[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app) run that subset as of
-2026-08-02 — neither had any `.github/workflows` before. The trade-off is written up in
-`templates/github/README.md` under *Partial install*.
+[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app) run that subset (they took
+`pr-first-review.yml` + `lint.yml` on 2026-08-02; the review stub was deleted in the v1.12.0
+retirement wave). The trade-off is written up in `templates/github/README.md` under *Partial install*.
 
 **A kit-only addition does not need a tag or a wave.** `lint.yml` shipped without either, and that was
 correct: it changes no reusable, repins no stub, and carries no `uses: DriverDigital/workflows@<sha>` of
 its own, so nothing deployed had to move. Note the direction of the obligation — **cutting the tag is what
-creates the wave**, because the moment the latest tag is not `90f0d066` the audit's reference check fires
-against all six stubs and `templates/` must be repinned and re-copied everywhere. Let a kit-only file ride
-along with the next release that actually changes a reusable.
+creates the wave**, because the moment the latest tag moves the audit's reference check fires
+against every stub in `templates/` and they must be repinned and re-copied everywhere. Let a kit-only file
+ride along with the next release that actually changes a reusable.
 
 **`bonsai-status-sync.yml` finished converting at `v1.11.0`.** The reusable landed 2026-08-02 and its stub
 landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
@@ -278,10 +293,11 @@ having on its own. Flipping the flag would break this repo's own release habit �
 
 ## The three identities
 
-- **`claude[bot]`** — the implementer (Phase 2 `claude.yml`), distinct from the reviewer.
-- **`driver-digital-agents`** (the `AGENTS_GH_PAT` fine-grained PAT) — the reviewer/PR-first actor. Passed as
-  `claude-code-action`'s `github_token` and as `GH_TOKEN` on every `gh` step (never the default
-  `GITHUB_TOKEN`).
+- **`claude[bot]`** — the implementer (Phase 2 `claude.yml`), distinct from any reviewer.
+- **`driver-digital-agents`** (the `AGENTS_GH_PAT` fine-grained PAT) — the agent-rail actor: `GH_TOKEN`
+  on every `gh` step (never the default `GITHUB_TOKEN`), `dependabot-report`'s comment/reviewer-request
+  identity, and the author of `claude.yml`'s sentinel comments. It was the reviewer on the retired
+  review rails.
 - **Anthropic billing** — `CLAUDE_CODE_OAUTH_TOKEN` (Max). **Never set `anthropic_api_key`** (it overrides
   OAuth and bills at API rates).
 
@@ -324,13 +340,15 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 ## Reviewer handoff
 
-Both rails request a human GitHub reviewer = the reusable's `default-reviewer-handle` input (default
-`mcarter-astronautdev` = Maria), overridable per-repo via the `PR_REVIEWER_HANDLE` Actions **variable**. The
-PR-first rail does **not** read `reviewers.json` at runtime — it only needs the default/override. The full
-Bonsai-name → handle map (`config/reviewers.json` in `driver-bonsai-mcp`, build-copied into the server's
-`dist/`) is consumed by the **ticketed rail**: its `/tasks/reviewer-handoff` server endpoint (LIVE since
-2026-06-26) resolves the Bonsai Reviewer field → a GitHub handle (default Maria) and reassigns the Bonsai
-task. The `config/reviewers.json` copy in **this** repo is reference only — no workflow reads it at runtime.
+Retired with the review rails at v1.12.0 — no workflow requests a human reviewer or reassigns a Bonsai
+task on review completion any more; that's a PM's job until the Macroscope→Bonsai integration lands.
+The pieces stay live for that build: the `/tasks/reviewer-handoff` server endpoint (up since
+2026-06-26) resolves the Bonsai Reviewer field → a GitHub handle (default Maria) and reassigns the
+Bonsai task, fed by the Bonsai-name → handle map (`config/reviewers.json` in `driver-bonsai-mcp`,
+build-copied into the server's `dist/`). `dependabot-report` still requests a human reviewer on
+Dependabot PRs (default `mcarter-astronautdev`, per-repo override via the `PR_REVIEWER_HANDLE` Actions
+**variable**). The `config/reviewers.json` copy in **this** repo is reference only — no workflow reads
+it at runtime.
 
 ## First-run / required-check
 
@@ -343,6 +361,4 @@ about whether a check run exists for the head SHA, not about the word "skipped".
 After the first run on a test PR: pin the **exact required-check context GitHub reports** — for a
 reusable-workflow job it is `<caller-job-id> / <reusable-job-id>`, expected **`validate / validate`** (the
 workflow display name is NOT part of the context; copy the literal string from the first run's checks list).
-Then confirm the `claude[bot]` author literal + `gh --create-if-none` on the runner. Require a **human**
-approver (e.g. CODEOWNERS) so no bot signal
-satisfies the merge gate.
+Require a **human** approver (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.

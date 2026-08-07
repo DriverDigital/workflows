@@ -12,19 +12,18 @@ name: Bonsai status sync (reusable)
 # board rename breaks the call loudly rather than silently):
 #   issue opened (containing @claude)                              -> In Progress
 #   PR opened / reopened / ready_for_review / commits (synchronize) -> Internal Review
-#   PR review: changes_requested                                   -> Revisions Requested
-#   PR review: approved                                            -> Ready for QA
-# The pipeline STOPS at "Ready for QA". From there a PM manually moves the task through
-# Client Review -> Ready to Deploy -> Delivered / Deployed / Completed (the terminal
-# "delivered & billed the client" status). This workflow NEVER sets those three.
+# The pipeline STOPS at "Internal Review". From there the review outcome and everything after
+# it — Revisions Requested / Ready for QA -> Client Review -> Ready to Deploy -> Delivered /
+# Deployed / Completed — is moved by a PM (or, later, the Macroscope integration). This
+# workflow NEVER sets those.
 #
-# KNOWN EDGE (deliberately not handled): the CALLER subscribes to pull_request_review
-# [submitted] only. If a reviewer DISMISSES a changes_requested review without pushing a commit
-# or submitting a new review, no event fires and the task stays in "Revisions Requested". Normal
-# recovery is a push (synchronize -> Internal Review) or a new review; otherwise a PM nudges the
-# Bonsai status by hand. A `dismissed` handler is omitted because the dismissed payload doesn't
-# expose the prior verdict without an extra API read, and the right target status after a bare
-# dismissal is ambiguous.
+# REVIEW LEG RETIRED 2026-08-08 (v1.12.0): this file used to also flip on formal PR reviews —
+# changes_requested -> "Revisions Requested", approved -> "Ready for QA" — and the caller stub
+# subscribed to pull_request_review [submitted]. Macroscope reviews every PR now, and if its bot
+# submits formal reviews those flips would fire with the wrong semantics (a bot approval is not
+# "Ready for QA"), so the leg is removed outright — trigger AND handler, deliberately not
+# actor-gated — until we have seen what the bot actually does. The review->status flips belong
+# to the Macroscope->Bonsai webhook integration: docs/macroscope-integration-scope.md.
 #
 # CASCADE CAVEAT (load-bearing): GitHub does NOT re-trigger workflows from events caused by the
 # default GITHUB_TOKEN. So AI-driven issues/PRs only fire the caller stub when authored by a PAT
@@ -35,7 +34,7 @@ name: Bonsai status sync (reusable)
 # LINKAGE (no dependence on the PR body): the Bonsai task uuid lives in ONE place — the ISSUE body
 # (the orchestrator puts the full task URL there; `uuid=` is its query param). The PR is connected
 # to that issue by GitHub's NATIVE plumbing: the implementer creates a development-linked branch
-# from the issue (`gh issue develop`) and opens the PR from it (+ a `Closes #N`). On a PR / review
+# from the issue (`gh issue develop`) and opens the PR from it (+ a `Closes #N`). On a PR
 # event this workflow resolves the issue via `closingIssuesReferences` (a development link — and a
 # Closes keyword — both populate it; verified) and greps the uuid out of the ISSUE body. It does NOT
 # read the PR body for a copied URL — the link is the source of truth, so there is no fragile string
@@ -46,7 +45,7 @@ name: Bonsai status sync (reusable)
 # "the github context is always associated with the CALLER", so all three of these keep meaning
 # exactly what they meant when this file was copied per-repo:
 #   • `github.event.*`  — the caller's full payload, unchanged. The event-type dispatch below
-#     (issues / pull_request / pull_request_review) reads it directly and is unaffected.
+#     (issues / pull_request) reads it directly and is unaffected.
 #   • `github.token`    — the CALLER repo's installation token, so the `gh pr view` /
 #     `gh issue view` reads at :115-118 resolve against the caller's repo, as before.
 #   • `vars.BONSAI_URL` — resolves against the CALLER's repository variables, so a per-repo tunnel
@@ -64,7 +63,7 @@ on:
       # curl below and surfacing as an opaque 401 mid-run.
       BONSAI_BEARER_TOKEN: { required: true }
 
-# Least privilege: on a PR/review event the resolve step reads the PR's linked issue via the default
+# Least privilege: on a PR event the resolve step reads the PR's linked issue via the default
 # GITHUB_TOKEN (reads don't cascade, so this is safe). The Bonsai flip uses BONSAI_TOKEN, not
 # GITHUB_TOKEN, so it's unaffected by this block. A called workflow's permissions can only be
 # DOWNGRADED by the caller, never elevated — so the caller stub must declare at least these three.
@@ -82,7 +81,6 @@ jobs:
         env:
           EVENT: ${{ github.event_name }}
           ACTION: ${{ github.event.action }}
-          REVIEW_STATE: ${{ github.event.review.state }}
           DRAFT: ${{ github.event.pull_request.draft }}
           ISSUE_BODY: ${{ github.event.issue.body }}
           # actor trust — gates the issue->In Progress flip (see the issues) case). assoc is the
@@ -90,7 +88,7 @@ jobs:
           ISSUE_AUTHOR_ASSOC: ${{ github.event.issue.author_association }}
           ISSUE_USER_LOGIN: ${{ github.event.issue.user.login }}
           ISSUE_USER_ID: ${{ github.event.issue.user.id }}
-          # for the PR/review-event linked-issue resolution (read-only GITHUB_TOKEN)
+          # for the PR-event linked-issue resolution (read-only GITHUB_TOKEN)
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
@@ -103,7 +101,7 @@ jobs:
             # the orchestrator put the task URL in the issue body
             TASK_UUID=$(printf '%s' "$ISSUE_BODY" | grep -oiE "$UUID_RE" | head -n1 | cut -d= -f2 || true)
           elif [ -n "${PR_NUMBER:-}" ]; then
-            # PR / review event: resolve the issue(s) this PR closes (the dev-link populates
+            # PR event: resolve the issue(s) this PR closes (the dev-link populates
             # closingIssuesReferences natively; a `Closes #N` would too) and grep the ISSUE body.
             # We never read the PR body for the URL — the issue link is the source of truth.
             # No `2>/dev/null || true` swallow: a real gh failure (auth / permission / rate-limit)
@@ -134,8 +132,8 @@ jobs:
               # 2026-06-19), so without it the In Progress flip would skip for the orchestrator's OWN
               # issues even though claude.yml runs — leaving the task stuck. On a PUBLIC repo the
               # whole gate still stops a stranger from flipping a Bonsai task via a crafted @claude
-              # issue body (this step holds BONSAI_TOKEN). PR/review events are bot/reviewer driven
-              # and deliberately ungated (gating PR author_association would skip claude[bot] PRs).
+              # issue body (this step holds BONSAI_TOKEN). PR events are bot driven and
+              # deliberately ungated (gating PR author_association would skip claude[bot] PRs).
               if printf '%s' "$ISSUE_BODY" | grep -qi '@claude' \
                  && { printf '%s' "$ISSUE_AUTHOR_ASSOC" | grep -qE '^(OWNER|MEMBER|COLLABORATOR)$' \
                       || { [ "$ISSUE_USER_LOGIN" = 'driver-digital-agents' ] && [ "$ISSUE_USER_ID" = '261291955' ]; }; }; then
@@ -150,21 +148,11 @@ jobs:
                 opened|reopened|synchronize) [ "$DRAFT" != "true" ] && STATUS="Internal Review" ;;
               esac
               ;;
-            pull_request_review)
-              # a review submitted on a still-draft PR shouldn't advance status — drafts stay
-              # pre-Internal-Review (same intent as the draft guard on the opened/synchronize branch)
-              if [ "$DRAFT" != "true" ]; then
-                case "$REVIEW_STATE" in
-                  changes_requested) STATUS="Revisions Requested" ;;
-                  approved)          STATUS="Ready for QA" ;;
-                esac
-              fi
-              ;;
           esac
 
           echo "task_uuid=$TASK_UUID" >> "$GITHUB_OUTPUT"
           echo "status=$STATUS"       >> "$GITHUB_OUTPUT"
-          echo "resolved: event=$EVENT action=${ACTION:-} review=${REVIEW_STATE:-} draft=${DRAFT:-} -> uuid=${TASK_UUID:-<none>} status=${STATUS:-<none>}"
+          echo "resolved: event=$EVENT action=${ACTION:-} draft=${DRAFT:-} -> uuid=${TASK_UUID:-<none>} status=${STATUS:-<none>}"
 
       - name: Update Bonsai
         if: steps.ctx.outputs.task_uuid != '' && steps.ctx.outputs.status != ''
