@@ -11,14 +11,14 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
 
 ## The fleet
 
-**21 repo@branch pairs**, and the split matters because two different numbers are correct depending
+**23 repo@branch pairs**, and the split matters because two different numbers are correct depending
 on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **21** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **23** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml` *and* `bonsai-status-sync.yml`. Verified branch-by-branch across all 618 org branches: zero rows where one is present without the other, so a wave touching one can touch both. |
-| **Difference** | **3** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main` — stub rails only, neither full workflow. They still need the pin repin. |
+| **Difference** | **5** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main`, and (2026-08-02) `driver-agents@main` + `driver-agents-app@main` — stub rails only, neither full workflow. They still need the pin repin. |
 
 Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
 `-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
@@ -177,16 +177,16 @@ the installed stub — the wave covers it anyway.
 `enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
 branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
 protection endpoint). Every other kit branch has a protection object — but **having one is not the
-same as requiring a human**, and the gap is wider than those two. Surveyed across all 21 pairs
+same as requiring a human**, and the gap is wider than those two. Surveyed across all 23 pairs
 2026-08-02:
 
 | Pairs | `required_approving_review_count` | |
 |---|---|---|
-| 11 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-bonsai-mcp, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
+| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-agents-app, driver-bonsai-mcp, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
 | **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
 | **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
 
-The kit's onboarding steps assume a human-approver rule exists. On **10** of the 21 pairs it does
+The kit's onboarding steps assume a human-approver rule exists. On **10** of the 23 pairs it does
 not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`
