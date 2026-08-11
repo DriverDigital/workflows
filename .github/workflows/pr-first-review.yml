@@ -1,5 +1,14 @@
 name: PR-first review (reusable)
 
+# ═════════════════════════════════════════════════════════════════════════════
+# RETIRED 2026-08-08 (v1.12.0) — PR review moved to Macroscope. The caller stub
+# left templates/github/ and is deleted fleet-wide by the v1.12.0 wave; this file is
+# workflow_call-only, so with no caller it fires on nothing. Preserved deliberately
+# for possible re-activation: restore the stub from git history (templates/github/
+# pre-v1.12.0), cut a tag, and wave it back out. Context and the Macroscope plan:
+# docs/macroscope-integration-scope.md.
+# ═════════════════════════════════════════════════════════════════════════════
+
 # ─────────────────────────────────────────────────────────────────────────────
 # REUSABLE WORKFLOW — Phase 3 PR-first rail. Runs as driver-digital-agents on a
 # HUMAN, no-ticket PR: /code-review (comments only) + a marker comment + request a

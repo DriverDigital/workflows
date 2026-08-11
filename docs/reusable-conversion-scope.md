@@ -369,7 +369,9 @@ already carrying a real SHA. **Landed 2026-08-02 in PR #26**, and repinned to `9
 the kit now installs the 67-line stub. The *fleet* still runs the 190-line copy until the wave.
 
 **The stub as landed** (it replaced `templates/github/bonsai-status-sync.yml` wholesale; the pin below is the
-real one, not a placeholder — kept here as the canonical source for future conversions):
+real one, not a placeholder — kept here as the canonical source for future conversions). **Historical as of
+v1.12.0:** the block below still carries the `pull_request_review` trigger and a `ticketed-review.yml`
+reference, both retired 2026-08-08 — copy the live `templates/github/bonsai-status-sync.yml`, not this:
 
 ```yaml
 name: Bonsai status sync

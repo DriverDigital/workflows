@@ -11,14 +11,21 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
 
 ## The fleet
 
-**21 repo@branch pairs**, and the split matters because two different numbers are correct depending
-on the question:
+**20 repo@branch pairs** since the v1.12.0 retirement wave (2026-08-08; verified by a live audit
+run — 69 pins at `b1fcb78c`, 90 content matches, zero drift), and the split matters because two
+different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **21** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml` *and* `bonsai-status-sync.yml`. Verified branch-by-branch across all 618 org branches: zero rows where one is present without the other, so a wave touching one can touch both. |
-| **Difference** | **3** | `Team-Laird@develop`, `The-Gathery@develop`, `driver-bonsai-mcp@main` — stub rails only, neither full workflow. They still need the pin repin. |
+| **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
+
+Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
+`pr-first-review.yml`: `driver-agents@main`, `driver-agents-app@main` (repin targets only between
+2026-08-02 and the wave), and `driver-bonsai-mcp@main`. They now carry no caller stub — **no pin
+rows, but still content-checked** (the audit compares any fleet file whose basename exists in
+`templates/`), so drift in what remains (e.g. the kit `lint.yml`) is still visible.
 
 Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
 `-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
@@ -36,8 +43,9 @@ message**, rather than opening 21 PRs.
 
 Why:
 
-- **Zero review runs.** 21 PRs would each fire `pr-first-review` and burn quota on a change that was
-  already reviewed centrally.
+- **Zero review runs.** 21 PRs would each have fired `pr-first-review` and burned quota on a change
+  that was already reviewed centrally. (That rail retired at v1.12.0 — Macroscope now reviews PRs
+  instead, so the PR-noise argument still holds.)
 - **Zero theme deploys.** Recon found `develop`/`staging` deploy workflows on ~10 fleet branches that
   a bare push *would* have fired. `[skip ci]` suppresses them.
 - Branch protection does not enforce for admins (`enforce_admins: false` fleet-wide), so the push
@@ -64,9 +72,14 @@ commit per file. Per target:
 
 1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
 2. `bonsai-status-sync.yml` ← kit stub, **whole-file replacement**.
-3. The other five stubs ← **sed the pin line only**, so any per-repo edit survives.
+3. The other three stubs ← **sed the pin line only**, so any per-repo edit survives.
 4. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
 5. `actionlint` every file about to be written, then commit `[skip ci]` and patch the ref.
+
+A wave can also **delete** — the Git Data API tree op takes `sha: null` for a path. The v1.12.0
+wave removed `pr-first-review.yml` + `ticketed-review.yml` from every pair carrying them in the
+same atomic commit as the repin; delete by presence (enumerate the repo's files first), not by an
+assumed install list — the partial-install pairs never had both.
 
 Guards worth keeping in any wave script: assert no destination path is written twice, assert the
 store handle survived, assert no stale pin remains, and dry-run the whole fleet before writing
@@ -125,9 +138,9 @@ Two things worth knowing about check 3:
   included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
   seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
-  which share basenames with the stubs that call them — `pr-first-review.yml` is a ~200-line
-  reusable there and a 25-line stub in the kit — so comparing it against `templates/` would report
-  seven phantom drifts — the six stubs plus `lint.yml`, whose kit copy is a trimmed version of
+  which share basenames with the stubs that call them — `bonsai-status-sync.yml` is a ~180-line
+  reusable there and a ~65-line stub in the kit — so comparing it against `templates/` would report
+  five phantom drifts — the four stubs plus `lint.yml`, whose kit copy is a trimmed version of
   this repo's own CI file of the same name.
 
 **Still unchecked: the tripwire parity between `templates/` and canonical.** The audit proves the
@@ -177,16 +190,16 @@ the installed stub — the wave covers it anyway.
 `enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
 branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
 protection endpoint). Every other kit branch has a protection object — but **having one is not the
-same as requiring a human**, and the gap is wider than those two. Surveyed across all 21 pairs
+same as requiring a human**, and the gap is wider than those two. Surveyed across all 23 pairs
 2026-08-02:
 
 | Pairs | `required_approving_review_count` | |
 |---|---|---|
-| 11 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-bonsai-mcp, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
+| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-agents-app, driver-bonsai-mcp, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
 | **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
 | **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
 
-The kit's onboarding steps assume a human-approver rule exists. On **10** of the 21 pairs it does
+The kit's onboarding steps assume a human-approver rule exists. On **10** of the 23 pairs it does
 not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`

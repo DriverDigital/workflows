@@ -16,17 +16,20 @@ lifecycle.
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 
-All six go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
+All four go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
 trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is recorded.
 
 | File | Rail |
 |---|---|
-| `bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. Converted from a 190-line per-repo copy at v1.11.0. |
-| `pr-first-review.yml` | Human, no-ticket PR → `/code-review` comments + request a human reviewer. |
-| `ticketed-review.yml` | `claude[bot]` **ticketed** PR → capped `/code-review` revise loop (max 3 passes) → Bonsai reviewer handoff. |
+| `bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. Converted from a 190-line per-repo copy at v1.11.0; review leg retired at v1.12.0. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
+
+**PR review is Macroscope's job, not the kit's** (decided 2026-08-08). The old review rails —
+`pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted here and
+fleet-wide, reusables preserved caller-less in the central repo. See
+[`../../docs/macroscope-integration-scope.md`](../../docs/macroscope-integration-scope.md).
 
 Two rules that fail **silently** if broken:
 
@@ -42,11 +45,11 @@ Two rules that fail **silently** if broken:
 |---|---|
 | Issue opened (`@claude`) | **In Progress** |
 | PR opened / marked ready / new commits pushed | **Internal Review** |
-| PR review requests changes | **Revisions Requested** |
-| PR review **approved** | **Ready for QA** |
 
-The pipeline **stops at Ready for QA** — a PM manually moves the task through Client Review →
-Ready to Deploy → Delivered / Deployed / Completed. The workflows never set those.
+The pipeline **stops at Internal Review** — everything after it (Revisions Requested, Ready for
+QA, Client Review → Ready to Deploy → Delivered / Deployed / Completed) is moved by a PM, pending
+the Macroscope→Bonsai integration. The review-driven flips (changes requested → Revisions
+Requested, approved → Ready for QA) were retired with the review leg at v1.12.0.
 
 ## Install into a repo (one-time)
 
@@ -57,17 +60,17 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    - `CLAUDE_CODE_OAUTH_TOKEN` — output of `claude setup-token` run as the **Agents** account
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
      override the OAuth token and bill at API rates.
-   - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT. This is the **reviewer /
-     PR-first actor** on both review rails and the `GH_TOKEN` on every `gh` step; never the default
-     `GITHUB_TOKEN`.
+   - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT. The `GH_TOKEN` on every `gh`
+     step (never the default `GITHUB_TOKEN`): `dependabot-report`'s verdict comment + reviewer
+     request, and `claude.yml`'s sentinel posts.
    - `BONSAI_BEARER_TOKEN` — must **byte-match** the server's `BEARER_TOKEN` (else every status
      flip 401s).
 
    Optional, per-repo:
    - **variable** `BONSAI_URL` if the tunnel host ever changes (defaults to
      `https://driver-bonsai-mcp.ngrok.app`).
-   - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the PR-first and
-     Dependabot-report rails (default `mcarter-astronautdev`).
+   - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the
+     Dependabot-report rail (default `mcarter-astronautdev`).
    - **Shopify admin tooling** — only for repos with a store. Set all three secrets
      `DRIVER_ENGINEERING_APP_CLIENT_ID`, `DRIVER_ENGINEERING_APP_CLIENT_SECRET`, `SHOPIFY_STORE` (the
      myshopify domain) **and** edit `SHOPIFY_STORE_NAME` in the repo's copy of `claude.yml` to the
@@ -101,8 +104,6 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    mkdir -p .github/workflows
    cp templates/github/claude.yml               .github/workflows/
    cp templates/github/bonsai-status-sync.yml   .github/workflows/
-   cp templates/github/pr-first-review.yml      .github/workflows/
-   cp templates/github/ticketed-review.yml      .github/workflows/
    cp templates/github/dependabot-validate.yml  .github/workflows/
    cp templates/github/dependabot-report.yml    .github/workflows/
    cp templates/github/dependabot-keep-current.yml .github/workflows/
@@ -114,13 +115,11 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's, which is the only kit filename likely to already exist.
 
-   **Partial install (`pr-first-review.yml` + `lint.yml` only).** For a repo that is *not* on the
-   Bonsai → PR pipeline — no orchestrator issues, no ticketed rail — these two are the useful subset
-   and the rest are inert weight. This is what `driver-agents` and `driver-agents-app` run. Know what
-   you are giving up: `pr-first-review.yml` deliberately excludes `dependabot[bot]` authors and
-   self-skips on any PR whose linked issue carries a Bonsai uuid, so with nothing else installed a
-   Dependabot PR or a ticketed PR gets **zero** automated review rather than a different one. Add the
-   Dependabot pair if and when that repo turns Dependabot on.
+   **Partial install (`lint.yml` only).** For a repo that is *not* on the Bonsai → PR pipeline —
+   no orchestrator issues — `lint.yml` is the useful subset and the rest is inert weight. This is
+   what `driver-agents` and `driver-agents-app` run (their `pr-first-review.yml` was removed with
+   the v1.12.0 retirement; Macroscope reviews their PRs like everyone else's). Add the Dependabot
+   trio if and when such a repo turns Dependabot on.
 5. **Board strings are no longer edited here.** As of v1.11.0 `bonsai-status-sync.yml` is a caller
    stub; the exact Bonsai status strings live only in the central reusable
    (`DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml`). A board rename is therefore
@@ -130,8 +129,7 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
    workflow display **name** is never part of it. Two shapes:
    - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
-     that is **`validate / validate`** (`dependabot-validate`), and `pr-first-review` reports
-     **`review / review`**.
+     that is **`validate / validate`** (`dependabot-validate`).
    - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**.
 
    On a partial install with no `dependabot-validate`, `actionlint` is the one check that runs on
@@ -142,14 +140,12 @@ Ready to Deploy → Delivered / Deployed / Completed. The workflows never set th
    `SC2015`, which the runner's older shellcheck still reports and upstream has since dropped; add
    further exclusions to `SHELLCHECK_OPTS` in that repo's copy if it needs them.)
 
-   Do **not** require `review / review`. The reason is its **trigger list**, not its `if:` guards:
-   `pr-first-review.yml` fires on `opened`, `ready_for_review` and `reopened` — deliberately *not*
-   `synchronize`. Push a follow-up commit and no run is created for that head SHA at all, so the
-   required context is **missing** rather than skipped, and a missing required check blocks the merge
-   indefinitely. (A job that *runs* and reports `skipped` is a different case, and GitHub does accept
-   that as satisfying a required check — so reason from whether a check run exists for the head
-   commit, not from the word "skipped".) Also add a rule requiring a **human** approver (e.g.
-   CODEOWNERS) so no bot signal satisfies the merge gate.
+   Never require a context whose workflow's trigger list can leave a head SHA with **no run at
+   all** (e.g. a `pull_request` list without `synchronize`) — a required context with no check run
+   is **missing**, not skipped, and blocks the merge indefinitely. (A job that *runs* and reports
+   `skipped` is a different case; GitHub accepts that — reason from whether a check run exists for
+   the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
+   (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 
@@ -181,14 +177,15 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
 - **Status sync alone first:** open a throwaway **issue** whose body carries a known task's full
   Bonsai URL, create a development-linked branch from it (`gh issue develop <issue> --checkout`),
   push a commit, open a PR from that branch, mark it ready for review, and confirm the task flips to
-  **Internal Review**. Request changes → **Revisions Requested**; approve → **Ready for QA**. (A
-  human PR that just says `Closes #<issue>` resolves identically.)
+  **Internal Review**. (A human PR that just says `Closes #<issue>` resolves identically. Review
+  events flip nothing since v1.12.0 — that's expected, not a failure.)
 - **Then the full loop:** let the orchestrator open one real issue, then confirm the chain forms —
   the issue gains a **development-linked branch** and a **real `pull_request` `opened` event authored
   by `claude[bot]`** appears in the Actions log and flips the task to **Internal Review** — not
   merely that "a PR exists" (a human clicking Claude's prefilled PR link would false-pass). If you
   see only a prefill link and no `pull_request` event, the implementer didn't drive the flow — see
-  `docs/phase2-github-setup.md` step 5. Then walk it to Ready for QA.
+  `docs/phase2-github-setup.md` step 5. Statuses past Internal Review are moved by hand since
+  v1.12.0, so Internal Review is where the automated part of the walk ends.
 
 ## Operational dependency
 
