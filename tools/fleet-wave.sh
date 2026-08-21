@@ -7,9 +7,11 @@
 #   tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commit message
 #
 # Targets are discovered by presence: every non-archived DriverDigital repo whose branch carries
-# .github/workflows/claude.yml (Palmers: every branch named main*). Per target, in one commit:
-#   claude.yml / shopify-tool-smoke.yml  <- kit version with the repo's SHOPIFY_STORE_NAME restored
-#   lint.yml, dependabot-*.yml           <- only the `uses: DriverDigital/workflows/...@SHA` line changes
+# .github/workflows/claude.yml OR .github/workflows/dependabot-validate.yml — the stub-only pairs
+# never took the full kit but still carry pins to move (Palmers: every branch named main*).
+# Per target, in one commit:
+#   claude.yml / shopify-tool-smoke.yml / lint.yml  <- kit version (store handle restored)
+#   dependabot-*.yml                     <- only the `uses: DriverDigital/workflows/...@SHA` line changes
 #   bonsai-status-sync.yml               <- deleted if present (kit no longer ships it)
 #
 # Guards, in order:
@@ -67,8 +69,9 @@ if printf '%s\n' "$KIT_PINS" | grep -v "@$TAG_SHA" >/dev/null; then
   echo "kit stubs are not all pinned to $TAG ($TAG_SHA) — repin templates/github first" >&2; exit 2
 fi
 
-FULL_FILES=(claude.yml shopify-tool-smoke.yml)   # whole-file replace (store handle restored)
-PIN_FILES=(lint.yml dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml)
+# lint.yml carries no pin and no per-repo state; kit version verbatim.
+FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml)   # whole-file replace (store handle restored)
+PIN_FILES=(dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml)
 DELETE_FILES=(bonsai-status-sync.yml)
 
 TMP=$(mktemp -d)
@@ -110,8 +113,8 @@ handle_of() {
 # ever called as `TARGETS=$(targets)`. Verified on bash 3.2.57 — `f(){ local x; x=$(false); echo
 # reached; }; T=$(f)` prints `reached` and exits 0. So errexit cannot be relied on to stop a wave
 # here, and a half-read fleet is the one failure this whole script must never report as success:
-# a `gh` hiccup on the Palmers branch listing would silently drop 8 of the 18 targets and print
-# `targets: 10  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
+# a `gh` hiccup on the Palmers branch listing would silently drop 8 of the 20 targets and print
+# `targets: 12  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
   local repos r def branches b only_def
@@ -145,8 +148,13 @@ targets() {
     else
       branches=$def
     fi
+    # A branch is a target when it carries claude.yml OR dependabot-validate.yml: the stub-only pairs
+    # hold nothing but the three Dependabot stubs, and skipping them would strand their pins one tag
+    # behind for ever — fleet-pin-audit.sh --stale could never read clean. The second probe runs only
+    # when the first 404s, and plan_and_push skips the files a target does not have.
     for b in $branches; do
-      if api "repos/$ORG/$r/contents/.github/workflows/claude.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
+      if api "repos/$ORG/$r/contents/.github/workflows/claude.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
+         || api "repos/$ORG/$r/contents/.github/workflows/dependabot-validate.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
         echo "$r $b"
       fi
     done
@@ -161,13 +169,14 @@ plan_and_push() {
   existing=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].name') \
     || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
   # An empty listing here would make every grep below miss and the target report "(no changes)" —
-  # a repo silently dropped from the wave. It carries claude.yml by construction, so empty is a lie.
+  # a repo silently dropped from the wave. Discovery proved it carries at least one kit file, so
+  # empty is a lie.
   [ -n "$existing" ] || { echo "  $repo@$branch: empty .github/workflows listing" >&2; exit 3; }
 
   for f in "${FULL_FILES[@]}"; do
     grep -qxF "$f" <<<"$existing" || continue
-    # A FULL_FILE the kit stopped shipping would make the sed below read a missing source and write
-    # an empty file over a live workflow. If the kit dropped it on purpose it belongs in DELETE_FILES.
+    # errexit would abort on the sed's missing source anyway; this fails with a clear message and
+    # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
     [ -f "$KIT/$f" ] \
       || { echo "  $repo@$branch $f: not in the kit any more — move it to DELETE_FILES?" >&2; exit 3; }
     cur="$tmp/deployed-$f"; raw "$repo" "$branch" "$f" > "$cur"
@@ -243,7 +252,7 @@ plan_and_push() {
 
 echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"
 # Guard 7: resolve the whole plan before touching anything. Fed straight from `< <(targets)` the
-# discovery process would be a background job whose exit status is never read at all, so a 12-of-18
+# discovery process would be a background job whose exit status is never read at all, so a 12-of-20
 # wave would report `targets: 12` and exit 0. Capturing it makes the status observable — see the
 # errexit note on targets() for why the calls in there still need their own `|| exit`.
 TARGETS=$(targets)
