@@ -6,7 +6,7 @@
 
 **Architecture:** Edit the template once; retire the status-sync reusable; add a checked-in wave script (`tools/fleet-wave.sh`, Git Data API, one atomic commit per branch, dry-run first); cut `v1.13.0`; canary the pilot repo; wave the fleet; audit. Spec: `driver-bonsai-mcp/docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md` §5a. Context on why this wave is allowed: Maria, 2026-08-21 — the box is gone for good; this is the one pass that sets the rail up to run without it.
 
-**Tech Stack:** GitHub Actions, `anthropics/claude-code-action` (pin `be7b93b1907a4abad570368f3c74b6fe3807510b`, v1.0.183), bash + `gh api` (Git Data API) + `jq` + `actionlint`, the built-in Claude Code `/code-review` skill.
+**Tech Stack:** GitHub Actions, `anthropics/claude-code-action` (pin `d40ddef4c030e508327d6e35a9c45f3368482c50`, v1.0.195), bash + `gh api` (Git Data API) + `jq` + `actionlint`, the built-in Claude Code `/code-review` skill.
 
 ## Global Constraints
 
@@ -395,7 +395,7 @@ git push origin v1.13.0
 
 ```bash
 SHA=$(git rev-list -n1 v1.13.0)
-sed -i '' -E "s#^([[:space:]]*uses:[[:space:]]*DriverDigital/workflows/\.github/workflows/[a-z0-9-]+\.yml@)[0-9a-f]{40}([[:space:]]*# *v[0-9][0-9.]*)?#\1$SHA # v1.13.0#" templates/github/*.yml
+sed -i '' -E "s#^([[:space:]]*uses:[[:space:]]*DriverDigital/workflows/\.github/workflows/[a-z0-9-]+\.yml@)[0-9a-f]{40}([[:space:]]*\# *v[0-9][0-9.]*)?#\1$SHA \# v1.13.0#" templates/github/*.yml
 grep -n "uses: DriverDigital" templates/github/*.yml     # three lines, all @$SHA # v1.13.0
 git commit -am "chore: repin the kit's caller stubs to v1.13.0"
 git push
