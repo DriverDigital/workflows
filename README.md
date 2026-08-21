@@ -85,11 +85,11 @@ matching `templates/`, zero drift** across the 23 pairs audited.
   is to watch it once pipeline traffic grows rather than gate on it — fallback `--model opus`, see
   the MODEL NOTE comment in `claude.yml`.
 - **`bonsai-status-sync` retired** — template and reusable both deleted, and the org secret
-  `BONSAI_BEARER_TOKEN` deleted after a direct probe of every non-archived repo found no copy of the
-  workflow left anywhere. The dispatcher polls the two remaining legs instead (issue opened → In
-  Progress; non-draft dev-linked PR → Internal Review). The kit is six `.yml` files; five reusables
-  remain — three Dependabot rails plus the two retired review rails, whose banners now say
-  re-activation needs `BONSAI_BEARER_TOKEN` recreated.
+  `BONSAI_BEARER_TOKEN` deleted after a direct probe of every non-archived repo (+ Palmers `main*`)
+  found no copy of the workflow left anywhere. The dispatcher polls the two remaining legs instead
+  (issue opened → In Progress; non-draft dev-linked PR → Internal Review). The kit is six `.yml`
+  files; five reusables remain — three Dependabot rails plus the two retired review rails;
+  `ticketed-review.yml`'s banner now says re-activation needs `BONSAI_BEARER_TOKEN` recreated.
 - **`tools/fleet-wave.sh`** — the wave is a checked-in script now. It discovers targets by presence
   (`claude.yml` **or** a Dependabot stub, which is what reaches the two stub-only pairs) and repins
   the pin line's SHA and its `# vX.Y.Z` trailer together. Guards: a real wave only from a clean
@@ -120,8 +120,9 @@ migration gets a partial pre-review (the prompt requires the run to say so).
 
 The review-rail retirement: PR review became Macroscope's job alone (decided 2026-08-08) — the two
 review stubs left the kit, their reusables stayed here caller-less with retirement banners, and
-`bonsai-status-sync` lost its **review leg** (formal review → Revisions Requested / Ready for QA).
-Context and the Macroscope→Bonsai build plan:
+`bonsai-status-sync` lost its **review leg** (formal review → Revisions Requested / Ready for QA); the
+Dependabot rails, `claude.yml` and the two remaining status legs were untouched. Context and the
+Macroscope→Bonsai build plan:
 [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). Waved 2026-08-08 to
 all 23 pairs: the two review stubs **deleted** from every fleet pair that carried them (41 pin rows
 removed), `bonsai-status-sync.yml` whole-file replaced on 18 pairs, remaining stubs repinned.
