@@ -13,6 +13,7 @@
 #   bonsai-status-sync.yml               <- deleted if present (kit no longer ships it)
 #
 # Guards, in order:
+#   0. a real (non-dry) wave only runs from a clean `main` that contains the tag — dry runs anywhere;
 #   1. the kit's own stubs must all pin the latest tag's SHA (and there must BE pins to check);
 #   2. the kit repo itself is never a target — its .github/workflows/ holds the reusables;
 #   3. a SHOPIFY_STORE_NAME we cannot parse aborts rather than being replaced with the kit's "";
@@ -34,8 +35,8 @@ DRY=0; ONLY=""; MSG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
-    --only) ONLY=$2; shift ;;
-    --message) MSG=$2; shift ;;
+    --only) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; ONLY=$2; shift ;;
+    --message) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; MSG=$2; shift ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac; shift
 done
@@ -45,6 +46,17 @@ command -v jq >/dev/null        || { echo "jq missing (brew install jq)" >&2; ex
 TAG=$(git describe --tags --abbrev=0)
 TAG_SHA=$(git rev-list -n1 "$TAG")
 MSG=${MSG:-"chore(kit): claude.yml $TAG + retire bonsai-status-sync [skip ci]"}
+
+# Guard 0: a real wave commits the working tree's idea of the kit under the latest tag's name, so
+# the checkout has to be the released one. Guard 1 only proves the stubs agree with `git describe`
+# — it passes on a feature branch whose claude.yml is already the NEXT version's content, which
+# would push 18 commits labelled with a tag that does not contain what they carry. Dry runs are
+# read-only and stay allowed anywhere, which is how you plan a wave from the branch that builds it.
+if [ "$DRY" -eq 0 ]; then
+  [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || { echo "real waves run from main (you are on $(git rev-parse --abbrev-ref HEAD)); use --dry-run here" >&2; exit 2; }
+  [ -z "$(git status --porcelain)" ] || { echo "working tree not clean" >&2; exit 2; }
+  git merge-base --is-ancestor "$TAG_SHA" HEAD || { echo "$TAG ($TAG_SHA) is not an ancestor of HEAD" >&2; exit 2; }
+fi
 
 # Guard 1: the kit's stubs must already pin the latest tag (README release order, step 2).
 # The empty case is checked too: with no pin lines at all the stale-filter finds nothing to
@@ -70,9 +82,11 @@ api() { gh api "$@"; }
 # repo/branch/file argument order used at both call sites.)
 raw() { api "repos/$ORG/$1/contents/.github/workflows/$3?ref=$2" -H 'Accept: application/vnd.github.raw'; }
 b64() { base64 | tr -d '\n'; }                                   # macOS base64 wraps at 76 cols
-# Same errexit hole as targets(): the write chain is a run of `x=$(… | api …)` assignments, so a
-# failed POST leaves an empty x and execution carries on. Each object is checked to be a real sha
-# before the next call consumes it, so a mid-wave API failure can never walk a ref onto garbage.
+# Not for the failed-POST case: plan_and_push runs straight in the loop, not in a command
+# substitution (the errexit hole targets() documents), so a failing api call aborts the wave on its
+# own. This is for the 2xx that returns a body we did not expect — nothing fails, and the empty
+# value would be handed to the next call. Checked at each step, a surprise response can never walk
+# a ref onto garbage.
 sha40() { case "$1" in *[!0-9a-f]*|"") return 1;; esac; [ ${#1} -eq 40 ]; }
 HANDLE_RE='^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"[^"]*"'  # portable ERE (BSD + GNU)
 
@@ -112,6 +126,10 @@ targets() {
     repos=$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef \
               --jq '.[] | "\(.name) \(.defaultBranchRef.name)"') \
       || { echo "could not enumerate $ORG repos — this run proves nothing" >&2; exit 2; }
+    # A fleet that grew past --limit would come back silently truncated, and the missing repos would
+    # read as "not a target" rather than "not looked at".
+    [ "$(printf '%s\n' "$repos" | wc -l)" -lt 200 ] \
+      || { echo "repo list hit the --limit; raise it" >&2; exit 2; }
   fi
   while read -r r def; do
     [ -n "$r" ] || continue
@@ -147,7 +165,11 @@ plan_and_push() {
   [ -n "$existing" ] || { echo "  $repo@$branch: empty .github/workflows listing" >&2; exit 3; }
 
   for f in "${FULL_FILES[@]}"; do
-    grep -qx "$f" <<<"$existing" || continue
+    grep -qxF "$f" <<<"$existing" || continue
+    # A FULL_FILE the kit stopped shipping would make the sed below read a missing source and write
+    # an empty file over a live workflow. If the kit dropped it on purpose it belongs in DELETE_FILES.
+    [ -f "$KIT/$f" ] \
+      || { echo "  $repo@$branch $f: not in the kit any more — move it to DELETE_FILES?" >&2; exit 3; }
     cur="$tmp/deployed-$f"; raw "$repo" "$branch" "$f" > "$cur"
     local handle; handle=$(handle_of "$cur")
     # SHOPIFY_STORE_NAME appears once as a real key (job-level env) — the other mentions in the file
@@ -158,21 +180,26 @@ plan_and_push() {
     [ "$(handle_of "$tmp/$f")" = "$handle" ] \
       || { echo "  $repo@$branch $f: store handle did not survive" >&2; exit 3; }
     if ! cmp -s "$cur" "$tmp/$f"; then
-      actionlint "$tmp/$f" >/dev/null; tree+=("$f"); changes=1; echo "  write  $f"
+      actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; }
+      tree+=("$f"); changes=1; echo "  write  $f"
     fi
   done
 
+  # The `# vX.Y.Z` trailer moves with the SHA: the two halves are one pin, and a stale comment is
+  # what fleet-pin-audit.sh compares on. Anchored at `uses:` so a commented-out example is left
+  # alone, and the trailer group is optional so a line without one gains it.
   for f in "${PIN_FILES[@]}"; do
-    grep -qx "$f" <<<"$existing" || continue
+    grep -qxF "$f" <<<"$existing" || continue
     cur="$tmp/deployed-$f"; raw "$repo" "$branch" "$f" > "$cur"
-    sed -E "s#($ORG/workflows/\.github/workflows/[a-z-]+\.yml@)[0-9a-f]{40}#\1$TAG_SHA#" "$cur" > "$tmp/$f"
+    sed -E "s#^([[:space:]]*uses:[[:space:]]*$ORG/workflows/\.github/workflows/[a-z0-9-]+\.yml@)[0-9a-f]{40}([[:space:]]*\# *v[0-9][0-9.]*)?#\1$TAG_SHA \# $TAG#" "$cur" > "$tmp/$f"
     if ! cmp -s "$cur" "$tmp/$f"; then
-      actionlint "$tmp/$f" >/dev/null; tree+=("$f"); changes=1; echo "  repin  $f"
+      actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; }
+      tree+=("$f"); changes=1; echo "  repin  $f"
     fi
   done
 
   for f in "${DELETE_FILES[@]}"; do
-    if grep -qx "$f" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi
+    if grep -qxF "$f" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi
   done
 
   [ "$changes" -eq 1 ] || { echo "  (no changes)"; return 0; }
