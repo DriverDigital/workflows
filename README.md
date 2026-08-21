@@ -9,17 +9,17 @@ selected-actions allowlist at the org/enterprise tier).
 ## How the three repos fit together
 
 - **workflows** (this repo, public) — the reusable GitHub workflows + this onboarding kit. Fleet
-  repos carry thin SHA-pinned caller stubs; these run the GitHub side (implementer, reviews, Bonsai
-  status sync) once an issue exists.
-- **[driver-bonsai-mcp](https://github.com/DriverDigital/driver-bonsai-mcp)** — the Bonsai bridge
-  server (MCP + REST) *and* the Bonsai job pack (`pipeline/`) that defines the triage/executor cron
-  jobs which open those issues.
+  repos carry thin SHA-pinned caller stubs; these run the GitHub side (the implementer and the
+  Dependabot rails) once an issue exists.
+- **[driver-bonsai-mcp](https://github.com/DriverDigital/driver-bonsai-mcp)** — the **pipeline
+  dispatcher**: a scheduled Actions workflow that triages ready Bonsai tasks, opens those GitHub
+  issues, and polls the Bonsai status back.
 - **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the generic
-  headless `claude -p` cron runner the production box uses to execute the job pack.
+  headless `claude -p` cron runner the production box used to execute the job pack.
 
-Flow: a Bonsai ticket assigned to **Agents** → the box cron (driver-agents runner + the job pack +
-the bridge server) triages it and opens a GitHub issue → the target repo's caller stubs + these
-reusables implement, review, and sync status back to Bonsai.
+Flow: a Bonsai ticket assigned to **Agents** → the dispatcher triages it and opens a GitHub issue →
+the target repo's `claude.yml` implements it and opens the PR → the dispatcher moves the Bonsai
+task to Internal Review.
 
 ## Status & versions
 
@@ -30,8 +30,8 @@ fire on nothing, still linted, retirement banners at the top of each), and `bons
 lost its **review leg** (formal review → Revisions Requested / Ready for QA). The Dependabot rails,
 `claude.yml` and the two remaining status legs are untouched. Context, the interim manual-status
 state, and the Macroscope→Bonsai build plan:
-[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). All four remaining
-stubs are pinned to `b1fcb78`.
+[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). The three remaining
+Dependabot stubs are pinned to `b1fcb78`.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
@@ -39,8 +39,8 @@ here. Deployed fleet stubs were repinned to `v1.9.0` by the 2026-08-01 wave, so 
 tag the fleet was *ahead* of the kit templates. The v1.11.0 wave resolves both. Deployed fleet stubs are
 repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins in practice
 (zero such PRs fleet-wide; debugging why is on the backlog). Org Actions secrets (`AGENTS_GH_PAT`,
-`CLAUDE_CODE_OAUTH_TOKEN`, `BONSAI_BEARER_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions
-access are already in place — no per-repo secret setup.
+`CLAUDE_CODE_OAUTH_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access are already in
+place — no per-repo secret setup.
 
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
@@ -198,6 +198,7 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
 3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
+   - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
@@ -233,7 +234,6 @@ produces a silent `startup_failure` — no check run, no notification).
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
-| `bonsai-status-sync.yml` | Bonsai token only | `issues` + `pull_request` | deterministic (no-agent) Bonsai status flips off the issue/PR lifecycle; resolves the **linked issue** and reads the task URL from the **issue** body |
 
 Two more reusables sit in `.github/workflows/` **retired** (v1.12.0, 2026-08-08): `pr-first-review.yml`
 (human no-ticket PR → `/code-review` + reviewer request) and `ticketed-review.yml` (claude[bot] ticketed
@@ -242,7 +242,7 @@ PR → capped revise loop → Bonsai reviewer handoff). Macroscope reviews all P
 and [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries the four caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
+carries the three caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
 `shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
 workflows) and `pull_request_template.md`.
 
@@ -260,20 +260,10 @@ creates the wave**, because the moment the latest tag moves the audit's referenc
 against every stub in `templates/` and they must be repinned and re-copied everywhere. Let a kit-only file
 ride along with the next release that actually changes a reusable.
 
-**`bonsai-status-sync.yml` finished converting at `v1.11.0`.** The reusable landed 2026-08-02 and its stub
-landed in this tag's repin commit, so the kit now installs a 66-line stub instead of the old 190-line copy —
-see *Release + repin order* above and [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
-The two-step was deliberate and matches how `dependabot-keep-current` was added: a new reusable's stub cannot
-be pinned until the tag containing that reusable exists, so the reusable lands first and the stub follows in
-the repin commit. `lint.yml` fails the build on any stub still carrying a placeholder pin. **The v1.11.0 wave
-has landed** — `tools/fleet-pin-audit.sh` reads clean across all **23** repo@branch pairs (110 pin rows at
-`90f0d066`, 131 files matching `templates/` after the two documented normalizations, verified 2026-08-02),
-so every consumer repo now runs the 66-line stub. The count moved 21 → 23 the same day, when `driver-agents`
-and `driver-agents-app` took the partial install below; the wave itself covered the original 21.
-
-**`claude.yml` stays a per-repo copy** — that half of the conversion is tabled pending the OIDC spike (whether
-Claude App token minting survives inside a cross-repo reusable), so it remains the kit's main drift surface
-and the reason re-copies still need care.
+**`claude.yml` stays a per-repo copy** — converting it to a reusable is tabled pending the OIDC spike (whether
+Claude App token minting survives inside a cross-repo reusable; scope in
+[`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md)), so it remains the kit's main drift
+surface and the reason re-copies still need care.
 
 Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
@@ -344,13 +334,12 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 Retired with the review rails at v1.12.0 — no workflow requests a human reviewer or reassigns a Bonsai
 task on review completion any more; that's a PM's job until the Macroscope→Bonsai integration lands.
-The pieces stay live for that build: the `/tasks/reviewer-handoff` server endpoint (up since
-2026-06-26) resolves the Bonsai Reviewer field → a GitHub handle (default Maria) and reassigns the
-Bonsai task, fed by the Bonsai-name → handle map (`config/reviewers.json` in `driver-bonsai-mcp`,
-build-copied into the server's `dist/`). `dependabot-report` still requests a human reviewer on
-Dependabot PRs (default `mcarter-astronautdev`, per-repo override via the `PR_REVIEWER_HANDLE` Actions
-**variable**). The `config/reviewers.json` copy in **this** repo is reference only — no workflow reads
-it at runtime.
+The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
+build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
+field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
+`dependabot-report` still requests a human reviewer on Dependabot PRs (default `mcarter-astronautdev`,
+per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**). The `config/reviewers.json`
+copy in **this** repo is reference only — no workflow reads it at runtime.
 
 ## First-run / required-check
 

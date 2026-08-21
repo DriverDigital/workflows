@@ -5,7 +5,9 @@ name: Ticketed review (reusable)
 # left templates/github/ and is deleted fleet-wide by the v1.12.0 wave; this file is
 # workflow_call-only, so with no caller it fires on nothing. Preserved deliberately
 # for possible re-activation: restore the stub from git history (templates/github/
-# pre-v1.12.0), cut a tag, and wave it back out. Context and the Macroscope plan:
+# pre-v1.12.0), cut a tag, and wave it back out. Re-activation also needs the org
+# secret BONSAI_BEARER_TOKEN recreated — it was deleted with the v1.13.0 wave
+# (2026-08-22). Context and the Macroscope plan:
 # docs/macroscope-integration-scope.md.
 # ═════════════════════════════════════════════════════════════════════════════
 

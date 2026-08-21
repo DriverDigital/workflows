@@ -1,27 +1,26 @@
 # GitHub pipeline kit (Phase 2)
 
-Drop-in workflows that connect a DriverDigital repo to the Bonsai → PR pipeline. The cron
-orchestrator (on the box) opens a GitHub **issue** from a ready Bonsai task and `@claude`s it;
-these workflows take it from there and keep the Bonsai task's status in lockstep with the PR
-lifecycle.
+Drop-in workflows that connect a DriverDigital repo to the Bonsai → PR pipeline. The pipeline
+dispatcher (in `driver-bonsai-mcp`) opens a GitHub **issue** from a ready Bonsai task and
+`@claude`s it; these workflows take it from there. Bonsai status is polled by the dispatcher — no
+workflow here touches it.
 
 ### Full workflows (installed verbatim, per-repo)
 
 | File | Goes to | Does |
 |---|---|---|
-| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). |
-| `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the sync can resolve the task. AI PRs link automatically via the issue's development branch. |
+| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it pre-reviews its own branch with the built-in `/code-review` skill before opening the PR, requests the reviewer named by a **Reviewer:** line in the issue, and honours an "Instructions from the ticket" section. Commits carry no attribution trailer and PR bodies no footer (the action's settings input). |
+| `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs link automatically via the issue's development branch. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 
-All four go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
+All three go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
 trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is recorded.
 
 | File | Rail |
 |---|---|
-| `bonsai-status-sync.yml` | Deterministic (no-agent) Bonsai status flips on issue/PR events; on a PR it resolves the **linked issue** (`closingIssuesReferences`) and reads the task URL from the **issue** body — never from the PR body. Converted from a 190-line per-repo copy at v1.11.0; review leg retired at v1.12.0. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
@@ -41,10 +40,12 @@ Two rules that fail **silently** if broken:
 
 ## Status machine
 
+The dispatcher polls GitHub and writes these. No workflow in this kit touches Bonsai.
+
 | Trigger | Bonsai status |
 |---|---|
-| Issue opened (`@claude`) | **In Progress** |
-| PR opened / marked ready / new commits pushed | **Internal Review** |
+| Issue opened | **In Progress** |
+| Non-draft PR development-linked to the issue | **Internal Review** |
 
 The pipeline **stops at Internal Review** — everything after it (Revisions Requested, Ready for
 QA, Client Review → Ready to Deploy → Delivered / Deployed / Completed) is moved by a PM, pending
@@ -55,7 +56,7 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 
 1. **Install the Claude GitHub App** on the repo — `/install-github-app` from the Claude Code
    CLI, or install `github.com/apps/claude` manually. The App identity is what opens/pushes PRs.
-2. **Secrets** (repo or org → Settings → Secrets and variables → Actions). The three core ones are
+2. **Secrets** (repo or org → Settings → Secrets and variables → Actions). The two core ones are
    already **org-level** Actions secrets available to every consuming repo — no per-repo setup:
    - `CLAUDE_CODE_OAUTH_TOKEN` — output of `claude setup-token` run as the **Agents** account
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
@@ -63,12 +64,8 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT. The `GH_TOKEN` on every `gh`
      step (never the default `GITHUB_TOKEN`): `dependabot-report`'s verdict comment + reviewer
      request, and `claude.yml`'s sentinel posts.
-   - `BONSAI_BEARER_TOKEN` — must **byte-match** the server's `BEARER_TOKEN` (else every status
-     flip 401s).
 
    Optional, per-repo:
-   - **variable** `BONSAI_URL` if the tunnel host ever changes (defaults to
-     `https://driver-bonsai-mcp.ngrok.app`).
    - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the
      Dependabot-report rail (default `mcarter-astronautdev`).
    - **Shopify admin tooling** — only for repos with a store. Set all three secrets
@@ -91,19 +88,17 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
      report a trip on a rail with no exit code; see the comment in `claude.yml`). The whole value
      rides inside a **single-quoted** CLI token: **no apostrophes anywhere in it** — one apostrophe
      silently truncates the prompt instead of erroring. `lint.yml` asserts the quote count.
-3. **Orchestrator PAT (the cascade requirement).** GitHub does **not** re-trigger workflows from
-   events caused by the default `GITHUB_TOKEN`. The cron orchestrator must create issues with a
-   **single fine-grained PAT owned by the `driver-digital-agents` machine-user account** —
-   **All repositories**, permissions **Issues: R/W + Pull requests: R/W + Metadata: R** (no
-   Contents/Admin, so no code-push) — stored on the box at `~/.secrets/gh-token`. Without it,
-   issues are created but neither `claude.yml` nor the In-Progress flip fires. (claude-code-action
-   opens/pushes PRs as the Claude App, so the PR events cascade on their own.) The minimal
-   permission set is the security boundary, not the repo list — see `docs/phase2-github-setup.md`.
+3. **Issue creation:** the pipeline dispatcher (driver-bonsai-mcp, a scheduled Actions workflow)
+   opens issues as the driver-digital-agents PAT, which is what lets `claude.yml` fire on
+   `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). Bonsai status is
+   polled by the dispatcher — no per-repo workflow is involved. The PAT is fine-grained — **All
+   repositories**, permissions **Issues: R/W + Pull requests: R/W + Metadata: R** (no
+   Contents/Admin, so no code-push) — and that minimal permission set, not the repo list, is the
+   security boundary (`docs/phase2-github-setup.md`).
 4. **Copy the kit** (from a checkout of `DriverDigital/workflows`):
    ```bash
    mkdir -p .github/workflows
    cp templates/github/claude.yml               .github/workflows/
-   cp templates/github/bonsai-status-sync.yml   .github/workflows/
    cp templates/github/dependabot-validate.yml  .github/workflows/
    cp templates/github/dependabot-report.yml    .github/workflows/
    cp templates/github/dependabot-keep-current.yml .github/workflows/
@@ -116,16 +111,11 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    be silently clobbered by the kit's, which is the only kit filename likely to already exist.
 
    **Partial install (`lint.yml` only).** For a repo that is *not* on the Bonsai → PR pipeline —
-   no orchestrator issues — `lint.yml` is the useful subset and the rest is inert weight. This is
+   no dispatcher issues — `lint.yml` is the useful subset and the rest is inert weight. This is
    what `driver-agents` and `driver-agents-app` run (their `pr-first-review.yml` was removed with
    the v1.12.0 retirement; Macroscope reviews their PRs like everyone else's). Add the Dependabot
    trio if and when such a repo turns Dependabot on.
-5. **Board strings are no longer edited here.** As of v1.11.0 `bonsai-status-sync.yml` is a caller
-   stub; the exact Bonsai status strings live only in the central reusable
-   (`DriverDigital/workflows/.github/workflows/bonsai-status-sync.yml`). A board rename is therefore
-   a kit release + fleet repin, not a local edit — changing the strings in one repo does nothing.
-   A miss still fails the workflow loudly with `STATUS_NOT_FOUND` rather than flipping silently.
-6. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
+5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
    workflow display **name** is never part of it. Two shapes:
    - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
@@ -154,14 +144,13 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
 `main-au` / `main-uk`; `main-ma` for Morocco is planned). These branches are *not* a hub-and-spoke off
 `main`; they don't intersect. Treat each branch as its own self-contained store.
 
-- **Install BOTH `claude.yml` and `bonsai-status-sync.yml` on EVERY release branch.** Because the
-  branches are independent, each one carries its own copy of the kit. (Strictly, the issue/`@claude`
-  *kickoff* always fires from the repo's default branch — that's a hard GitHub rule for `issues`
-  events — and `pull_request` flips fire from the PR's target branch; installing both files on every
-  branch covers all of it without having to reason about which event resolves from where.)
+- **Install `claude.yml` on EVERY release branch.** Because the branches are independent, each one
+  carries its own copy of the kit. (Strictly, the issue/`@claude` *kickoff* always fires from the
+  repo's default branch — that's a hard GitHub rule for `issues` events; installing it on every
+  branch means no one has to reason about which event resolves from where.)
 - **Which branch a task targets is decided by the map, not the task.** Branch routing lives in
   `config/project-repo-map.json`: each pipeline project carries an explicit `branch` (e.g. the Palmers
-  India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The orchestrator
+  India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The dispatcher
   reads that `branch`, writes a `**Target branch:**` directive into the issue body, and the implementer
   bases its dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. The
   task's *Github Repo* custom field is **not** consulted for routing of map-routed repos, so a task
@@ -174,23 +163,10 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
 
 ## Validate before trusting it
 
-- **Status sync alone first:** open a throwaway **issue** whose body carries a known task's full
-  Bonsai URL, create a development-linked branch from it (`gh issue develop <issue> --checkout`),
-  push a commit, open a PR from that branch, mark it ready for review, and confirm the task flips to
-  **Internal Review**. (A human PR that just says `Closes #<issue>` resolves identically. Review
-  events flip nothing since v1.12.0 — that's expected, not a failure.)
-- **Then the full loop:** let the orchestrator open one real issue, then confirm the chain forms —
-  the issue gains a **development-linked branch** and a **real `pull_request` `opened` event authored
-  by `claude[bot]`** appears in the Actions log and flips the task to **Internal Review** — not
-  merely that "a PR exists" (a human clicking Claude's prefilled PR link would false-pass). If you
-  see only a prefill link and no `pull_request` event, the implementer didn't drive the flow — see
-  `docs/phase2-github-setup.md` step 5. Statuses past Internal Review are moved by hand since
-  v1.12.0, so Internal Review is where the automated part of the walk ends.
-
-## Operational dependency
-
-Every status flip hits the single Chrome on the box through the MCP mutex via the ngrok tunnel.
-If the box is down or the Bonsai session lapses, status flips (AI **and** human) stop landing —
-the `curl --retry` rides out a transient `503 BROWSER_BUSY`, but a sustained outage drops the
-flip (the Actions step goes red). Monitor `/health` (`sessionValid`) — see the health-monitoring
-crons in the main repo.
+Let the dispatcher open one real issue, then confirm the chain forms — the issue gains a
+**development-linked branch** and a **real `pull_request` `opened` event authored by `claude[bot]`**
+appears in the Actions log, and the task reaches **Internal Review** — not merely that "a PR exists"
+(a human clicking Claude's prefilled PR link would false-pass). If you see only a prefill link and
+no `pull_request` event, the implementer didn't drive the flow — see `docs/phase2-github-setup.md`
+step 5. Statuses past Internal Review are moved by hand since v1.12.0, so Internal Review is where
+the automated part of the walk ends.

@@ -91,10 +91,10 @@ constraint in its own words: "the agent that writes the code CANNOT see Figma �
 step in the chain that can read the design — put what it needs in the issue body. An issue that just
 links Figma sends the implementer in blind, which is worse than escalating."
 
-Same shape as the existing `**Target branch:**` directive (`claude.yml:357-361`): triage resolves
-something the implementer cannot, and hands it over as issue text. It also makes the handoff
-**auditable** — the issue shows exactly what design context the implementer was given, so a bad
-Figma read is visible rather than inferred from bad code.
+Same shape as the existing `**Target branch:**` directive (the BASE BRANCH note in `claude.yml`):
+triage resolves something the implementer cannot, and hands it over as issue text. It also makes the
+handoff **auditable** — the issue shows exactly what design context the implementer was given, so a
+bad Figma read is visible rather than inferred from bad code.
 
 A ticket that needs a design to be *produced or changed* still escalates to a human; triage can read
 Figma, not do a design pass.
