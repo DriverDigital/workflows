@@ -24,11 +24,12 @@ manual re-runs) vs. a vendor product that already does the loop.
 - Auto-flips still live, polled by the dispatcher now: issue opened → **In Progress**; non-draft PR
   dev-linked to the issue → **Internal Review**.
 - Everything after Internal Review is **manual** (PM): Revisions Requested, Ready for QA, and the
-  move of a Bonsai task off **Agents** to a human reviewer. Ticketed tasks no longer ping anyone
-  when the PR is ready — watch for stalls.
-- `claude.yml` is untouched, including the ticketed-loop machinery (round-marker prompt branch,
-  actor gate, re-request step). It looks dead; it is not — it's the re-entry point below. **Do not
-  strip it in a claude.yml wave.**
+  move of a Bonsai task off **Agents** to a human reviewer. Since v1.13.0 the PR itself does ping a
+  human — `claude.yml` requests the reviewer named on the issue body when it opens the PR — but
+  nothing moves the Bonsai task, so that is where a ticket stalls.
+- `claude.yml` still carries the ticketed-loop machinery (round-marker prompt branch, actor gate,
+  re-request step) — v1.13.0 rewrote the issue prompt around it and left it intact. It looks dead;
+  it is not — it's the re-entry point below. **Do not strip it in a claude.yml wave.**
 
 ## Watch item — first Macroscope reviews
 
@@ -62,8 +63,8 @@ Building blocks that already exist — reuse, don't rebuild:
   + `@claude`. The receiver posts that comment via `AGENTS_GH_PAT` and the whole revise loop comes
   back — Macroscope-driven instead of ticketed-review-driven.
 - **Human handoff:** reassigning the Bonsai task is a public-API write now and the reviewer handle
-  comes from the issue body (2026-08-21 note below); the GitHub-side reviewer request is one
-  `gh pr edit --add-reviewer` with the same PAT.
+  comes from the issue body (2026-08-21 note below); the GitHub-side reviewer request already ships
+  in `claude.yml` (v1.13.0) — one `gh pr edit --add-reviewer` with the same PAT.
 - **Status flips:** a public-API write too (note below); the bridge endpoint the retired sync rail
   used is gone.
 
