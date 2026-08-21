@@ -23,15 +23,15 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.12.0`** (`b1fcb78`, 2026-08-08) — **the review-rail retirement.** PR review is Macroscope's
-job now (decided 2026-08-08): the `pr-first-review.yml` + `ticketed-review.yml` caller stubs left
-the kit and were deleted fleet-wide, the two reusables stay here **caller-less** (`workflow_call`-only,
-fire on nothing, still linted, retirement banners at the top of each), and `bonsai-status-sync`
-lost its **review leg** (formal review → Revisions Requested / Ready for QA). The Dependabot rails,
-`claude.yml` and the two remaining status legs are untouched. Context, the interim manual-status
-state, and the Macroscope→Bonsai build plan:
-[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). The three remaining
-Dependabot stubs are pinned to `b1fcb78`.
+Latest tag **`v1.13.0`** (`f6d25d3`, 2026-08-22) — **the pass that sets the rail up to run without the
+box.** `claude.yml` now takes its direction from the dispatcher's issue body (target branch,
+reviewer, ticket instructions), pre-reviews its own diff before opening the PR, carries a nine-item
+quality standard in its system prompt, ships with commit/PR attribution mechanically off, and runs
+`--model fable --effort xhigh`. `bonsai-status-sync` is retired outright — the dispatcher polls
+Bonsai status now — and the wave itself is a checked-in script, `tools/fleet-wave.sh`. Plan:
+[`docs/superpowers/plans/2026-08-21-claude-yml-wave.md`](docs/superpowers/plans/2026-08-21-claude-yml-wave.md);
+spec: driver-bonsai-mcp `docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md` §5a.
+The three remaining Dependabot stubs are pinned to `f6d25d3`.
 
 **Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
 commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
@@ -52,12 +52,78 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-`v1.11.0` → **`v1.12.0`** (all below). `v1.3.0` was never tagged.
+`v1.11.0` → `v1.12.0` → **`v1.13.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.13.0` (`f6d25d3`, 2026-08-22)
+
+The pass that sets the rail up to run without the box — see the headline for what and why. Piloted
+on `vite-plugin-shopify-clean` (canary below), then waved 2026-08-22 to all **20** repin targets (19
+pushed, the pilot already current). Audit clean the same day: **51 pins at `f6d25d34`, 72 files
+matching `templates/`, zero drift** across the 23 pairs audited.
+
+- **`claude.yml` reads the dispatcher's issue body.** `Target branch:` is the base for both
+  `gh issue develop --base` and `gh pr create --base`; `Reviewer:` is requested with
+  `gh pr edit --add-reviewer` *after* the PR exists, non-fatally — a bad handle can no longer abort
+  PR creation; `## Instructions from the ticket` directs the task but never overrides the steps, the
+  repo rules or a system-prompt guard, and never authorises touching `.github/` or exposing
+  credentials. Branch name and handle are opaque data: one quoted argument each, never spliced into
+  a larger command.
+- **In-run pre-review.** Push, then `/code-review high <base>...HEAD` — the explicit range is
+  load-bearing, a bare invocation reviews commits ahead of upstream, which is nothing once the
+  branch is pushed. Fix, push again, and the short PR body ends `Pre-review: N findings, M fixed,
+  K dismissed` (or `Pre-review: skipped (reason)`).
+- **Quality standard** added to the static `--append-system-prompt` (9 items: CLAUDE.md/HANDOFF
+  first, design before code, one author per file, adversarial pre-review, verify before done,
+  conventional commits with no trailers, short PR body, repo conventions win, judgment over
+  compliance). It is **global** — it reaches the ticketed revision rail too, so watch the first
+  revision round against the 90-minute cap.
+- **Attribution off mechanically:** `settings: { "attribution": { "commit": "", "pr": "",
+  "sessionUrl": false } }` — no `Co-Authored-By`, no "Generated with" line on the agent rails. A
+  human `@claude` (tag mode) still gets the action's own co-author text.
+- **`--model fable --effort xhigh`**, and `claude-code-action` → `d40ddef` (`v1.0.195`), matching
+  the reusables. Whether a Fable run draws usage credits was not checked; the decision (2026-08-21)
+  is to watch it once pipeline traffic grows rather than gate on it — fallback `--model opus`, see
+  the MODEL NOTE comment in `claude.yml`.
+- **`bonsai-status-sync` retired** — template and reusable both deleted, and the org secret
+  `BONSAI_BEARER_TOKEN` deleted after a direct probe of every non-archived repo found no copy of the
+  workflow left anywhere. The dispatcher polls the two remaining legs instead (issue opened → In
+  Progress; non-draft dev-linked PR → Internal Review). The kit is six `.yml` files; five reusables
+  remain — three Dependabot rails plus the two retired review rails, whose banners now say
+  re-activation needs `BONSAI_BEARER_TOKEN` recreated.
+- **`tools/fleet-wave.sh`** — the wave is a checked-in script now. It discovers targets by presence
+  (`claude.yml` **or** a Dependabot stub, which is what reaches the two stub-only pairs) and repins
+  the pin line's SHA and its `# vX.Y.Z` trailer together. Guards: a real wave only from a clean
+  `main` containing the tag, kit stubs must pin the latest tag, never waves this repo, actionlint
+  before every write, no destination path twice, store handle survives, `--dry-run` touches nothing,
+  zero targets is an error. Mechanics: [`docs/fleet-operations.md`](docs/fleet-operations.md).
+- **this repo's own CI:** `lint.yml` now also fails on a stray brace in `claude.yml`'s `prompt:`
+  scalar — actionlint is blind to it, and a stray `{` is a silent dispatch failure fleet-wide.
+- **`DRIVER_AGENTS_REF` held at `4d63371`**, re-checked against canonical at that pin
+  (whitespace-collapsed parity: match). driver-agents `main` is 8 commits ahead with a much longer
+  blockquote and small tool fixes, so the queued re-copy + ref bump stays open for the release that
+  wants those.
+
+**Canary** (`vite-plugin-shopify-clean`, 2026-08-21 23:12–23:17 UTC, torn down afterwards): Bonsai
+TSK-00923 → dispatcher run `32536010404` → issue #91 by `driver-digital-agents` carrying the target
+branch, reviewer and ticket instructions → `claude.yml` run `32536083273`, **success in 3m24s** on
+`claude-fable-5` → PR #92 with `ktdriverdigital` requested 4 s after creation, a 10-line body ending
+`Pre-review: 1 finding, 1 fixed, 0 dismissed`, no footer, **0 trailers on 2 commits**, and the
+ticket's changelog instruction honoured. Timestamps prove the order: feat commit 23:15:12 →
+pre-review fix 23:16:41 → PR 23:16:49. Dispatcher reconcile run `32536361182` moved Bonsai to
+Internal Review.
+
+**Watch-items:** Fable billing (above); what the global quality standard costs the revision rail; a
+human `@claude` still gets tag-mode attribution; `/code-review`'s 50-file cap means a large
+migration gets a partial pre-review (the prompt requires the run to say so).
 
 ### `v1.12.0` (`b1fcb78`, 2026-08-08)
 
-The review-rail retirement — see the headline above for what and why. Waved 2026-08-08 to all 23
-pairs: the two review stubs **deleted** from every fleet pair that carried them (41 pin rows
+The review-rail retirement: PR review became Macroscope's job alone (decided 2026-08-08) — the two
+review stubs left the kit, their reusables stayed here caller-less with retirement banners, and
+`bonsai-status-sync` lost its **review leg** (formal review → Revisions Requested / Ready for QA).
+Context and the Macroscope→Bonsai build plan:
+[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). Waved 2026-08-08 to
+all 23 pairs: the two review stubs **deleted** from every fleet pair that carried them (41 pin rows
 removed), `bonsai-status-sync.yml` whole-file replaced on 18 pairs, remaining stubs repinned.
 Audit clean same day: **69 pins at `b1fcb78c`, 90 files matching `templates/`, zero drift.** Three
 pairs' only pinned stub was `pr-first-review.yml` — `driver-agents@main`, `driver-agents-app@main`,
@@ -188,8 +254,8 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
      matches canonical at the new pin, and `DRIVER_AGENTS_REF` is a raw SHA in an env var that no bot
      can bump. The audit catches a *fleet* that fell behind `templates/`; only this step catches
      `templates/` falling behind driver-agents.
-2. Repin every caller stub in `templates/github/` to that tag's SHA and commit. Until this
-   lands, the kit's stubs still point at the PREVIOUS tag's reusables.
+2. Repin every caller stub in `templates/github/` to that tag's SHA **and** its `# vX.Y.Z` trailer,
+   then commit. Until this lands, the kit's stubs still point at the PREVIOUS tag's reusables.
    - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
      reusable — the tag it must pin does not exist until step 1. That is why
      `dependabot-keep-current`'s reusable and its stub landed in different commits, and how
@@ -209,7 +275,9 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
      which is not necessarily what the fleet holds — at v1.11.0 the kit diff patched from `80c35fe`
      (v1.8.0) while every deployed stub held `a54c91e` (v1.9.0), a SHA no kit revision had ever
      carried in a pin line, so no diff base produced a matching `-` line and `git apply` would have
-     rejected all five files on target #1.
+     rejected all five files on target #1. The sed rewrites the SHA **and** the `# vX.Y.Z` trailer
+     in one substitution (as `fleet-wave.sh` does) — the two halves are one pin, and a stale comment
+     names the wrong release.
    - Wave mechanics, the guards worth keeping, and what the pin audit cannot see:
      [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
@@ -332,8 +400,10 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 ## Reviewer handoff
 
-Retired with the review rails at v1.12.0 — no workflow requests a human reviewer or reassigns a Bonsai
-task on review completion any more; that's a PM's job until the Macroscope→Bonsai integration lands.
+Retired with the review rails at v1.12.0 — no workflow reassigns a Bonsai task, or requests a reviewer
+*on review completion*, any more; that's a PM's job until the Macroscope→Bonsai integration lands.
+Since v1.13.0 `claude.yml` does request the GitHub reviewer named on the issue body's `Reviewer:` line
+when it opens the PR, so a ticketed PR still pings someone the moment it exists.
 The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).

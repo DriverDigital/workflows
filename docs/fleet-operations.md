@@ -11,14 +11,16 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
 
 ## The fleet
 
-**20 repo@branch pairs** since the v1.12.0 retirement wave (2026-08-08; verified by a live audit
-run — 69 pins at `b1fcb78c`, 90 content matches, zero drift), and the split matters because two
-different numbers are correct depending on the question:
+**20 repo@branch pairs** carry kit stubs after the v1.13.0 wave (2026-08-22; verified by a live
+audit run across the 23 pairs it enumerates — the 20 targets plus the three that carry no pins —
+**51 pins at `f6d25d34`, 72 content matches, zero drift**; the drop from v1.12.0's 69/90 is exactly
+the 18 `bonsai-status-sync.yml` copies the wave deleted). The split matters because two different
+numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
-| **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deletes — verified branch-by-branch across all 618 org branches: zero rows where one was present without the other.) |
+| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 23) and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deleted — verified branch-by-branch across all 618 org branches beforehand: zero rows where one was present without the other.) |
 | **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 
 Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
