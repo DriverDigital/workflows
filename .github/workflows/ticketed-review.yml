@@ -195,7 +195,7 @@ jobs:
         # Don't abort the job on a review error — the decide step turns an errored review into an
         # honest handoff (never a false "clean"). The review-step OUTCOME is what it reads.
         continue-on-error: true
-        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1.0.189
+        uses: anthropics/claude-code-action@d40ddef4c030e508327d6e35a9c45f3368482c50 # v1.0.195
         with:
           path_to_claude_code_executable: /home/runner/.local/bin/claude
           github_token: ${{ secrets.AGENTS_GH_PAT }}
