@@ -107,6 +107,17 @@ jobs:
               if ch in p:
                   print(f"::error::system prompt contains {ch!r}, which {why}")
                   sys.exit(1)
+          # Same class of silent failure one level up, in the `prompt:` scalar. Its issue branch is a
+          # format() call whose literal may hold only the {0} placeholder; any other brace makes the
+          # expression fail AT RUNTIME (unmatched-brace / bad-format-string), which actionlint cannot
+          # see — it does not parse inside a format() literal. The run dies before Claude starts.
+          # The delimiters are stripped by REGEX, not str.replace, so this file holds no literal
+          # dollar-brace-brace: actionlint lexes one inside a run: block as an expression and fails
+          # the whole workflow. Do not "simplify" it back.
+          prompt = [s for s in steps if "prompt" in (s.get("with") or {})][0]["with"]["prompt"]
+          inner = re.sub(r"\$\{\{|\}\}", "", prompt)
+          if re.findall(r"\{(?!0\})|(?<!\{0)\}", inner):
+              sys.exit("::error::stray brace in claude.yml prompt scalar — format() accepts only {0}")
           print(f"claude_args tokenizes cleanly: 4 quotes, {len(p)}-char system prompt")
           PY
 
