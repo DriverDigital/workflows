@@ -17,8 +17,8 @@ different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates, and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
-| **Full-kit targets** | **18** | Pairs carrying `claude.yml` *and* `bonsai-status-sync.yml`. Verified branch-by-branch across all 618 org branches: zero rows where one is present without the other, so a wave touching one can touch both. |
+| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub. What `tools/fleet-pin-audit.sh` enumerates and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deletes — verified branch-by-branch across all 618 org branches: zero rows where one was present without the other.) |
 | **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 
 Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
@@ -71,15 +71,19 @@ One atomic commit per branch via the Git Data API (blobs → tree → commit →
 commit per file. Per target:
 
 1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
-2. The four stubs (`lint.yml`, `dependabot-*.yml`) ← **sed the pin line only**, so any per-repo
-   edit survives.
+2. The three Dependabot stubs ← **sed the pin line only**, so any per-repo edit survives;
+   `lint.yml` ← kit version (it carries no pin line and no per-repo state).
 3. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
 4. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
 5. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
    message) and patch the ref.
 
-This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. It refuses to run if the
-kit's own stubs are not pinned to the latest tag (the reference-drift trap).
+This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. It discovers targets by the
+presence of `claude.yml` **or** `dependabot-validate.yml`, so it reaches all 20 pairs and simply
+skips the files a stub-only pair does not have. It refuses to run if the kit's own stubs are not
+pinned to the latest tag (the reference-drift trap). A real (non-dry) wave only runs from a clean
+`main` that already contains the tag; dry runs work from anywhere, which is how a wave is planned
+from the branch that builds it.
 
 A wave can also **delete** — the Git Data API tree op takes `sha: null` for a path. The v1.12.0
 wave removed `pr-first-review.yml` + `ticketed-review.yml` from every pair carrying them in the
@@ -160,9 +164,10 @@ The v1.11.0 pilot proved `vars.BONSAI_URL` resolves against the **caller**, so a
 override still works after conversion. Two things made it harder than expected, both worth knowing
 before designing the next one.
 
-**The `issues` leg is not pilotable.** `bonsai-status-sync`'s issues gate greps the issue body for
-`@claude`, and `claude.yml`'s issues gate does the same — deliberately mirrored. Any issue that
-trips the status flip also wakes a real implementer run on a client repo. Use the PR leg.
+**The `issues` leg was not pilotable.** `bonsai-status-sync` (retired at v1.13.0) grepped the issue
+body for `@claude` exactly as `claude.yml`'s issues gate does — deliberately mirrored — so any issue
+that tripped the status flip also woke a real implementer run on a client repo. Expect the same
+collision from any future rail sharing `claude.yml`'s trigger: pilot on the PR leg.
 
 **`closingIssuesReferences` only populates for PRs targeting the default branch.** A PR into a
 scratch base dodges the theme-deploy workflows (they filter on `branches: [staging, dev-staging]`)

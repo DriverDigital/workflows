@@ -16,7 +16,7 @@
 - `claude.yml`'s ticketed-review machinery (the `<!-- ticketed-review-round -->` prompt branch, its actor gate, and the "Re-request ticketed review" step) is a **deliberate keeper** — phase 2's re-entry point. Do not remove it.
 - Waves push **directly to each branch** with the CI-skip token in the commit message (see `docs/fleet-operations.md`). Never write that token into any other commit message in this repo — in prose write `skip-ci`.
 - Release order (`README.md` "Release + repin order"): merge → tag → repin `templates/github/` stubs to the tag SHA → only then wave. `lint.yml` fails on a placeholder pin.
-- Fleet = every non-archived `DriverDigital` repo/branch carrying `.github/workflows/claude.yml` (18 pairs today: 10 single-branch repos + Palmers × 8 branches). Discover by presence, never from a list.
+- Fleet = every non-archived `DriverDigital` repo/branch carrying `.github/workflows/claude.yml` **or** a Dependabot caller stub (**20 pairs** today: 10 single-branch repos + Palmers × 8 branches + the 2 stub-only pairs `Team-Laird@develop` and `The-Gathery@develop`). Discover by presence, never from a list.
 - Commit messages: conventional, natural language, no trailers.
 
 ---
@@ -350,7 +350,7 @@ echo "targets: $n"
 chmod +x tools/fleet-wave.sh
 tools/fleet-wave.sh --dry-run; echo "exit=$?"
 ```
-Expected right now: the kit is pinned to `v1.12.0` and HEAD carries an untagged Dependabot bump, so `git describe` gives `v1.12.0` and the guard passes; the dry run lists 18 targets with `write claude.yml`, `delete bonsai-status-sync.yml`, and no repins (pins already at v1.12.0). `targets: 18`, `exit=0`. Nothing is pushed.
+Expected right now: the kit is pinned to `v1.12.0` and HEAD carries an untagged Dependabot bump, so `git describe` gives `v1.12.0` and the guard passes; the dry run lists 20 targets — 18 with `write claude.yml`, `delete bonsai-status-sync.yml`, and no repins (pins already at v1.12.0), plus the two stub-only pairs showing `(no changes)`. `targets: 20`, `exit=0`. Nothing is pushed.
 
 - [ ] **Step 3: Commit**
 
@@ -395,11 +395,11 @@ git push origin v1.13.0
 
 ```bash
 SHA=$(git rev-list -n1 v1.13.0)
-sed -i '' -E "s#(DriverDigital/workflows/\.github/workflows/[a-z-]+\.yml@)[0-9a-f]{40}#\1$SHA#" templates/github/*.yml
-grep -rhoE "@[0-9a-f]{40}" templates/github/*.yml | sort -u     # exactly one SHA, = $SHA
+sed -i '' -E "s#^([[:space:]]*uses:[[:space:]]*DriverDigital/workflows/\.github/workflows/[a-z0-9-]+\.yml@)[0-9a-f]{40}([[:space:]]*# *v[0-9][0-9.]*)?#\1$SHA # v1.13.0#" templates/github/*.yml
+grep -n "uses: DriverDigital" templates/github/*.yml     # three lines, all @$SHA # v1.13.0
 git commit -am "chore: repin the kit's caller stubs to v1.13.0"
 git push
-tools/fleet-pin-audit.sh --stale || true   # expected: REFERENCE ok; PINS + CONTENT drift on all 18 pairs (that is the wave's to-do list)
+tools/fleet-pin-audit.sh --stale || true   # expected: REFERENCE ok; PINS drift on all 20 pairs, CONTENT drift on the 18 full-kit pairs (that is the wave's to-do list)
 ```
 
 ---
@@ -447,17 +447,17 @@ Record the decision in the handoff (Task 7).
 - [ ] **Step 1: Dry-run, then wave**
 
 ```bash
-tools/fleet-wave.sh --dry-run       # 18 targets; pilot shows "(no changes)"
+tools/fleet-wave.sh --dry-run       # 20 targets; pilot shows "(no changes)"
 tools/fleet-wave.sh
 ```
-Expected: `pushed <sha>` on 17 pairs, `(no changes)` on the pilot, `targets: 18`.
+Expected: `pushed <sha>` on 19 pairs, `(no changes)` on the pilot, `targets: 20`. The two stub-only pairs show `repin` × 3 — their three Dependabot stubs and nothing else.
 
 - [ ] **Step 2: Audit**
 
 ```bash
 tools/fleet-pin-audit.sh --stale; echo "exit=$?"
 ```
-Expected: zero drift, `exit=0`. If the audit still reports `bonsai-status-sync.yml` anywhere, that pair was not discovered (no `claude.yml`) — inspect it by hand; delete the stray file the same way.
+Expected: zero drift, `exit=0`. If the audit still reports `bonsai-status-sync.yml` anywhere, that pair was not discovered (neither `claude.yml` nor a Dependabot stub) — inspect it by hand; delete the stray file the same way.
 
 - [ ] **Step 3: Tell driver-bonsai-mcp the secret can go**
 
@@ -468,9 +468,9 @@ Expected: zero drift, `exit=0`. If the audit still reports `bonsai-status-sync.y
 ### Task 7: Handoff + to-dos
 
 **Files:**
-- Modify: `docs/HANDOFF.md` in this repo (or `README.md`'s state section if that is where this repo keeps it — check `ls docs`).
+- Modify: `README.md` — this repo has no `docs/HANDOFF.md`; `README.md`'s **Status & versions** section is where the state lives.
 
-- [ ] **Step 1: Record** — one dated section: what v1.13.0 changed, the canary assertions (numbers), the Fable decision, the audit result, and that waves are now `tools/fleet-wave.sh`.
+- [ ] **Step 1: Record** — rewrite the **Status & versions** headline for v1.13.0 (tag SHA, date, what changed), add a new `### \`v1.13.0\`` section above `### \`v1.12.0\``, and extend the inline tag history to end at **`v1.13.0`**. The new section carries the canary assertions (numbers), the Fable outcome, the audit result, and that waves are now `tools/fleet-wave.sh`.
 
 - [ ] **Step 2: To-dos (todo-capture)**
 

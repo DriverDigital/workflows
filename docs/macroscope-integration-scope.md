@@ -67,7 +67,7 @@ Building blocks that already exist — reuse, don't rebuild:
 - **Status flips:** a public-API write too (note below); the bridge endpoint the retired sync rail
   used is gone.
 
-2026-08-21: the bridge server behind these endpoints is retired. Phase 2 writes Bonsai status
+2026-08-21: the bridge server that carried the old `/tasks/*` endpoints is retired. Phase 2 writes Bonsai status
 through the public API (PATCH /public-api/v1/tasks/{uuid} with task_status_id) using the Agents API
 key, and triggers the dispatcher via workflow_dispatch { task_uuid } in driver-bonsai-mcp. The
 Reviewer custom field is not readable through the public API; the reviewer comes from the issue

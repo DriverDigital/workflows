@@ -11,8 +11,8 @@
 #   2. PINS — every deployed caller stub's `uses: DriverDigital/workflows/...@SHA` vs that tag.
 #   3. CONTENT — the whole waved file vs its templates/github/ source. The pin is one line of it:
 #      `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, the implementer's system prompt is just
-#      text, and an unconverted 190-line copy of a workflow that is now a 66-line stub has no
-#      `uses:` line at all — so a pin grep sees none of them. Exactly two things are normalized
+#      text, and a full-workflow copy of what should be a thin stub has no `uses:` line at all
+#      — so a pin grep sees none of them. Exactly two things are normalized
 #      away — the per-repo store handle and trailing blank lines (see `kit_normalize` for why);
 #      anything else that differs is drift.
 #
