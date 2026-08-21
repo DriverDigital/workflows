@@ -52,7 +52,7 @@ MSG=${MSG:-"chore(kit): claude.yml $TAG + retire bonsai-status-sync [skip ci]"}
 # Guard 0: a real wave commits the working tree's idea of the kit under the latest tag's name, so
 # the checkout has to be the released one. Guard 1 only proves the stubs agree with `git describe`
 # — it passes on a feature branch whose claude.yml is already the NEXT version's content, which
-# would push 18 commits labelled with a tag that does not contain what they carry. Dry runs are
+# would push 20 commits labelled with a tag that does not contain what they carry. Dry runs are
 # read-only and stay allowed anywhere, which is how you plan a wave from the branch that builds it.
 if [ "$DRY" -eq 0 ]; then
   [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || { echo "real waves run from main (you are on $(git rev-parse --abbrev-ref HEAD)); use --dry-run here" >&2; exit 2; }
@@ -97,7 +97,7 @@ HANDLE_RE='^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"[^"]*"'  # portable ERE 
 # empty, so empty-in/empty-out is the correct no-op there). Only the double-quoted form is parseable,
 # and a handle we cannot read is a handle we would silently overwrite with the kit's "" — which the
 # survival assertion below could not catch, because "" == "" passes. So refuse instead of guessing.
-# All 18 fleet targets are double-quoted today; this fires only after someone hand-edits one.
+# All 18 full-kit targets are double-quoted today; this fires only after someone hand-edits one.
 handle_of() {
   local keys quoted
   keys=$(grep -cE '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" || true)
@@ -138,8 +138,9 @@ targets() {
     [ -n "$r" ] || continue
     # Guard 2. The kit repo's .github/workflows/ holds the REUSABLES the whole fleet calls, and they
     # share basenames with the stubs that call them — waving into it would overwrite the rails with
-    # the stubs. Presence-discovery already excludes it (no claude.yml there today); this is the belt
-    # for the day that stops being true, because the mistake is fleet-wide and not one commit to undo.
+    # the stubs. Discovery does NOT exclude it: the OR probe below matches on claude.yml OR
+    # dependabot-validate.yml, and this repo carries the latter, so this skip is the only thing
+    # keeping the wave out of the kit — and the mistake is fleet-wide, not one commit to undo.
     if [ "$r" = "$SELF_REPO" ]; then continue; fi
     if [ "$r" = "Palmers" ]; then
       branches=$(api "repos/$ORG/$r/branches?per_page=100" --paginate --jq '.[].name') \
