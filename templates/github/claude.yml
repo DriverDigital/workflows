@@ -23,7 +23,7 @@ name: Claude Code
 # issue -> dev-linked branch -> claude[bot] PR -> Internal Review. If the model won't drive it
 # reliably, the allow-list and the prompt are the tuning points (see claude_args below).
 #
-# TRIGGERS on `@claude` in: an issue body (the cron orchestrator opens issues and @claude's them to
+# TRIGGERS on `@claude` in: an issue body (the pipeline dispatcher opens issues and @claude's them to
 # start work), a standalone PR/issue comment, OR inside a PR review or an inline review comment (a
 # reviewer @claude's the PR to request revisions — the natural place to do it). A review-driven run
 # pushes new commits to the existing PR (synchronize -> Internal Review); it does NOT open a second
@@ -48,7 +48,7 @@ on:
   issue_comment:
     types: [created]
   issues:
-    # 'opened' only — the orchestrator kicks off work by putting @claude in the issue BODY at
+    # 'opened' only — the dispatcher kicks off work by putting @claude in the issue BODY at
     # creation. 'assigned' is intentionally omitted: with the @claude-in-body guard it would
     # re-launch a second implementer run whenever an already-@claude'd issue is (re)assigned.
     types: [opened]
@@ -76,11 +76,11 @@ jobs:
     # non-write actors, but that only kicks in AFTER the job spins up; author_association fails fast
     # before it. NOTE author_association is the actor's ORG RELATIONSHIP, not the token's scopes:
     # OWNER/MEMBER/COLLABORATOR covers the human reviewers on the comment/review revision paths. The
-    # cron orchestrator (driver-digital-agents) is whitelisted by LOGIN + immutable account id
+    # pipeline dispatcher (driver-digital-agents) is whitelisted by LOGIN + immutable account id
     # (261291955) on the issues path — AND on the issue_comment path, where the ticketed-review
     # rail posts its `@claude` revision requests as driver-digital-agents (same PAT, same
     # author_association unreliability). NOT by author_association. A PAT can open an issue on a private repo WITHOUT holding the
-    # org-member relationship author_association checks for, so the orchestrator's webhook
+    # org-member relationship author_association checks for, so the dispatcher's webhook
     # author_association is NOT reliably OWNER/MEMBER/COLLABORATOR at event time. This silently
     # skipped the implementer on 2026-06-19 (issue created fine, but the job's gate evaluated false,
     # so no branch and no PR — the bug this clause fixes). The login is paired with the IMMUTABLE
@@ -191,7 +191,7 @@ jobs:
           DRIVER_AGENTS_REF: 4d633714ce0a3c9bf7ec87cfcfb8b13ceaf8240c # main @ 2026-08-02 (audit pipeline + Admin API wrapper)
           # Optional: the #driver-agents-status Slack incoming-webhook URL (org-level secret, set
           # org-wide — nothing per repo). When present, the tool's destructive/failed-call alerts
-          # fire from CI runs exactly as they do on the box; absent = alerts off, nothing else
+          # fire from CI runs (same wiring the retired box used); absent = alerts off, nothing else
           # changes — the same best-effort posture as the tool's own alerting.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
           # For SHOPIFY_AUDIT_CONTEXT below: the issue (issues/issue_comment rails) or PR number.
@@ -332,13 +332,13 @@ jobs:
           #     CAN invoke `/code-review:code-review` when the human asks for it (see PROMPT below —
           #     the human's comment itself is never replaced).
           #   • else (revision) → empty, so the load-bearing PR-revision flow stays byte-for-byte unchanged.
-          # All three repos are PUBLIC → fetchable unauthenticated from the ephemeral runner (it does NOT
-          # inherit the box's ~/.claude/plugins): anthropics/claude-plugins-official (the marketplace
+          # All three repos are PUBLIC → fetchable unauthenticated from the ephemeral runner (which
+          # starts with an empty ~/.claude/plugins): anthropics/claude-plugins-official (the marketplace
           # catalog) + obra/superpowers (the plugin's own source) + anthropics/claude-code (code-review).
           plugin_marketplaces: "${{ github.event_name == 'issues' && 'https://github.com/anthropics/claude-plugins-official.git' || ((contains(github.event.comment.body, '/code-review') || contains(github.event.review.body, '/code-review')) && 'https://github.com/anthropics/claude-code.git' || '') }}"
           plugins: "${{ github.event_name == 'issues' && 'superpowers@claude-plugins-official' || ((contains(github.event.comment.body, '/code-review') || contains(github.event.review.body, '/code-review')) && 'code-review@claude-code-plugins' || '') }}"
           # PROMPT — three branches. AUTOMATION gets explicit prompts; HUMANS never do:
-          #   • ISSUE trigger (orchestrator-authored body) → drive the full chain (dev-linked branch ->
+          #   • ISSUE trigger (dispatcher-authored body) → drive the full chain (dev-linked branch ->
           #     implement -> push -> PR).
           #   • a ticketed-review revision request (the comment carries the round-marker
           #     `<!-- ticketed-review-round -->` AND is authored by driver-digital-agents — the branch
@@ -364,7 +364,7 @@ jobs:
           # ZERO visible output on an already-reviewed PR, indistinguishable from the bot never
           # running. A human addressing @claude must ALWAYS get a visible response, so every human
           # comment routes to tag mode — the comment text IS the instruction.
-          # BASE BRANCH (load-bearing for multi-branch repos like Palmers): the orchestrator may put a
+          # BASE BRANCH (load-bearing for multi-branch repos like Palmers): the dispatcher may put a
           # `**Target branch:**` directive at the top of the issue body when the task targets a
           # non-default release branch (e.g. Palmers' per-country `main-xx`). The prompt makes the
           # implementer read it and pass `--base` to BOTH `gh issue develop` (which then also sets the
@@ -472,13 +472,14 @@ jobs:
           gh pr comment "$PR" --repo "$REPO" \
             --body '<!-- request-ticketed-review --> Revisions addressed; re-requesting the ticketed review.'
 
-      # The runner's audit log is throwaway disk — this artifact is how CI tool calls reach the
-      # permanent record (the box's nightly audit-publish.sh collects it, archives it, and turns it
-      # into the client-visible app-home trail). `github.run_attempt` in the name is load-bearing:
-      # artifacts are immutable and re-run attempts share the run id, so without it a re-run's
-      # upload collides and fails — losing exactly the suspicious runs the trail most needs. Skips
-      # cleanly on repos without store tooling (env empty) and on runs where the tool never fired
-      # (if-no-files-found: ignore).
+      # The runner's audit log is throwaway disk — this artifact is how CI tool calls outlive the
+      # run. The box's nightly audit-publish.sh collected and archived them into the client-visible
+      # app-home trail; that collector retired with the box (2026-08-21), so until a replacement
+      # exists the artifact is the whole record — GitHub's 90-day retention is the forensic window.
+      # `github.run_attempt` in the name is load-bearing: artifacts are immutable and re-run
+      # attempts share the run id, so without it a re-run's upload collides and fails — losing
+      # exactly the suspicious runs the trail most needs. Skips cleanly on repos without store
+      # tooling (env empty) and on runs where the tool never fired (if-no-files-found: ignore).
       - name: Upload Shopify audit artifact
         if: ${{ always() && env.SHOPIFY_AUDIT_DIR != '' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
