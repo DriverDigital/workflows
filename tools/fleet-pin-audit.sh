@@ -107,11 +107,11 @@ fi
 report="$(
   printf '%s\n' "$repos" | while read -r repo def; do
     # Skip the kit repo itself: its .github/workflows/ holds the REUSABLES, which share basenames
-    # with the stubs that call them (pr-first-review.yml is a 200-line reusable here and a 25-line
-    # stub in the kit), so a content compare against templates/ would report seven phantom drifts:
-    # the six stubs, plus lint.yml, whose kit copy is a trimmed version of the CI file of the same
-    # name here. NB: no apostrophes in comments inside this $( ) — bash opens a quote on one even
-    # in a comment, and the parse error it produces points at EOF, not at the line.
+    # with the stubs that call them (dependabot-validate.yml is a reusable here and a thin stub in
+    # the kit), so a content compare against templates/ would report four phantom drifts: the three
+    # dependabot-*.yml stubs, plus lint.yml, whose kit copy is a trimmed version of the CI file of
+    # the same name here. NB: no apostrophes in comments inside this $( ) — bash opens a quote on
+    # one even in a comment, and the parse error it produces points at EOF, not at the line.
     [ "$repo" = "workflows" ] && continue
     scan_ref "$repo" "$def"
     if [ "$repo" = "Palmers" ]; then

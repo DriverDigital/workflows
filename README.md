@@ -198,7 +198,7 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
 3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
-   - The wave is now a checked-in script: tools/fleet-wave.sh --dry-run first, then without.
+   - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
@@ -337,10 +337,9 @@ task on review completion any more; that's a PM's job until the Macroscope→Bon
 The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
-`dependabot-report` still requests a human reviewer on
-Dependabot PRs (default `mcarter-astronautdev`, per-repo override via the `PR_REVIEWER_HANDLE` Actions
-**variable**). The `config/reviewers.json` copy in **this** repo is reference only — no workflow reads
-it at runtime.
+`dependabot-report` still requests a human reviewer on Dependabot PRs (default `mcarter-astronautdev`,
+per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**). The `config/reviewers.json`
+copy in **this** repo is reference only — no workflow reads it at runtime.
 
 ## First-run / required-check
 

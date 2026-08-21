@@ -9,7 +9,7 @@ workflow here touches it.
 
 | File | Goes to | Does |
 |---|---|---|
-| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it pre-reviews its own branch with the built-in /code-review skill before opening the PR, requests the reviewer named by a **Reviewer:** line in the issue, and honours an "Instructions from the ticket" section. Commits carry no attribution trailer and PR bodies no footer (the action's settings input). |
+| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it pre-reviews its own branch with the built-in `/code-review` skill before opening the PR, requests the reviewer named by a **Reviewer:** line in the issue, and honours an "Instructions from the ticket" section. Commits carry no attribution trailer and PR bodies no footer (the action's settings input). |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs link automatically via the issue's development branch. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
@@ -91,7 +91,10 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 3. **Issue creation:** the pipeline dispatcher (driver-bonsai-mcp, a scheduled Actions workflow)
    opens issues as the driver-digital-agents PAT, which is what lets `claude.yml` fire on
    `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). Bonsai status is
-   polled by the dispatcher — no per-repo workflow is involved.
+   polled by the dispatcher — no per-repo workflow is involved. The PAT is fine-grained — **All
+   repositories**, permissions **Issues: R/W + Pull requests: R/W + Metadata: R** (no
+   Contents/Admin, so no code-push) — and that minimal permission set, not the repo list, is the
+   security boundary (`docs/phase2-github-setup.md`).
 4. **Copy the kit** (from a checkout of `DriverDigital/workflows`):
    ```bash
    mkdir -p .github/workflows
@@ -143,9 +146,8 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
 
 - **Install `claude.yml` on EVERY release branch.** Because the branches are independent, each one
   carries its own copy of the kit. (Strictly, the issue/`@claude` *kickoff* always fires from the
-  repo's default branch — that's a hard GitHub rule for `issues` events — while a PR-side `@claude`
-  resolves from the PR's target branch; installing it on every branch covers both without having to
-  reason about which event resolves from where.)
+  repo's default branch — that's a hard GitHub rule for `issues` events; installing it on every
+  branch means no one has to reason about which event resolves from where.)
 - **Which branch a task targets is decided by the map, not the task.** Branch routing lives in
   `config/project-repo-map.json`: each pipeline project carries an explicit `branch` (e.g. the Palmers
   India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The dispatcher

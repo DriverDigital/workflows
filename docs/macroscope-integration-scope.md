@@ -21,7 +21,8 @@ manual re-runs) vs. a vendor product that already does the loop.
 
 ## Interim state (until the build below)
 
-- Auto-flips still live: issue opened → **In Progress**; PR opened/ready/push → **Internal Review**.
+- Auto-flips still live, polled by the dispatcher now: issue opened → **In Progress**; non-draft PR
+  dev-linked to the issue → **Internal Review**.
 - Everything after Internal Review is **manual** (PM): Revisions Requested, Ready for QA, and the
   move of a Bonsai task off **Agents** to a human reviewer. Ticketed tasks no longer ping anyone
   when the PR is ready — watch for stalls.
@@ -45,8 +46,9 @@ is still unobserved — keep watching.
 
 ## The build (Phase 2 — not scheduled)
 
-A webhook receiver on the bridge server (**driver-bonsai-mcp** — it owns Bonsai access and the
-endpoints). Mapping Maria sketched:
+A webhook receiver owned by **driver-bonsai-mcp** (the repo that holds Bonsai access; the
+2026-08-21 sketch is a GitHub App on Vercel — that repo's box-retirement spec, §9). Mapping Maria
+sketched:
 
 | Macroscope event | Action |
 |---|---|
@@ -59,10 +61,11 @@ Building blocks that already exist — reuse, don't rebuild:
   `driver-digital-agents` (id `261291955`) posts a comment carrying `<!-- ticketed-review-round -->`
   + `@claude`. The receiver posts that comment via `AGENTS_GH_PAT` and the whole revise loop comes
   back — Macroscope-driven instead of ticketed-review-driven.
-- **Human handoff:** `POST /tasks/reviewer-handoff` (live since 2026-06-26) resolves the ticket's
-  Reviewer field → GitHub handle (Maria fallback) and reassigns the Bonsai task. The GitHub-side
-  reviewer request is one `gh pr edit --add-reviewer` with the same PAT.
-- **Status flips:** `POST /tasks/update-status` — the endpoint the retired sync rail used.
+- **Human handoff:** reassigning the Bonsai task is a public-API write now and the reviewer handle
+  comes from the issue body (2026-08-21 note below); the GitHub-side reviewer request is one
+  `gh pr edit --add-reviewer` with the same PAT.
+- **Status flips:** a public-API write too (note below); the bridge endpoint the retired sync rail
+  used is gone.
 
 2026-08-21: the bridge server behind these endpoints is retired. Phase 2 writes Bonsai status
 through the public API (PATCH /public-api/v1/tasks/{uuid} with task_status_id) using the Agents API
