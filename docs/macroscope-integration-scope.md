@@ -62,9 +62,14 @@ Building blocks that already exist — reuse, don't rebuild:
 - **Human handoff:** `POST /tasks/reviewer-handoff` (live since 2026-06-26) resolves the ticket's
   Reviewer field → GitHub handle (Maria fallback) and reassigns the Bonsai task. The GitHub-side
   reviewer request is one `gh pr edit --add-reviewer` with the same PAT.
-- **Status flips:** `POST /tasks/update-status` — same endpoint the sync rail uses.
+- **Status flips:** `POST /tasks/update-status` — the endpoint the retired sync rail used.
+
+2026-08-21: the bridge server behind these endpoints is retired. Phase 2 writes Bonsai status
+through the public API (PATCH /public-api/v1/tasks/{uuid} with task_status_id) using the Agents API
+key, and triggers the dispatcher via workflow_dispatch { task_uuid } in driver-bonsai-mcp. The
+Reviewer custom field is not readable through the public API; the reviewer comes from the issue
+body's **Reviewer:** line instead.
 
 Open questions for the build: Macroscope's webhook auth/payload shape; where the receiver
-terminates (the ngrok tunnel already fronts the bridge); whether the remaining two status legs
-(issue → In Progress, PR → Internal Review) fold into the receiver eventually or stay as the
-`bonsai-status-sync` rail. Until decided, the rail keeps both legs.
+terminates; whether the remaining two status legs (issue → In Progress, PR → Internal Review) fold
+into the receiver eventually or stay with the dispatcher's polling.

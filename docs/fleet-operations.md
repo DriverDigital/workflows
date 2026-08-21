@@ -71,10 +71,15 @@ One atomic commit per branch via the Git Data API (blobs → tree → commit →
 commit per file. Per target:
 
 1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
-2. `bonsai-status-sync.yml` ← kit stub, **whole-file replacement**.
-3. The other three stubs ← **sed the pin line only**, so any per-repo edit survives.
-4. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
-5. `actionlint` every file about to be written, then commit `[skip ci]` and patch the ref.
+2. The four stubs (`lint.yml`, `dependabot-*.yml`) ← **sed the pin line only**, so any per-repo
+   edit survives.
+3. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
+4. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
+5. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
+   message) and patch the ref.
+
+This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. It refuses to run if the
+kit's own stubs are not pinned to the latest tag (the reference-drift trap).
 
 A wave can also **delete** — the Git Data API tree op takes `sha: null` for a path. The v1.12.0
 wave removed `pr-first-review.yml` + `ticketed-review.yml` from every pair carrying them in the
@@ -123,9 +128,9 @@ checked; the script runs them in this order and exits non-zero if any fires:
    fix step 2 of the README's release order first.
 2. **Pins** — each deployed caller stub's `uses:` SHA vs that tag. The original check, unchanged.
 3. **Content** — the whole waved file vs its `templates/github/` source, line for line. This is
-   what closes the other two holes: a file with **no `uses:` line at all** (an unconverted 190-line
-   copy of what is now a 66-line stub) is no longer invisible, and `DRIVER_AGENTS_REF` — a raw SHA
-   in an `env:` block that no bot can bump — is now compared like any other line.
+   what closes the other two holes: a file with **no `uses:` line at all** (a full-workflow copy of
+   what should be a thin stub) is no longer invisible, and `DRIVER_AGENTS_REF` — a raw SHA in an
+   `env:` block that no bot can bump — is now compared like any other line.
 
 Two things worth knowing about check 3:
 
@@ -138,10 +143,9 @@ Two things worth knowing about check 3:
   included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
   seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
-  which share basenames with the stubs that call them — `bonsai-status-sync.yml` is a ~180-line
-  reusable there and a ~65-line stub in the kit — so comparing it against `templates/` would report
-  five phantom drifts — the four stubs plus `lint.yml`, whose kit copy is a trimmed version of
-  this repo's own CI file of the same name.
+  which share basenames with the stubs that call them — so comparing it against `templates/` would
+  report four phantom drifts — the three Dependabot stubs plus `lint.yml`, whose kit copy is a
+  trimmed version of this repo's own CI file of the same name.
 
 **Still unchecked: the tripwire parity between `templates/` and canonical.** The audit proves the
 fleet matches `templates/github/claude.yml`; it cannot prove that file's `--append-system-prompt`
