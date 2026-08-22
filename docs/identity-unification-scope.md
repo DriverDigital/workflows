@@ -1,12 +1,12 @@
 # Scope: drop the Claude App, unify the GitHub surface on `driver-digital-agents`
 
 **Status:** scoped, not started. **Written:** 2026-07-31 against `main` @ `9b70acf` (tag `v1.6.0`).
-**Refreshed:** 2026-08-02 against `main` @ `a54c91e` (tag `v1.9.0`), then re-verified again the same day
-against the **v1.11.0** release branch (`claude.yml` 460 → 477 lines). Line references re-verified and now
-**path-qualified** — several filenames exist in both `templates/github/` and `.github/workflows/` with
-different content and lengths, and the original draft cited both under one bare name. **Six corrections change
-what someone would build** — they are listed in *Provenance* and marked **Correction** where they appear. The
-headline rate-limit finding **survives re-checking**.
+**Refreshed:** 2026-08-02 (v1.9.0, then v1.11.0); **citations re-verified 2026-08-22 at `v1.13.0`, where
+`templates/github/claude.yml` is 500 lines.** They are path-qualified — several filenames exist in both
+`templates/github/` and `.github/workflows/` with different content and lengths. **Six corrections change
+what someone would build** — listed in *Provenance*, marked **Correction** where the blockquote survives;
+the dual-accept id pairing and the second round-counter site were folded into plain notes when their
+rails retired. The headline rate-limit finding **survives re-checking**.
 **Decision made:** the GitHub agent stays in GitHub Actions. Only the identity underneath it changes.
 Nothing moves to a server. A Slack agent is a separate entity, explicitly out of scope.
 
@@ -19,10 +19,13 @@ Nothing moves to a server. A Slack agent is a separate entity, explicitly out of
 > Consequence for the sibling project: the OIDC spike in
 > [`reusable-conversion-scope.md`](reusable-conversion-scope.md) does **not** get retired, so the
 > `claude.yml` half of that conversion stays gated — and has itself been tabled for now. The
-> `bonsai-status-sync` half proceeded independently, which was always possible because that file has
-> no App-token path.
+> `bonsai-status-sync` half proceeded independently (and was retired at v1.13.0).
 >
-> Everything below is unchanged and still accurate as of `main` @ `a54c91e` (v1.9.0).
+> **2026-08-22 — cheaper now; the costs still stand.** Retiring the review rails at v1.12.0/v1.13.0 took
+> Phase 3 and silent-failure risk 1 with it — the two things that made this project expensive and risky —
+> bringing the total from 26–30h to **21–24h**. Nothing else moved: the PR author still flips from
+> `claude[bot]` to `driver-digital-agents`, and the aggregate API ceiling still drops 58–61% with the
+> content bucket halving to a shared 500/hr and 80/min. **Status unchanged: DEFERRED.**
 
 ---
 
@@ -97,25 +100,14 @@ account.** The 141-run wave on 2026-07-31 is not a hypothetical.
 
 **Mitigations, in order of value:**
 
-1. **Move every read that does not need the machine-user identity onto `github.token`** — a separate
-   **1,000/hr *per repository*** bucket (figure verified against current docs). Concretely:
-   `.github/workflows/ticketed-review.yml:63` (the "Resolve the open ticketed PR" step) and `:126` ("Count
-   prior review rounds"), plus `.github/workflows/pr-first-review.yml:78` ("No-ticket detection") are pure
-   reads. **Note the path qualification** — these are the *reusables*, not the same-named 27- and 49-line
-   caller stubs.
-
-   **Do not size this as a pool.** The original draft framed it as "~21,000 req/hr of free capacity across 21
-   targets." That is right as a ceiling and wrong as a budget: the limit is 1,000 **per repo**, so a single
-   repo doing heavy work still caps at 1,000 no matter how idle the others are — it cannot absorb load
-   concentrated in one place, which is exactly the wave shape that motivates this section. `GITHUB_TOKEN` is
-   also scoped to its own repository, so it cannot serve cross-repo reads at all.
-
-   **Two `GH_TOKEN` sites must be explicitly EXCLUDED**, and naming them is part of the change:
-   `.github/workflows/ticketed-review.yml:232` gates a step that *writes* (`gh pr comment` at `:260`/`:285`,
-   `gh pr edit` at `:282`). Worse, `.github/workflows/pr-first-review.yml:188` gates a step that calls
-   `gh api user --jq .login` at `:228` to resolve **the bot's own identity** for comment counting — under
-   `github.token` that returns `github-actions[bot]`, the count then matches nothing, and `:241` posts a false
-   **"All clear ✅"**. That is precisely the silent-failure class this document exists to track.
+1. **Move reads that do not need the machine-user identity onto `github.token`** — a separate
+   **1,000/hr *per repository*** bucket. **Dormant since v1.12.0:** every read site was in the two review
+   reusables, so this applies only if those rails are re-activated, and its hours are out of the table
+   below. Two cautions for whoever revives it: the 1,000 is **per repo**, not a pool a single busy repo can
+   draw on — which is exactly the wave shape that motivates this section; and any site that *writes*, or
+   that calls `gh api user --jq .login` to resolve **the bot's own identity**, must be excluded by name —
+   under `github.token` that call returns `github-actions[bot]`, the count matches nothing, and a false
+   **"All clear ✅"** gets posted.
 
 2. **Measure before committing — by counting content operations client-side, not by polling `/rate_limit`.**
    Since no server-side counter for the secondary limit exists:
@@ -136,7 +128,8 @@ account.** The 141-run wave on 2026-07-31 is not a hypothetical.
    > here." Worse, the endpoint *"can count against your secondary rate limit"* — the instrument consumes the
    > budget it cannot read.
 
-3. Add 403/429 retry-with-backoff on every `gh` **write**. Today `ghj()`
+3. Add 403/429 retry-with-backoff on every `gh` **write**. (The sites below are in the retired review
+   rails — same dormancy as mitigation 1; `claude.yml`'s own `gh` writes still want the retry.) Today `ghj()`
    (`.github/workflows/ticketed-review.yml:72-79`) retries reads only, and `gh pr comment` at `:260`/`:285`
    has no retry at all — a secondary-limit 403 there stalls the loop silently.
 
@@ -180,45 +173,22 @@ Read at pinned SHA `be7b93b1907a4abad570368f3c74b6fe3807510b`.
 
 ---
 
-## The five silent-failure risks
+## The silent-failure risks
 
 Every one of these fails **green**. That is the house failure mode (foundrae #148) and the reason this scope
 exists.
 
 ### 1. Ticketed PRs would be reviewed by nobody
 
-`templates/github/ticketed-review.yml:38` gates round 1 on `pull_request.user.login == 'claude[bot]'`. A
-PAT-authored PR fails it, so the reusable is **never invoked** — no check run, no log. The PR then reaches
-`pr-first-review`, whose `!= 'claude[bot]'` guard now *passes*, but its `has_ticket` step finds the Bonsai uuid
-and skips. **Both rails end green having done nothing.**
+**Retired.** This hung on `templates/github/ticketed-review.yml:38` gating round 1 on
+`pull_request.user.login == 'claude[bot]'`; that stub left the kit and every fleet repo at v1.12.0, and
+Macroscope reviews PRs now. It returns only if the rails do. (Risks 2–5 keep their numbers.)
 
-> [`reusable-conversion-scope.md`](reusable-conversion-scope.md) originally said such PRs would "route to the
-> PR-first rail"; it has since been corrected to this same conclusion. They route to **nothing**, which is
-> worse.
-
-**Fix:** dual-accept both logins in the stub for one release wave so in-flight `claude[bot]` PRs keep their
-revise loop mid-cutover, then drop the old literal.
-
-> **Correction (2026-08-02) — the original fix was itself broken.** The draft said to "pair the login
-> with the immutable id `261291955`." That id belongs to `driver-digital-agents`; **`claude[bot]` is id
-> `209825114`** (both confirmed live via `gh api /users/…`). Accepting either login against a single shared id
-> evaluates false for *every real `claude[bot]` event*, so the dual-accept overlap would protect nothing — and
-> it fails as a **skipped job**, not a red run, so the breakage is invisible. Pair each login with **its own**
-> id, OR'd as complete units:
->
-> ```
-> (login == 'claude[bot]'            && id == 209825114) ||
-> (login == 'driver-digital-agents'  && id == 261291955)
-> ```
->
-> Note `209825114` appears in **no workflow file** in this repo (`git grep 209825114 -- ':!docs/'` → zero
-> hits; the only occurrences are in this doc), while all **11** occurrences of `261291955` — recounted
-> 2026-08-02 after the v1.11.0 repin, and path-qualified because the same basename exists in both halves:
-> `templates/github/claude.yml` (6), `templates/github/ticketed-review.yml` (2),
-> `.github/workflows/bonsai-status-sync.yml` (2) and `README.md` (1) — are bound to `driver-digital-agents`.
-> **`templates/github/bonsai-status-sync.yml` no longer contains the id at all**: it held 2 occurrences until
-> the repin turned it into a stub, and those are now the 2 in the central reusable — not additional sites.
-> The overlap wave introduces the first use of the `claude[bot]` id, and removes it again at the end.
+*Id census, re-counted 2026-08-22:* `261291955` (`driver-digital-agents`) has **7** occurrences across two
+files — `templates/github/claude.yml` (6) and `README.md` (1). `claude[bot]`'s id `209825114` appears in no
+workflow file. Wherever both logins must be accepted, pair **each login with its own id**, OR'd as complete
+units: a single shared id checked against two logins evaluates false for every real event, and fails as a
+**skipped job**, not a red run.
 
 ### 2. Commit attribution stays wrong unless set explicitly
 
@@ -232,29 +202,13 @@ If the workflow gate accepts `@claude` while `trigger_phrase` is `@driver-digita
 mode is selected, `checkContainsTrigger` returns false, and `run.ts:212` logs "No trigger found" and returns
 **success without posting a tracking comment**. A human addresses the bot and gets nothing, on a green check.
 
-Four things must move in one commit: the four `contains()` clauses
-(`templates/github/claude.yml:91,95,99,101`), `.github/workflows/bonsai-status-sync.yml:139`'s grep (it moved
-out of `templates/github/` at the v1.11.0 repin — the kit file is now a stub carrying neither), a
-`trigger_phrase` input on the action, and **the out-of-repo cron orchestrator that writes `@claude` into issue
-bodies**.
+Three things must move in one commit: the four `contains()` clauses
+(`templates/github/claude.yml:94,98,102,104`), a `trigger_phrase` input on the action, and **the dispatcher in
+`driver-bonsai-mcp`, which writes `@claude` into every issue body it opens**.
 
 Note `trigger_phrase` **does not exist in this repo today** (`git grep` → zero hits) — the action runs on its
 default phrase. So it must be *added* in the same commit, not edited. That is a small but real difference: the
 first time it appears is the first time it can disagree with the workflow gate, which is the #148 signature.
-
-> **Moved (2026-08-02, v1.11.0 repin).** `bonsai-status-sync.yml` finished converting. The grep and the
-> `261291955` gate cited above now live ONLY in `.github/workflows/bonsai-status-sync.yml` (`:139` and
-> `:141`); `templates/github/bonsai-status-sync.yml` is a stub containing neither. Note the *fleet* still
-> runs the old 190-line copy until the wave, so until then a consumer repo still carries its own gate at the
-> old per-repo line numbers. **That changes the mechanics of this wave**, not just the path: the
-> mirrored gate would then live in a *centrally pinned* file, so it changes by kit release + fleet repin
-> rather than by the same file copy that carries `claude.yml`'s gate. The two can therefore drift apart for
-> the first time — a repo can sit with a new `claude.yml` and an old pinned reusable, which means the
-> implementer runs while the Bonsai task never leaves its prior status, green everywhere. Sequence both into
-> one wave, and re-verify these line numbers before starting.
-*(The five numeric references above were re-verified unchanged at `a54c91e`, and again on the v1.11.0 release
-branch: every edit to `claude.yml` since v1.6.0 landed at line 142 or later — the v1.11.0 pair land at `:183`
-(`DRIVER_AGENTS_REF`) and `:403` (the tripwire) — leaving the whole actor-gate and trigger region untouched.)*
 
 **Therefore: identity and phrase are separable, and should be separate waves.** Swapping the token is a
 zero-UX-change move. Flipping the phrase is a coordinated one-literal cutover including a repo this scope
@@ -264,15 +218,10 @@ does not cover. Ship identity first.
 
 `templates/github/claude.yml:180` binds `AGENTS_GH_PAT` as the `GH_TOKEN` that `gh repo clone`s the **private**
 `driver-agents` repo at `:218` — which requires `Contents: read`. There are **two** written descriptions of
-that token and they do not agree: `.github/workflows/pr-first-review.yml:22-23` says "Issues + Pull-requests
-R/W, Contents:READ, no Admin", while `templates/github/README.md:59-61` describes `AGENTS_GH_PAT` and lists
-**no permissions at all**. Neither is verified against the live token.
-
-*(The original draft counted a third, contradictory description at `templates/github/README.md:82-86` saying
-the token has "no Contents". That passage has moved to `:85-89` and, more to the point, describes a **different
-credential** — the cron orchestrator PAT on the box at `~/.secrets/gh-token`. The documentation is therefore
-less self-contradictory than first claimed; the risk is unchanged, since a cutover that recreates the token "to
-the documented shape" still has two shapes to choose from, one omitting `Contents` entirely.)*
+that token and they do not agree: `.github/workflows/pr-first-review.yml:31-32` says "Issues + Pull-requests
+R/W, Contents:READ, no Admin", while `templates/github/README.md:64-66` describes `AGENTS_GH_PAT` and lists
+**no permissions at all**. Neither is verified against the live token, so a cutover that recreates it "to the
+documented shape" has two shapes to choose from, one omitting `Contents` entirely.
 
 A cutover that recreates the token "to the documented shape" will 403 the Shopify provisioning step on every
 store repo — **and that step degrades silently** (`::warning::` + `exit 0`), so it surfaces as "the implementer
@@ -289,7 +238,8 @@ can be `Contents: none` for real.
 ### 5. Token revocation disappears
 
 Supplying `github_token` also removes the per-run App-token revocation. An ephemeral, auto-revoked credential
-becomes a long-lived PAT stored fleet-wide on an account that holds write across 21 targets. PAT expiry
+becomes a long-lived PAT stored fleet-wide on an account that holds write across every target
+([`fleet-operations.md`](fleet-operations.md#the-fleet)). PAT expiry
 becomes a single point of failure with no alerting.
 
 ---
@@ -311,21 +261,21 @@ Two independent brakes collapse on unification:
 **What still terminates — and this is load-bearing and documented nowhere:** the agent's final response is an
 `updateComment`, which fires `issue_comment: edited` (and, on the inline-review rail,
 `pull_request_review_comment: edited`). **Neither of those two events subscribes to `edited`** —
-`templates/github/claude.yml:46` and `:57` are `[created]` only. That is what stops the human-reply path.
+`templates/github/claude.yml:49` and `:60` are `[created]` only. That is what stops the human-reply path.
 **Adding `edited` to either `types:` list re-opens the loop.** Write that invariant into the file.
 
-The full block (`templates/github/claude.yml:44-57`) — only the two `[created]` rows are loop-relevant:
+The full block (`templates/github/claude.yml:47-60`) — only the two `[created]` rows are loop-relevant:
 
 | Event | Line | `types:` |
 |---|---|---|
-| `issue_comment` | `:46` | `[created]` |
-| `issues` | `:51` | `[opened]` |
-| `pull_request_review` | `:54` | `[submitted]` |
-| `pull_request_review_comment` | `:57` | `[created]` |
+| `issue_comment` | `:49` | `[created]` |
+| `issues` | `:54` | `[opened]` |
+| `pull_request_review` | `:57` | `[submitted]` |
+| `pull_request_review_comment` | `:60` | `[created]` |
 
 A self-retrigger additionally requires the actor gate to pass on the bot's own edited comment. Today it would
 not (`claude[bot]` is `author_association: NONE` and not the whitelisted login). **After unification it
-would** — `driver-digital-agents` is explicitly whitelisted at `:97-98`. The invariant becomes load-bearing
+would** — `driver-digital-agents` is explicitly whitelisted at `:100-101`. The invariant becomes load-bearing
 precisely when this project ships.
 
 > **Correction (2026-08-02).** The original draft said "**every** `on:` block subscribes to `[created]` only"
@@ -349,15 +299,13 @@ echoing a human's request (which contains the trigger phrase) re-enters the gate
 
    | `github.event_name` | id field to use | login/id clause exists today? |
    |---|---|---|
-   | `issues` | `github.event.issue.user.id` | yes — `:93-94` |
-   | `issue_comment` | `github.event.comment.user.id` | yes — `:97-98` |
-   | `pull_request_review` | `github.event.review.user.id` | **no** — `:99-100` gates on `author_association` only |
-   | `pull_request_review_comment` | `github.event.comment.user.id` | **no** — `:101-102`, same |
+   | `issues` | `github.event.issue.user.id` | yes — `:96-97` |
+   | `issue_comment` | `github.event.comment.user.id` | yes — `:100-101` |
+   | `pull_request_review` | `github.event.review.user.id` | **no** — `:102-103` gates on `author_association` only |
+   | `pull_request_review_comment` | `github.event.comment.user.id` | **no** — `:104-105`, same |
 
    The right-hand column is the hidden work: on the two review events there is **no existing clause to
-   extend**, so those branches must grow a login/id check from nothing. (The ticketed rail's nearest
-   equivalent, `templates/github/ticketed-review.yml:38`, gates on `pull_request.user.login` only — there is
-   no `pull_request.user.id` clause anywhere in that file today either.)
+   extend**, so those branches must grow a login/id check from nothing.
 
    > **Correction (2026-08-02) — never write this with a wildcard.** The original draft gave it as
    > `github.event.*.user.id != 261291955`. That is **not** a syntax error — `*` is GitHub's documented object
@@ -369,25 +317,14 @@ echoing a human's request (which contains the trigger phrase) re-enters the gate
 2. **Keep `types: [created]` on `issue_comment` and `pull_request_review_comment`**, with a comment stating
    why. Never add `edited` to either. (The other two events carry different
    types by design, and changing *those* is a different question.)
-3. **Sentinel matching becomes `startsWith`, not `contains`** — `templates/github/ticketed-review.yml:39-42`
-   (the sentinel `contains(...'<!-- request-ticketed-review -->')` is on `:40` alone; `:38` is the unrelated
-   round-1 clause) — so a quote-reply that copies a hidden marker cannot inflate the round count.
-4. **Round/finding counters must stop keying on `user.login`**, which no longer separates reviewer from
-   implementer. Use a newest-comment-id watermark instead of the `SINCE` timestamp
-   (`.github/workflows/ticketed-review.yml:153-158`).
-
-   > **Correction (2026-08-02) — one mislabel, and one site the original draft missed entirely.** It called
-   > `:137` the "sentinel" jq. It is not: `.github/workflows/ticketed-review.yml:137` counts the **round
-   > marker** `<!-- ticketed-review-round -->` (set at `:131`). The reusable goes out of its way to keep the
-   > two apart at `:30-31` — *"the sentinel token is DISTINCT from the round marker, so it never inflates the
-   > count"* — and the sentinel is never *matched* in the reusable, appearing there only as a header comment
-   > at `:14`; the live matches are `templates/github/ticketed-review.yml:40` (mentioned again at `:5`) and
-   > `templates/github/claude.yml:462`. Collapsing the two in the scope doc invites collapsing them in the
-   > implementation, which is the one thing that design forbids.
-   >
-   > **The missed site:** the `select(.user.login=="driver-digital-agents")` hardcode at `:137` has a **twin at
-   > `:252`** — the FOUND count in the decide step, which is what chooses *revise vs hand off*. Change `:137`
-   > alone and every run silently forces a handoff.
+3. **Sentinel matching becomes `startsWith`, not `contains`** — **dormant**: the matching lived in the
+   retired `ticketed-review` stub. `claude.yml:484` still *posts* the sentinel, so keep it distinct from the
+   round marker `<!-- ticketed-review-round -->`; collapsing the two invites collapsing them in code, which
+   that design forbids.
+4. **Round/finding counters must stop keying on `user.login`** — **dormant** for the same reason; the
+   counters are in the retired `ticketed-review` reusable. If the rails come back: the
+   `select(.user.login=="driver-digital-agents")` hardcode has **two** sites, `:137` and `:252`, and
+   changing only the first silently forces a handoff on every run.
 5. **Global kill switch** — `vars.AGENTS_ENABLED != 'false'` as the leading conjunct of the gate, settable
    org-wide to stop the fleet in one action.
 6. **Per-thread run budget** — a hard cap on agent runs per issue/PR, independent of the ticketed round cap.
@@ -398,10 +335,10 @@ echoing a human's request (which contains the trigger phrase) re-enters the gate
 
 Two fine-grained PATs on the **same account** (confirmed supported; both render as `driver-digital-agents`).
 This bounds the **tokens**, not the account — worth stating plainly, since the account becomes a code-write
-principal across every target either way. *(The count is written as 21 throughout this document, but see
-open decision 3 of [`reusable-conversion-scope.md`](reusable-conversion-scope.md) — 21 is a **repo@branch**
-figure and the distinct-repo count is lower, since Palmers alone contributes 8 branches. Phase 6 is sized
-off it, so settle the definition before the wave.)*
+principal across every target either way. *(Size Phase 6 off the fleet table in
+[`fleet-operations.md`](fleet-operations.md#the-fleet), which is the single home for the counts and says
+which question each one answers — repo@branch pairs and distinct repos differ, Palmers alone being 8
+branches.)*
 
 | | Implementer PAT | Reviewer PAT |
 |---|---|---|
@@ -423,11 +360,11 @@ permission requirement GitHub does not publish. This must be proven in the pilot
 
 ## Sequencing
 
-**Wave 1 — identity only.** Swap the token, drop `id-token`, set `bot_id`/`bot_name`, fix the rail gates,
-apply the containment set. **Zero UX change** — humans still type `@claude`.
+**Wave 1 — identity only.** Swap the token, drop `id-token`, set `bot_id`/`bot_name`, apply the containment
+set. **Zero UX change** — humans still type `@claude`.
 
 **Wave 2 — trigger phrase.** Flip to `@driver-digital-agents` in one coordinated commit spanning this repo,
-the fleet, and the cron orchestrator in `driver-bonsai-mcp`.
+the fleet, and the dispatcher in `driver-bonsai-mcp`.
 
 **Then the reusable conversion**, which is now materially cheaper: Phase 0 (the OIDC spike) **ceases to
 exist**, and the stub no longer needs `id-token: write`.
@@ -437,21 +374,18 @@ exist**, and the stub no longer needs `id-token: write`.
 | 0 | Dump live `AGENTS_GH_PAT` scope; mint + test the two PATs | 2h |
 | 1 | Rate-limit measurement spike (**client-side content-op counting** — not `/rate_limit`; see mitigation 2) | 2h |
 | 2 | `claude.yml` identity swap + containment set | 4–6h |
-| 3 | Rail gate rework (3 sites + counters + sentinel matching) | 3–4h |
-| 4 | Move reads onto `github.token` (with exclusions); hoist `ghj()`; add write retry/backoff | 4h |
+| 4 | Write retry/backoff on `claude.yml`'s own `gh` writes | 2h |
 | 5 | Pilot (two legs, 10 assertions below) | 4–5h |
-| 6 | Fleet wave, 21 targets | 4h |
-| 7 | Wave 2: trigger phrase, incl. the orchestrator | 3h |
-| | **Total** | **26–30h** |
+| 6 | Fleet wave ([`fleet-operations.md`](fleet-operations.md#the-fleet) for the target set) | 4h |
+| 7 | Wave 2: trigger phrase, incl. the dispatcher | 3h |
+| | **Total** | **21–24h** |
 
-*Grew by 1h in each column on the 2026-08-02 refresh: Phase 4 because `ghj()` cannot simply be reused at the
-write sites (it is scoped to another step's shell — see mitigation 3) and because the `github.token`
-exclusions are explicit work; Phase 5 for pilot assertions 9 and 10, which did not previously exist.*
+*Down from 26–30h on 2026-08-22: Phase 3 (rail-gate rework, 3–4h) and the `github.token` half of Phase 4
+(2h) came out with the review rails. Add them back if the rails are re-activated.*
 
 **This total is not comparable to the one in
-[`reusable-conversion-scope.md`](reusable-conversion-scope.md)** (29–37h) — different project. Doing this one
-first retires that one's Phase 0, bringing it to 26–33h; and its Phases 1–3 (8–11h, the `bonsai-status-sync`
-half) depend on neither project's decision and could run in parallel with this.
+[`reusable-conversion-scope.md`](reusable-conversion-scope.md)** (20–27h tabled subtotal) — different
+project. Doing this one first retires that one's Phase 0, bringing it to 17–23h.
 
 ---
 
@@ -464,7 +398,7 @@ the private-repo fetch path.
 
 Do **not** pilot in `plugins`, `client-workspaces` or `studio-sulzer` — zero `claude[bot]` PRs ever, so a
 failure is unattributable. `claude.yml` is still a full per-repo file, so one repo can be cut over
-independently without touching the other 20.
+independently without touching the rest of the fleet.
 
 **Assertions, each with its false-pass named:**
 
@@ -472,10 +406,9 @@ independently without touching the other 20.
    `gh pr view` reporting `app/claude`. Read the webhook.
 2. **Commit attribution** — commits are authored by `driver-digital-agents`, not `github-actions[bot]`.
    *False pass:* checking the PR author instead of the commits.
-3. **Cascade** — a `bonsai-status-sync` run exists triggered by `pull_request`/`opened`, and the Bonsai task
-   reads Internal Review. *False pass:* the task already being in that state.
-4. **Ticketed rail fires** — exactly one `ticketed-review` run for the PR, and it actually reviews.
-   *False pass:* a green skip; assert a check run exists.
+3. **Cascade** — the dispatcher's poll moves the Bonsai task to Internal Review. *False pass:* the task
+   already being in that state.
+4. ~~**Ticketed rail fires.**~~ Retired with the review rails; restore this assertion only if they are.
 5. **Tag mode intact** — a human `@` gets a visible tracking comment *and* a final reply. *False pass:*
    a green run with no comment — the #148 signature.
 6. **No self-trigger** — after the agent replies, assert zero further `claude.yml` runs on that thread.
@@ -490,7 +423,7 @@ independently without touching the other 20.
    job status. This is the assertion that covers risk 4 (`Contents: read` on a private repo), and leg 2 is
    the only leg that exercises it.
 10. **Store provisioning succeeds** — on a store repo, `SHOPIFY_STORE_NAME` is non-empty, the env file is
-    written (`:238`), and the audit artifact uploads under a name containing the store handle (`:475`).
+    written (`:238`), and the audit artifact uploads under a name containing the store handle (`:498`).
     *False pass:* the same silent self-skip — the missing-secret early-exit at `:200-202` is deliberate
     degrade-quietly behaviour, and an artifact named `shopify-audit--<run_id>-…` uploads perfectly happily.
 
@@ -530,12 +463,19 @@ five findings are silent-failure class and are treated as requirements above. So
 `anthropics/claude-code-action` at pinned SHA `be7b93b1907a4abad570368f3c74b6fe3807510b`, live `gh api` queries
 against the DriverDigital org, and this repo's own files.
 
+**Re-verified 2026-08-22 at `v1.13.0`.** Citations moved with that release's rewrite of `claude.yml` (500
+lines); the workstreams aimed at the retired review rails — Phase 3, silent-failure risk 1, mitigation 1 and
+containment items 3–4 — were cut back to one line each rather than repaired, and their hours removed from the
+total. The rate-limit finding, the loop-containment invariant and the token design are unchanged.
+
 **Refreshed 2026-08-02** against `main` @ `a54c91e` (v1.9.0) and re-verified against the v1.11.0 release
 branch, with the rate-limit section re-derived from live
 org data and current GitHub documentation. **The recommendation is unchanged and the headline finding
 survives** (58.0–61.2%). Six corrections changed what someone would build — the self-authored guard, the
 dual-accept id pairing, the measurement instrument, the loop invariant's scope, the second round-counter site,
-and the two missing pilot assertions. Each is marked **Correction** where it appears.
+and the two missing pilot assertions. Each is marked **Correction** where the blockquote survives; the
+dual-accept id pairing and the second round-counter site were folded into plain notes when their rails
+retired.
 
 Three originate in the CodeRabbit review of PR #21 and were confirmed independently before adoption; three
 came out of the refresh. One reviewer rationale was itself corrected in adopting it: the wildcard guard is not

@@ -19,9 +19,10 @@
 # Scans every non-archived DriverDigital repo's .github/workflows/ (default branch, plus every
 # main* branch of Palmers — the kit is installed per country branch there).
 #
-# Dependabot does NOT bump these reusable-workflow pins in practice (verified 2026-07-16: zero such
-# PRs fleet-wide, even in repos with a github-actions block) — repins happen as manual waves, and
-# this script is how drift gets seen between waves. Needs: gh (authenticated), org read access.
+# Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
+# the wave (Palmers #93 / vite-plugin-shopify-clean #72, 2026-07-02) — in practice the wave repins
+# within minutes of every tag, so it rarely gets the chance; see docs/fleet-operations.md. This
+# script is how drift gets seen between waves. Needs: gh (authenticated), org read access.
 #
 # Usage: tools/fleet-pin-audit.sh            # full report
 #        tools/fleet-pin-audit.sh --stale    # only what has drifted

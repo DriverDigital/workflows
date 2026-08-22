@@ -94,7 +94,7 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    polled by the dispatcher — no per-repo workflow is involved. The PAT is fine-grained — **All
    repositories**, permissions **Issues: R/W + Pull requests: R/W + Metadata: R** (no
    Contents/Admin, so no code-push) — and that minimal permission set, not the repo list, is the
-   security boundary (`docs/phase2-github-setup.md`).
+   security boundary.
 4. **Copy the kit** (from a checkout of `DriverDigital/workflows`):
    ```bash
    mkdir -p .github/workflows
@@ -167,6 +167,5 @@ Let the dispatcher open one real issue, then confirm the chain forms — the iss
 **development-linked branch** and a **real `pull_request` `opened` event authored by `claude[bot]`**
 appears in the Actions log, and the task reaches **Internal Review** — not merely that "a PR exists"
 (a human clicking Claude's prefilled PR link would false-pass). If you see only a prefill link and
-no `pull_request` event, the implementer didn't drive the flow — see `docs/phase2-github-setup.md`
-step 5. Statuses past Internal Review are moved by hand since v1.12.0, so Internal Review is where
-the automated part of the walk ends.
+no `pull_request` event, the implementer didn't drive the flow. Statuses past Internal Review are
+moved by hand since v1.12.0, so Internal Review is where the automated part of the walk ends.
