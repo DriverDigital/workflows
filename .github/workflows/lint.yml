@@ -2,13 +2,13 @@ name: Lint workflows
 
 # THIS REPO'S OWN CI — not a reusable, not part of the kit.
 #
-# The six reusables in .github/workflows/ are `workflow_call`-only, so they never run on this
+# The five reusables in .github/workflows/ are `workflow_call`-only, so they never run on this
 # repo's own PRs; `dependabot-auto-merge.yml` is the one other file here that does, and it lints
 # nothing. So before this file existed, nothing checked the workflows this repo SHIPS: a YAML or
 # shell error in templates/github/ would sail through review and land in every consumer repo on the
 # next fleet wave, where it surfaces as a silent `startup_failure` rather than a red check here.
 #
-# Lints BOTH halves — the six reusables in .github/workflows/ AND the kit in templates/github/,
+# Lints BOTH halves — the five reusables in .github/workflows/ AND the kit in templates/github/,
 # which is the actual product. actionlint also runs shellcheck over every `run:` block (shellcheck
 # is preinstalled on ubuntu-latest), so the kit's shell is covered too.
 
