@@ -14,8 +14,9 @@ selected-actions allowlist at the org/enterprise tier).
 - **[driver-bonsai-mcp](https://github.com/DriverDigital/driver-bonsai-mcp)** — the **pipeline
   dispatcher**: a scheduled Actions workflow that triages ready Bonsai tasks, opens those GitHub
   issues, and polls the Bonsai status back.
-- **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the generic
-  headless `claude -p` cron runner the production box used to execute the job pack.
+- **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the Shopify
+  admin-tool wrapper and the canonical operator instructions, cloned at the pinned
+  `DRIVER_AGENTS_REF`; it was also the box's headless `claude -p` cron runner.
 
 Flow: a Bonsai ticket assigned to **Agents** → the dispatcher triages it and opens a GitHub issue →
 the target repo's `claude.yml` implements it and opens the PR → the dispatcher moves the Bonsai
@@ -23,24 +24,20 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.13.0`** (`f6d25d3`, 2026-08-22) — **the pass that sets the rail up to run without the
-box.** `claude.yml` now takes its direction from the dispatcher's issue body (target branch,
-reviewer, ticket instructions), pre-reviews its own diff before opening the PR, carries a nine-item
-quality standard in its system prompt, ships with commit/PR attribution mechanically off, and runs
-`--model fable --effort xhigh`. `bonsai-status-sync` is retired outright — the dispatcher polls
-Bonsai status now — and the wave itself is a checked-in script, `tools/fleet-wave.sh`. Plan:
-[`docs/superpowers/plans/2026-08-21-claude-yml-wave.md`](docs/superpowers/plans/2026-08-21-claude-yml-wave.md);
-spec: driver-bonsai-mcp `docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md` §5a.
-The three remaining Dependabot stubs are pinned to `f6d25d3`.
+Latest tag **`v1.13.0`** (`f6d25d3`, 2026-08-22) — the pass that sets the rail up to run without the
+box: `claude.yml` takes its direction from the dispatcher's issue body and pre-reviews its own diff,
+and `bonsai-status-sync` is retired. What shipped, the canary and the wave numbers are in
+[`v1.13.0`](#v1130-f6d25d3-2026-08-22) below. The three remaining Dependabot stubs are pinned to
+`f6d25d3`.
 
-**Note on the pin sequence:** `v1.9.0` (`a54c91e`, the store-secret rename) never got its kit repin
-commit — the kit's stubs sat at `v1.8.0`'s SHA through that release and jump straight to `v1.10.0`
-here. Deployed fleet stubs were repinned to `v1.9.0` by the 2026-08-01 wave, so between then and this
-tag the fleet was *ahead* of the kit templates. The v1.11.0 wave resolves both. Deployed fleet stubs are
-repinned by **manual waves** — Dependabot does NOT bump these reusable-workflow pins in practice
-(zero such PRs fleet-wide; debugging why is on the backlog). Org Actions secrets (`AGENTS_GH_PAT`,
-`CLAUDE_CODE_OAUTH_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access are already in
-place — no per-repo secret setup.
+**State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
+
+Deployed fleet stubs are repinned by the wave, `tools/fleet-wave.sh`. Dependabot *does* bump these
+pins in a repo that has a `github-actions` block, but the wave repins within minutes of every tag so
+it rarely gets the chance —
+[`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave). Org Actions secrets
+(`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access
+are already in place — no per-repo secret setup.
 
 Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
 rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
@@ -81,9 +78,7 @@ matching `templates/`, zero drift** across the 23 pairs audited.
   "sessionUrl": false } }` — no `Co-Authored-By`, no "Generated with" line on the agent rails. A
   human `@claude` (tag mode) still gets the action's own co-author text.
 - **`--model fable --effort xhigh`**, and `claude-code-action` → `d40ddef` (`v1.0.195`), matching
-  the reusables. Whether a Fable run draws usage credits was not checked; the decision (2026-08-21)
-  is to watch it once pipeline traffic grows rather than gate on it — fallback `--model opus`, see
-  the MODEL NOTE comment in `claude.yml`.
+  the reusables.
 - **`bonsai-status-sync` retired** — template and reusable both deleted, and the org secret
   `BONSAI_BEARER_TOKEN` deleted after a direct probe of every non-archived repo (+ Palmers `main*`)
   found no copy of the workflow left anywhere. The dispatcher polls the two remaining legs instead
@@ -100,8 +95,8 @@ matching `templates/`, zero drift** across the 23 pairs audited.
   scalar — actionlint is blind to it, and a stray `{` is a silent dispatch failure fleet-wide.
 - **`DRIVER_AGENTS_REF` held at `4d63371`**, re-checked against canonical at that pin
   (whitespace-collapsed parity: match). driver-agents `main` is 8 commits ahead with a much longer
-  blockquote and small tool fixes, so the queued re-copy + ref bump stays open for the release that
-  wants those.
+  blockquote and small tool fixes; the queued re-copy + ref bump is in
+  [`docs/HANDOFF.md`](docs/HANDOFF.md).
 
 **Canary** (`vite-plugin-shopify-clean`, 2026-08-21 23:12–23:17 UTC, torn down afterwards): Bonsai
 TSK-00923 → dispatcher run `32536010404` → issue #91 by `driver-digital-agents` carrying the target
@@ -111,10 +106,6 @@ branch, reviewer and ticket instructions → `claude.yml` run `32536083273`, **s
 ticket's changelog instruction honoured. Timestamps prove the order: feat commit 23:15:12 →
 pre-review fix 23:16:41 → PR 23:16:49. Dispatcher reconcile run `32536361182` moved Bonsai to
 Internal Review.
-
-**Watch-items:** Fable billing (above); what the global quality standard costs the revision rail; a
-human `@claude` still gets tag-mode attribution; `/code-review`'s 50-file cap means a large
-migration gets a partial pre-review (the prompt requires the run to say so).
 
 ### `v1.12.0` (`b1fcb78`, 2026-08-08)
 
@@ -150,7 +141,7 @@ repin-target count lands at **20** (see `docs/fleet-operations.md`).
 
 ### `v1.11.0` (`90f0d06`, 2026-08-02)
 
-Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale.
+Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
 
 - **`bonsai-status-sync.yml` conversion completed.** The 190-line per-repo copy became a 67-line
   caller stub — the status machine, actor gate, linkage logic and cascade caveat now live in one
@@ -186,7 +177,7 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
 
 - **Store app secrets renamed** `DRIVER_AGENTS_SCOPES_CLIENT_ID/_SECRET` →
   `DRIVER_ENGINEERING_APP_CLIENT_ID/_SECRET`, tied to the per-org "Driver Engineering" app that
-  replaced "Driver Agents Scopes" (retired 2026-08-01). Waved to all 21 targets; Avara's smoke test
+  replaced "Driver Agents Scopes" (retired 2026-08-01). Waved to all 21 pairs; Avara's smoke test
   green on the new names, old-name secrets deleted.
 - **Reusables unchanged.** Note this release **never got its kit repin commit** — `templates/` sat at
   `v1.8.0`'s SHA while the deployed fleet was waved to `a54c91e`, leaving the fleet a release *ahead*
@@ -218,7 +209,7 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
 - **CI alerting leg:** the same provisioning step now writes the org-level `SHOPIFY_ALERT_WEBHOOK`
   secret (the `#driver-agents-status` incoming webhook) to the runner's throwaway disk and exports
   `SHOPIFY_ALERT_WEBHOOK_FILE` + `SHOPIFY_ALERT_HOST_LABEL`, so the admin tool's destructive/failed-
-  call alerts post from Actions runs exactly as they do from the box. The alert's "where to look"
+  call alerts post from Actions runs exactly as they did from the box. The alert's "where to look"
   label is the run URL — the runner's audit log doesn't outlive the job. Absent secret = alerts
   silently off, nothing else changes (the tool's own best-effort posture).
 - **reusables: unchanged** (byte-identical to `v1.6.0`'s). The stubs are repinned to `3966041`
@@ -266,6 +257,10 @@ Waved to all 21 repin targets on 2026-08-02; fleet uniform, 108 pins, zero stale
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
    - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
+   - Dependabot will take the *stub pin* repins itself in any repo configured for it, if the wave
+     waits rather than racing it — see
+     [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave). The wave still
+     owns the whole-file copies.
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
@@ -409,8 +404,9 @@ The bridge server that carried `/tasks/reviewer-handoff` is retired too; what re
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 `dependabot-report` still requests a human reviewer on Dependabot PRs (default `mcarter-astronautdev`,
-per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**). The `config/reviewers.json`
-copy in **this** repo is reference only — no workflow reads it at runtime.
+per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**). The live reviewer map is
+`driver-bonsai-mcp/config/reviewers.json`, read by the dispatcher to write the issue's
+`**Reviewer:**` line; this repo no longer carries a copy.
 
 ## First-run / required-check
 
