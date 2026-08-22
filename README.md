@@ -352,7 +352,8 @@ having on its own. Flipping the flag would break this repo's own release habit �
 
 - **`claude[bot]`** — the implementer (Phase 2 `claude.yml`), distinct from any reviewer.
 - **`driver-digital-agents`** (the `AGENTS_GH_PAT` fine-grained PAT) — the agent-rail actor: `GH_TOKEN`
-  on every `gh` step (never the default `GITHUB_TOKEN`), `dependabot-report`'s comment/reviewer-request
+  on every agent-acting `gh` step (the default `GITHUB_TOKEN` is used only where a post must not
+  cascade — `claude.yml`'s failed-run notice), `dependabot-report`'s comment/reviewer-request
   identity, and the author of `claude.yml`'s sentinel comments. It was the reviewer on the retired
   review rails.
 - **Anthropic billing** — `CLAUDE_CODE_OAUTH_TOKEN` (Max). **Never set `anthropic_api_key`** (it overrides
