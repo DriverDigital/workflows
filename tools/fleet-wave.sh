@@ -39,8 +39,10 @@ DRY=0; ONLY=""; SKIP=""; MSG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
-    --only) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; ONLY=$2; shift ;;
-    --skip) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; SKIP="$SKIP $2"; shift ;;
+    # Non-empty is checked too: `--only "$UNSET"` would otherwise wave the whole fleet and
+    # `--skip "$UNSET"` would spare nothing, each silently.
+    --only) [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a non-empty value" >&2; exit 2; }; ONLY=$2; shift ;;
+    --skip) [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a non-empty value" >&2; exit 2; }; SKIP="$SKIP $2"; shift ;;
     --message) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; MSG=$2; shift ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac; shift
