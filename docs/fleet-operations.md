@@ -5,7 +5,7 @@ release sequence is [`README.md`](../README.md) → *Release + repin order*** �
 restate it. What lives here is the operational knowledge around it: how a wave is executed, what a
 pilot can and cannot prove, and where the drift detector is blind.
 
-Written 2026-08-02 from the v1.7.0 → v1.11.0 waves.
+Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v1.13.0 wave.
 
 ---
 
@@ -40,23 +40,23 @@ the only one whose `claude.yml` has a non-empty `SHOPIFY_STORE_NAME`.
 ## Waves are direct pushes, not PRs
 
 Decided at the v1.7.0 wave (2026-07-31) and used for every wave since. A mechanical,
-centrally-reviewed kit change is pushed **straight to each branch with `[skip ci]` in the commit
-message**, rather than opening 21 PRs.
+centrally-reviewed kit change is pushed **straight to each branch with `skip-ci` in the commit
+message**, rather than opening one PR per target.
 
 Why:
 
-- **Zero review runs.** 21 PRs would each have fired `pr-first-review` and burned quota on a change
-  that was already reviewed centrally. (That rail retired at v1.12.0 — Macroscope now reviews PRs
+- **Zero review runs.** One PR per target would each have fired `pr-first-review` and burned quota
+  on a change that was already reviewed centrally. (That rail retired at v1.12.0 — Macroscope now reviews PRs
   instead, so the PR-noise argument still holds.)
 - **Zero theme deploys.** Recon found `develop`/`staging` deploy workflows on ~10 fleet branches that
-  a bare push *would* have fired. `[skip ci]` suppresses them.
+  a bare push *would* have fired. `skip-ci` suppresses them.
 - Branch protection does not enforce for admins (`enforce_admins: false` fleet-wide), so the push
   lands as Maria without a review round-trip.
 
 **Reserve PR waves for changes that genuinely want per-repo review.** A kit change that is
 byte-identical everywhere does not.
 
-`[skip ci]` suppresses workflow triggers but **not** GitHub's own "Dependabot Updates" scheduler —
+`skip-ci` suppresses workflow triggers but **not** GitHub's own "Dependabot Updates" scheduler —
 seeing one of those fire after a wave is expected and benign.
 
 > **Never write the literal token in a commit message that is not itself a wave.** GitHub scans the
@@ -95,6 +95,32 @@ assumed install list — the partial-install pairs never had both.
 Guards worth keeping in any wave script: assert no destination path is written twice, assert the
 store handle survived, assert no stale pin remains, and dry-run the whole fleet before writing
 anything.
+
+---
+
+## Dependabot and the wave
+
+**Dependabot does bump the `DriverDigital/workflows` stub pins.** Palmers #93 and
+`vite-plugin-shopify-clean` #72 (2026-07-02, 19:27Z) each rewrote the SHA *and* its `# vX.Y.Z`
+trailer five minutes after the `v1.5.4` tag landed at 19:22Z. The mechanism works; it rarely gets a
+turn. Two reasons: the wave repins every target within minutes of a tag, so a monthly check finds
+nothing stale — and 5 of the 13 fleet repos have no `github-actions` block for it to act on
+(`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`; `Driver-Digital-Website`
+and `The-Gathery` have one without the block). The kit ships the stubs that only a bot can bump and
+has never shipped the updater that maintains them. `DRIVER_AGENTS_REF` is out of reach either way —
+a raw SHA in an `env:` block, not a `uses:` reference.
+
+*(The claim this replaces — that it never happens in practice, "verified 2026-07-16" — sampled open
+PRs, two weeks after the two that disprove it had already merged.)*
+
+**Recommended, not decided (2026-08-22):** ship a `.github/dependabot.yml` in `templates/github/`
+with a daily `github-actions` block and one grouped `actions` rule, then **sequence rather than
+race** — after cutting a tag, repin `templates/` and let Dependabot open the stub PRs. `fleet-wave.sh`
+stays for the whole-file copies (`claude.yml`, `shopify-tool-smoke.yml`, `lint.yml`) and as the
+backstop for repos with no updater. Prove it on `vite-plugin-shopify-clean` — public, Dependabot
+demonstrably alive — by deliberately **not** waving it after the next tag and watching for a PR
+inside a day: near-zero blast radius, and it settles the question without building anything. Weigh
+the churn first: 22 tags in the nine weeks to 2026-08-21 is real PR volume even grouped.
 
 ---
 
@@ -142,9 +168,8 @@ Two things worth knowing about check 3:
 
 - **Exactly two things are normalized away.** First, `SHOPIFY_STORE_NAME` — the one difference a
   correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
-  the three stub-rails-only pairs (`Team-Laird@develop`, `The-Gathery@develop`,
-  `driver-bonsai-mcp@main`) were waved without a final newline and are otherwise identical, and nine
-  permanently-red rows for a byte nobody can act on is how a detector stops being read. Internal
+  the three pairs waved without a final newline are otherwise identical, and permanently-red rows
+  for a byte nobody can act on is how a detector stops being read. Internal
   blank lines *are* compared. Everything else that differs is reported, third-party action pins
   included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
   seeing, and it means the kit is behind, not that the repo is wrong.
