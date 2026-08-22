@@ -17,9 +17,8 @@ Nothing is in flight: no open branch, no half-finished wave, no pending secret d
 - **Fable billing.** The canary ran clean on `claude-fable-5`; whether it draws usage credits was
   never checked. The decision (2026-08-21) is to watch it as pipeline traffic grows rather than gate
   on it. Fallback is `--model opus` — see the MODEL NOTE comment in `templates/github/claude.yml`.
-- **`DRIVER_AGENTS_REF` bump + tripwire re-copy.** Held at `4d63371`; driver-agents `main` is 8
-  commits ahead with a longer canonical blockquote and small tool fixes. Do it in the next release
-  that wants those, following release-order step 1 — not as a release of its own.
+- **`DRIVER_AGENTS_REF` bump + tripwire re-copy** — done in PR #43 (`919ca79`, parity verified,
+  no tool interface change). Ships as `v1.14.0`: tag, repin, wave still to run.
 - **Reusable conversion of `claude.yml`** — still **TABLED**. The 2026-08-22 research weakens the
   OIDC blocker — the Phase 0 spike is now a confirmation, not a go/no-go — and its own lazy read
   is *not yet*: `fleet-wave.sh` took most of the win at zero build cost. The assessment that went
@@ -48,14 +47,12 @@ Still open: installing the block on the five repos without one, and Avara's paus
 
 ## Ride along with the next `claude.yml` release
 
-None of these earns a wave on its own.
+None of these earns a wave on its own. (The dangling `phase2-github-setup.md` pointer and the Figma
+MCP caveat rode along in PR #43.)
 
-- `templates/github/claude.yml:21` points at `docs/phase2-github-setup.md`, which exists in no repo.
 - The fleet's `pull_request_template.md` copies still credit the retired **status sync** with
   resolving the linked issue. The kit copy is corrected, but `tools/fleet-wave.sh`'s file set does
   not include that file — either add it or re-onboard the repos.
-- The Figma MCP caveat line, per [`figma-mcp-in-ci.md`](figma-mcp-in-ci.md) (v1.13.0 passed without
-  it).
 
 ## Watch-items
 
