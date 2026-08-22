@@ -258,10 +258,13 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
    - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
-   - Dependabot will take the *stub pin* repins itself in any repo configured for it, if the wave
-     waits rather than racing it — see
-     [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave). The wave still
-     owns the whole-file copies.
+   - Dependabot also bumps the *stub pins* in any repo with a `github-actions` block (the kit now
+     ships one, `templates/github/dependabot.yml`, for the repos that had none) — on its schedule
+     and through a PR a human merges, so the wave stays the primary path and Dependabot the
+     backstop. `--skip <repo>` leaves every branch of a repo to it on purpose — only sound where
+     Dependabot covers each kit branch (it scans the default branch unless a `target-branch`
+     entry exists, so not Palmers as configured). See
+     [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
      contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
@@ -309,7 +312,8 @@ and [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.m
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
 carries the three caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
 `shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
-workflows) and `pull_request_template.md`.
+workflows), `pull_request_template.md` and `dependabot.yml` (the `github-actions` updater that bumps
+the stub pins between waves — installed by hand, merged into an existing file).
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
 `lint.yml` alone and skip the rest as inert weight.

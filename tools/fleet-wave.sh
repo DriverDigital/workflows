@@ -3,6 +3,8 @@
 #
 #   tools/fleet-wave.sh --dry-run            # plan only, no writes
 #   tools/fleet-wave.sh --only <repo>        # a single repo (canary), all its kit branches
+#   tools/fleet-wave.sh --skip <repo>        # leave one repo un-waved (repeatable) — e.g. to let
+#                                            # Dependabot prove it bumps the stub pins there
 #   tools/fleet-wave.sh                      # the whole fleet
 #   tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commit message
 #
@@ -33,11 +35,14 @@ cd "$(dirname "$0")/.."
 ORG="DriverDigital"
 KIT="templates/github"
 SELF_REPO="workflows"          # the kit repo — never a wave target, see targets()
-DRY=0; ONLY=""; MSG=""
+DRY=0; ONLY=""; SKIP=""; MSG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1 ;;
-    --only) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; ONLY=$2; shift ;;
+    # Non-empty is checked too: `--only "$UNSET"` would otherwise wave the whole fleet and
+    # `--skip "$UNSET"` would spare nothing, each silently.
+    --only) [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a non-empty value" >&2; exit 2; }; ONLY=$2; shift ;;
+    --skip) [ $# -ge 2 ] && [ -n "$2" ] || { echo "$1 needs a non-empty value" >&2; exit 2; }; SKIP="$SKIP $2"; shift ;;
     --message) [ $# -ge 2 ] || { echo "$1 needs a value" >&2; exit 2; }; MSG=$2; shift ;;
     *) echo "unknown arg $1" >&2; exit 2 ;;
   esac; shift
@@ -47,7 +52,7 @@ command -v actionlint >/dev/null || { echo "actionlint missing (brew install act
 command -v jq >/dev/null        || { echo "jq missing (brew install jq)" >&2; exit 2; }
 TAG=$(git describe --tags --abbrev=0)
 TAG_SHA=$(git rev-list -n1 "$TAG")
-MSG=${MSG:-"chore(kit): claude.yml $TAG + retire bonsai-status-sync [skip ci]"}
+MSG=${MSG:-"chore(kit): repin to $TAG [skip ci]"}
 
 # Guard 0: a real wave commits the working tree's idea of the kit under the latest tag's name, so
 # the checkout has to be the released one. Guard 1 only proves the stubs agree with `git describe`
@@ -78,6 +83,15 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 api() { gh api "$@"; }
+# A typo in --skip would skip nothing and wave the repo it was meant to spare — the one outcome the
+# flag exists to prevent — so each name is resolved, and the RESOLVED name is what gets matched:
+# the API is case-insensitive (`palmers` resolves) but the match against `gh repo list` is not.
+canon=""
+for s in $SKIP; do
+  c=$(api "repos/$ORG/$s" --jq .name) || { echo "--skip $s: no such repo in $ORG" >&2; exit 2; }
+  canon="$canon $c"
+done
+SKIP=$canon
 # Straight to a file, never through $(...): command substitution strips ALL trailing newlines, so a
 # deployed file differing from the kit only in trailing blank lines would compare equal and be
 # skipped. The raw media type is the same idiom fleet-pin-audit.sh uses, and it sidesteps the
@@ -117,14 +131,14 @@ handle_of() {
 # `targets: 12  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
-  local repos r def branches b only_def
+  local repos r def branches b
   if [ -n "$ONLY" ]; then
     # Its own statement, not interpolated into the string: a substitution embedded in a larger word
     # cannot fail the assignment, so a typo'd --only would fall through to the "no targets" message
-    # and read as an empty fleet instead of a bad argument.
-    only_def=$(api "repos/$ORG/$ONLY" --jq .default_branch) \
+    # and read as an empty fleet instead of a bad argument. The resolved name is used, not the
+    # typed one: `--only palmers` resolves, but the literal Palmers branch check below would not.
+    repos=$(api "repos/$ORG/$ONLY" --jq '"\(.name) \(.default_branch)"') \
       || { echo "--only $ONLY: no such repo in $ORG" >&2; exit 2; }
-    repos="$ONLY $only_def"
   else
     repos=$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef \
               --jq '.[] | "\(.name) \(.defaultBranchRef.name)"') \
@@ -142,6 +156,7 @@ targets() {
     # dependabot-validate.yml, and this repo carries the latter, so this skip is the only thing
     # keeping the wave out of the kit — and the mistake is fleet-wide, not one commit to undo.
     if [ "$r" = "$SELF_REPO" ]; then continue; fi
+    case " $SKIP " in *" $r "*) echo "skip   $r (--skip)" >&2; continue ;; esac
     if [ "$r" = "Palmers" ]; then
       branches=$(api "repos/$ORG/$r/branches?per_page=100" --paginate --jq '.[].name') \
         || { echo "could not list $r branches — refusing to wave a partial fleet" >&2; exit 2; }

@@ -107,7 +107,7 @@ turn. Two reasons: the wave repins every target within minutes of a tag, so a mo
 nothing stale — and 5 of the 13 distinct repos behind the 20 pairs have no `github-actions` block
 for it to act on (`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`;
 `Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
-that only a bot can bump and has never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
+that only a bot can bump and had never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
 is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
 is repo-local: Avara has had a valid `github-actions` block since 2025-04-25 and zero Dependabot
 PRs in 16 months (its SBOM resolves all three reusables), so the sequencing fix will not reach it;
@@ -116,14 +116,29 @@ the cause is only visible under Insights → Dependency graph → Dependabot.
 *(The claim this replaces — that it never happens in practice, "verified 2026-07-16" — sampled open
 PRs, two weeks after the two that disprove it had already merged.)*
 
-**Recommended, not decided (2026-08-22):** ship a `.github/dependabot.yml` in `templates/github/`
-with a daily `github-actions` block and one grouped `actions` rule, then **sequence rather than
-race** — after cutting a tag, repin `templates/` and let Dependabot open the stub PRs. `fleet-wave.sh`
-stays for the whole-file copies (`claude.yml`, `shopify-tool-smoke.yml`, `lint.yml`) and as the
-backstop for repos with no updater. Prove it on `vite-plugin-shopify-clean` — public, Dependabot
-demonstrably alive — by deliberately **not** waving it after the next tag and watching for a PR
-inside a day: near-zero blast radius, and it settles the question without building anything. Weigh
-the churn first: 22 tags in the nine weeks to 2026-08-21 is real PR volume even grouped.
+**Shipped 2026-08-22: `templates/github/dependabot.yml`** — a daily `github-actions` block with one
+grouped `actions` rule. It is installed by hand, not waved: it lives at `.github/`, outside the
+wave's path, and a repo that already has a `dependabot.yml` keeps its npm block and adds the entry
+(`templates/github/README.md`, step 4). Two facts found while shipping it bound what "sequence the
+wave after Dependabot" can actually buy:
+
+- Every existing fleet block is **monthly**, so on schedule Dependabot sees a new tag up to a month
+  late. The five-minute bumps of 2026-07-02 were not the schedule: Maria posted `@dependabot
+  recreate` on each open PR at 19:26Z and the superseding PR appeared a minute later. The kit file
+  is daily for that reason — and `@dependabot recreate` on any open Dependabot PR remains the
+  fastest manual trigger.
+- The other half of the latency is a human: Palmers #93 merged 5 minutes after it opened,
+  `vite-plugin-shopify-clean` #72 took 6 days. A wave is one direct push; waiting on Dependabot is a
+  PR someone has to merge.
+
+So the wave stays the primary path — when `claude.yml` changed (most releases) it is pushing anyway
+and the repin rides in the same atomic commit at no cost. Dependabot earns its keep as the backstop:
+the five repos that had no updater, drift between waves, and a reusable-only tag where no whole-file
+copy is needed. Palmers' block covers `main` alone; its seven country branches stay on the wave
+unless `target-branch` entries are added. The proof is still worth running once, at the next tag:
+`tools/fleet-wave.sh --skip vite-plugin-shopify-clean`, then watch for the PR — its block is
+monthly, so either flip it to daily first or trigger a check by hand (Insights → Dependency graph →
+Dependabot → *Check for updates*, or `@dependabot recreate` on an open Dependabot PR there).
 
 ---
 

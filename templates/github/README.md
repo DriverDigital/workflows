@@ -105,10 +105,17 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    cp templates/github/lint.yml                 .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    ```
+   **Then `dependabot.yml`, by hand** — it is the updater for the stub pins (without it nothing
+   bumps the `uses: DriverDigital/workflows/...@<sha>` lines between waves), and most repos already
+   have one, so never blind-copy it. No `.github/dependabot.yml` → copy the kit's. One without a
+   `github-actions` entry → add the kit's entry under its npm block. One with a `github-actions`
+   entry already → keep it and set its `interval` to `daily`. Dependabot scans the default branch
+   only, so a repo carrying the kit on other branches (Palmers) needs one entry per branch with
+   `target-branch:` set.
    **Re-copying into a repo that already has the kit?** Preserve that repo's own Dependabot action
    pins — re-copy the workflow bodies, but don't clobber pins Dependabot has since bumped there.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
-   be silently clobbered by the kit's, which is the only kit filename likely to already exist.
+   be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
 
    **Partial install (`lint.yml` only).** For a repo that is *not* on the Bonsai → PR pipeline —
    no dispatcher issues — `lint.yml` is the useful subset and the rest is inert weight. This is

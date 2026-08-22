@@ -1,0 +1,20 @@
+# The updater the kit's caller stubs rely on. Dependabot reads the `# vX.Y.Z` trailer on each
+# `uses: DriverDigital/workflows/...@<sha>` pin and opens ONE grouped PR per new tag (any other
+# action bump rides in the same group). Install as .github/dependabot.yml; a repo that already has
+# one keeps its npm block and adds this entry. Dependabot scans the DEFAULT branch only — a repo
+# carrying the kit on other branches needs one copy of this entry per branch with `target-branch:`.
+# Daily, not monthly: the wave repins within minutes of a tag, so this only has to cover the repos
+# and tags the wave skips — and a monthly backstop is up to a month late
+# (DriverDigital/workflows docs/fleet-operations.md, "Dependabot and the wave").
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    assignees:
+      - "mcarter-astronautdev"
+    groups:
+      actions:
+        patterns:
+          - "*"
