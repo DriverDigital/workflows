@@ -107,7 +107,7 @@ turn. Two reasons: the wave repins every target within minutes of a tag, so a mo
 nothing stale — and 5 of the 13 distinct repos behind the 20 pairs have no `github-actions` block
 for it to act on (`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`;
 `Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
-that only a bot can bump and has never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
+that only a bot can bump and had never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
 is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
 is repo-local: Avara has had a valid `github-actions` block since 2025-04-25 and zero Dependabot
 PRs in 16 months (its SBOM resolves all three reusables), so the sequencing fix will not reach it;

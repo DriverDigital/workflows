@@ -82,10 +82,14 @@ trap 'rm -rf "$TMP"' EXIT
 
 api() { gh api "$@"; }
 # A typo in --skip would skip nothing and wave the repo it was meant to spare — the one outcome the
-# flag exists to prevent — so each name is resolved the same way --only is.
+# flag exists to prevent — so each name is resolved, and the RESOLVED name is what gets matched:
+# the API is case-insensitive (`palmers` resolves) but the match against `gh repo list` is not.
+canon=""
 for s in $SKIP; do
-  api "repos/$ORG/$s" --jq .name >/dev/null || { echo "--skip $s: no such repo in $ORG" >&2; exit 2; }
+  c=$(api "repos/$ORG/$s" --jq .name) || { echo "--skip $s: no such repo in $ORG" >&2; exit 2; }
+  canon="$canon $c"
 done
+SKIP=$canon
 # Straight to a file, never through $(...): command substitution strips ALL trailing newlines, so a
 # deployed file differing from the kit only in trailing blank lines would compare equal and be
 # skipped. The raw media type is the same idiom fleet-pin-audit.sh uses, and it sidesteps the
@@ -125,14 +129,14 @@ handle_of() {
 # `targets: 12  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
-  local repos r def branches b only_def
+  local repos r def branches b
   if [ -n "$ONLY" ]; then
     # Its own statement, not interpolated into the string: a substitution embedded in a larger word
     # cannot fail the assignment, so a typo'd --only would fall through to the "no targets" message
-    # and read as an empty fleet instead of a bad argument.
-    only_def=$(api "repos/$ORG/$ONLY" --jq .default_branch) \
+    # and read as an empty fleet instead of a bad argument. The resolved name is used, not the
+    # typed one: `--only palmers` resolves, but the literal Palmers branch check below would not.
+    repos=$(api "repos/$ORG/$ONLY" --jq '"\(.name) \(.default_branch)"') \
       || { echo "--only $ONLY: no such repo in $ORG" >&2; exit 2; }
-    repos="$ONLY $only_def"
   else
     repos=$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef \
               --jq '.[] | "\(.name) \(.defaultBranchRef.name)"') \

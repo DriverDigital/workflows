@@ -258,9 +258,10 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
    - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
-   - Dependabot also bumps the *stub pins* in any repo carrying the kit's `dependabot.yml` block —
-     on its schedule and through a PR a human merges, so the wave stays the primary path and
-     Dependabot the backstop; `--skip <repo>` leaves a repo to it on purpose. See
+   - Dependabot also bumps the *stub pins* in any repo with a `github-actions` block (the kit now
+     ships one, `templates/github/dependabot.yml`, for the repos that had none) — on its schedule
+     and through a PR a human merges, so the wave stays the primary path and Dependabot the
+     backstop; `--skip <repo>` leaves a repo to it on purpose. See
      [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
