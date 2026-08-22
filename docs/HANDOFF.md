@@ -39,10 +39,12 @@ Nothing is in flight: no open branch, no half-finished wave, no pending secret d
 block and a tag lands before the wave (Palmers #93 and vite-plugin-shopify-clean #72, 2026-07-02).
 In practice the wave repins within minutes of every tag so Dependabot never gets a turn, and 5 of
 the 13 distinct repos behind the 20 pairs have no `github-actions` block at all, because the kit
-ships the stubs but has never shipped a `dependabot.yml`. The fix is to ship one in the kit and
-sequence the wave after it instead of racing it; the free test is to not wave
-vite-plugin-shopify-clean after the next tag and watch for a PR. Detail and recommendation:
+ships the stubs but had never shipped a `dependabot.yml`. The kit ships one now (2026-08-22,
+hand-installed, daily); what it can and cannot buy — the fleet's blocks are monthly and a Dependabot
+PR waits on a human merge, so the wave stays primary — and the one-off proof
+(`fleet-wave.sh --skip vite-plugin-shopify-clean` at the next tag) are in
 [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave), the single home for this.
+Still open: installing the block on the five repos without one, and Avara's paused updater.
 
 ## Ride along with the next `claude.yml` release
 

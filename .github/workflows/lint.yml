@@ -60,9 +60,10 @@ jobs:
           set -euo pipefail
           # With no paths actionlint globs .github/workflows/ itself. The kit lives outside that
           # path, so it is passed explicitly — without the second call the files consumer repos
-          # actually install would go unchecked, which is the whole point of this job.
+          # actually install would go unchecked, which is the whole point of this job. The kit's
+          # dependabot.yml is not a workflow (actionlint rejects it outright), so it is excluded.
           ./actionlint -color
-          ./actionlint -color templates/github/*.yml
+          find templates/github -name '*.yml' ! -name dependabot.yml -exec ./actionlint -color {} +
 
       - name: Every kit stub is pinned to a real SHA
         # A new reusable's stub ships with an all-zero placeholder pin so it cannot be installed
