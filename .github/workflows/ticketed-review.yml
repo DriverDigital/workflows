@@ -8,7 +8,7 @@ name: Ticketed review (reusable)
 # pre-v1.12.0), cut a tag, and wave it back out. Re-activation also needs the org
 # secret BONSAI_BEARER_TOKEN recreated — it was deleted with the v1.13.0 wave
 # (2026-08-22). Context and the Macroscope plan:
-# docs/macroscope-integration-scope.md — and the handoff at :287 posts to the retired
+# docs/macroscope-integration-scope.md — and the handoff at :291 posts to the retired
 # bridge server's /tasks/reviewer-handoff; that leg must be rewritten against the
 # Bonsai public API first.
 # ═════════════════════════════════════════════════════════════════════════════
@@ -35,9 +35,8 @@ name: Ticketed review (reusable)
 # formal approve / request-changes review (the human assigned at handoff does that, which
 # kept the retired bonsai-status-sync's human-author gate satisfied; with that rail gone the
 # comment-only posture stands on its own — we do not forge a review identity). The PAT is
-# Issues+PR R/W, Contents:READ, no Admin — push/merge/secrets all
-# 403 server-side, so a generous --allowedTools is plumbing, not a grant (same contract as
-# pr-first-review.yml).
+# Issues+PR R/W, Contents:READ, no Admin — push/merge/secrets all 403 server-side, so a
+# generous --allowedTools is plumbing, not a grant (same contract as pr-first-review.yml).
 #
 # ROUND COUNTING: each review pass posts exactly one comment carrying the hidden round
 # marker (<!-- ticketed-review-round -->) — a revise request OR the terminal handoff. The
@@ -109,8 +108,8 @@ jobs:
           fi
           # Ticketed iff the PR's linked issue body carries a Bonsai uuid (the same uuid
           # recovery the retired bonsai-status-sync used). PR-first owns any PR that resolves
-          # NO ticket. An empty
-          # closingIssuesReferences is a SUCCESS (zero loop iterations) → skip green below.
+          # NO ticket. An empty closingIssuesReferences is a SUCCESS (zero loop iterations) →
+          # skip green below.
           if ! refs=$(ghj pr view "$PR" --repo "$REPO" --json closingIssuesReferences \
                         --jq '.closingIssuesReferences[].number'); then
             echo "::error::could not read closing issues for PR #$PR after retries"; exit 1

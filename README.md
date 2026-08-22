@@ -97,6 +97,7 @@ matching `templates/`, zero drift** across the 23 pairs audited.
   (whitespace-collapsed parity: match). driver-agents `main` is 8 commits ahead with a much longer
   blockquote and small tool fixes; the queued re-copy + ref bump is in
   [`docs/HANDOFF.md`](docs/HANDOFF.md).
+- Design: driver-bonsai-mcp `docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md` §5a.
 
 **Canary** (`vite-plugin-shopify-clean`, 2026-08-21 23:12–23:17 UTC, torn down afterwards): Bonsai
 TSK-00923 → dispatcher run `32536010404` → issue #91 by `driver-digital-agents` carrying the target

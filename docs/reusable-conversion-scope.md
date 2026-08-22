@@ -46,8 +46,7 @@ Three things moved. None of them flips the status on its own.
 
 `claude.yml` is **500 of the kit's 758 `.yml` lines** and, with `shopify-tool-smoke.yml` (112), the only
 copied-verbatim file carrying per-repo state — the rest is three mechanical caller stubs (78) and `lint.yml`
-(68). The copied surface is also the only one that grows: every line added to the kit since v1.6.0 landed in
-one of those two files.
+(68).
 
 Every drift incident traces to that split. Avara shipped the prompt-hijack bug because `claude.yml` is
 copied, so a subset of upstream changes could be hand-carried into it. The store handle needs preserving on
@@ -271,7 +270,7 @@ both secrets at `.github/workflows/pr-first-review.yml:51-53`. The constraint do
 
 ### The v1.8.0 artifact leg — new since the original draft
 
-v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:495-500`, mirrored at
+v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:494-500`, mirrored at
 `templates/github/shopify-tool-smoke.yml:106-112`). The step itself moves into a reusable unchanged —
 `always()`, `env.*` read from `$GITHUB_ENV`, and `upload-artifact`'s own `ACTIONS_RUNTIME_TOKEN` auth are all
 unaffected by `workflow_call`. Two things do change:
@@ -280,7 +279,7 @@ unaffected by `workflow_call`. Two things do change:
 - **A called workflow does not get its own run id.** `github.run_id` and `github.run_attempt` resolve to the
   **caller's** run. That is the *desirable* outcome for the collector — the artifact lands in the consuming
   repo's run, where the box's nightly `audit-publish.sh` already looks. But it degrades the collision guard
-  the file calls load-bearing at `:490-494`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
+  the file calls load-bearing at `:490-493`: `run_id` + `run_attempt` no longer disambiguate *jobs within one
   run*. What makes that safe today is simply that `claude.yml` declares **exactly one job** (`jobs.claude`,
   `:68-69`) — not the concurrency group at `:64-66`, which serializes *runs* within a group and says nothing
   about jobs inside a run. Conversion removes that structural guarantee: **call the reusable from two jobs in

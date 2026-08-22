@@ -111,9 +111,9 @@ header, service account, or client-credentials grant). Nothing on our side chang
 
 When it unblocks, the wiring is short — written down so it is not re-researched:
 
-- **Inline JSON, never a file path.** v1.0.195 (`d40ddef`) — last verified at v1.0.183/`be7b93b`;
-  re-check `action.yml` at the current pin before using this. `mcp_config` was removed in the v0→v1
-  migration. Servers go in via
+- **Inline JSON, never a file path.** v1.0.195 (`d40ddef`) still has **no `mcp_config` input** —
+  last verified at v1.0.183/`be7b93b`; re-check `action.yml` at the current pin. `mcp_config` was
+  removed in the v0→v1 migration. Servers go in via
   `claude_args: --mcp-config '{"mcpServers":{"figma":{"type":"http","url":"https://mcp.figma.com/mcp","headers":{…}}}}'`.
   A **file path is silently dropped** whenever the action contributes its own inline JSON, which is
   always true in tag mode.
@@ -127,7 +127,7 @@ When it unblocks, the wiring is short — written down so it is not re-researche
 
 ## Why `claude.yml` carries no comment about this
 
-Editing `templates/github/claude.yml` puts all **18 pairs carrying `claude.yml`** out of content parity, so
-`tools/fleet-pin-audit.sh --stale` goes red fleet-wide until a re-copy wave — a real wave for a comment.
-Let a one-line caveat ride along with the next `claude.yml` release (v1.13.0 passed without it), in
-the style of the existing `WebSearch`/`WebFetch` caveat above `--allowedTools`.
+Editing `templates/github/claude.yml` puts all **18 pairs carrying `claude.yml`** out of content
+parity, so `tools/fleet-pin-audit.sh --stale` goes red fleet-wide until a re-copy wave — a real wave
+for a comment. Let a one-line caveat ride along with the next `claude.yml` release (v1.13.0 passed
+without it), in the style of the existing `WebSearch`/`WebFetch` caveat above `--allowedTools`.

@@ -45,9 +45,9 @@ message**, rather than opening one PR per target.
 
 Why:
 
-- **Zero review runs.** One PR per target would each have fired `pr-first-review` and burned quota
-  on a change that was already reviewed centrally. (That rail retired at v1.12.0 — Macroscope now reviews PRs
-  instead, so the PR-noise argument still holds.)
+- **Zero review runs.** One PR per target would have fired `pr-first-review` in each repo and
+  burned quota on a change that was already reviewed centrally. (That rail retired at v1.12.0 —
+  Macroscope now reviews PRs instead, so the PR-noise argument still holds.)
 - **Zero theme deploys.** Recon found `develop`/`staging` deploy workflows on ~10 fleet branches that
   a bare push *would* have fired. `skip-ci` suppresses them.
 - Branch protection does not enforce for admins (`enforce_admins: false` fleet-wide), so the push
@@ -104,11 +104,14 @@ anything.
 `vite-plugin-shopify-clean` #72 (2026-07-02, 19:27Z) each rewrote the SHA *and* its `# vX.Y.Z`
 trailer five minutes after the `v1.5.4` tag landed at 19:22Z. The mechanism works; it rarely gets a
 turn. Two reasons: the wave repins every target within minutes of a tag, so a monthly check finds
-nothing stale — and 5 of the 13 fleet repos have no `github-actions` block for it to act on
-(`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`; `Driver-Digital-Website`
-and `The-Gathery` have one without the block). The kit ships the stubs that only a bot can bump and
-has never shipped the updater that maintains them. `DRIVER_AGENTS_REF` is out of reach either way —
-a raw SHA in an `env:` block, not a `uses:` reference.
+nothing stale — and 5 of the 13 distinct repos behind the 20 pairs have no `github-actions` block
+for it to act on (`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`;
+`Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
+that only a bot can bump and has never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
+is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
+is repo-local: Avara has had a valid `github-actions` block since 2025-04-25 and zero Dependabot
+PRs in 16 months (its SBOM resolves all three reusables), so the sequencing fix will not reach it;
+the cause is only visible under Insights → Dependency graph → Dependabot.
 
 *(The claim this replaces — that it never happens in practice, "verified 2026-07-16" — sampled open
 PRs, two weeks after the two that disprove it had already merged.)*
@@ -169,8 +172,8 @@ Two things worth knowing about check 3:
 - **Exactly two things are normalized away.** First, `SHOPIFY_STORE_NAME` — the one difference a
   correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
   the three pairs waved without a final newline are otherwise identical, and permanently-red rows
-  for a byte nobody can act on is how a detector stops being read. Internal
-  blank lines *are* compared. Everything else that differs is reported, third-party action pins
+  for a byte nobody can act on is how a detector stops being read. Internal blank lines *are*
+  compared. Everything else that differs is reported, third-party action pins
   included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
   seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,

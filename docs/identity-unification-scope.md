@@ -4,8 +4,9 @@
 **Refreshed:** 2026-08-02 (v1.9.0, then v1.11.0); **citations re-verified 2026-08-22 at `v1.13.0`, where
 `templates/github/claude.yml` is 500 lines.** They are path-qualified — several filenames exist in both
 `templates/github/` and `.github/workflows/` with different content and lengths. **Six corrections change
-what someone would build** — listed in *Provenance*, marked **Correction** where they appear. The headline
-rate-limit finding **survives re-checking**.
+what someone would build** — listed in *Provenance*, marked **Correction** where the blockquote survives;
+the dual-accept id pairing and the second round-counter site were folded into plain notes when their
+rails retired. The headline rate-limit finding **survives re-checking**.
 **Decision made:** the GitHub agent stays in GitHub Actions. Only the identity underneath it changes.
 Nothing moves to a server. A Slack agent is a separate entity, explicitly out of scope.
 
@@ -472,7 +473,9 @@ branch, with the rate-limit section re-derived from live
 org data and current GitHub documentation. **The recommendation is unchanged and the headline finding
 survives** (58.0–61.2%). Six corrections changed what someone would build — the self-authored guard, the
 dual-accept id pairing, the measurement instrument, the loop invariant's scope, the second round-counter site,
-and the two missing pilot assertions. Each is marked **Correction** where it appears.
+and the two missing pilot assertions. Each is marked **Correction** where the blockquote survives; the
+dual-accept id pairing and the second round-counter site were folded into plain notes when their rails
+retired.
 
 Three originate in the CodeRabbit review of PR #21 and were confirmed independently before adoption; three
 came out of the refresh. One reviewer rationale was itself corrected in adopting it: the wildcard guard is not
