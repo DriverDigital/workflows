@@ -183,9 +183,9 @@ jobs:
           # whatever driver-agents' default branch happens to hold at run time. Bump deliberately,
           # then re-copy the kit in the next fleet wave.
           # History: 0bbb125 predated the Admin API wrapper (no graphql_guard.py, so no fail-closed
-          # allowlist in CI); 4d63371 (2026-08-02) added it; 919ca79 (2026-08-22) lengthens the
+          # allowlist in CI); 4d63371 (2026-08-02) added it; 919ca79 (2026-08-07) lengthens the
           # canonical tripwire blockquote below and fixes tool messages — no interface change.
-          DRIVER_AGENTS_REF: 919ca79edd2b2dbb9551effbf863ff378f78b350 # main @ 2026-08-22 (longer tripwire blockquote; tool message fixes)
+          DRIVER_AGENTS_REF: 919ca79edd2b2dbb9551effbf863ff378f78b350 # main @ 2026-08-07 (longer tripwire blockquote; tool message fixes)
           # Optional: the #driver-agents-status Slack incoming-webhook URL (org-level secret, set
           # org-wide — nothing per repo). When present, the tool's destructive/failed-call alerts
           # fire from CI runs (same wiring the retired box used); absent = alerts off, nothing else

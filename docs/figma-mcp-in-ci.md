@@ -2,7 +2,7 @@
 
 **Verdict (2026-08-02): the box can use Figma MCP today with no token work. The GitHub Actions
 implementer rail (`templates/github/claude.yml`) cannot, and no `--allowedTools` edit changes that.**
-`claude.yml` is deliberately unchanged.
+`claude.yml` carries a one-line caveat above `--allowedTools` (since v1.14.0) and no other change.
 
 These are two different execution environments and they fail differently. Conflating them is the easy
 mistake — this doc exists to keep them apart.
@@ -124,10 +124,3 @@ When it unblocks, the wiring is short — written down so it is not re-researche
   `add_code_connect_map`, `send_code_connect_mappings`.
 - **`lint.yml`'s quote gate must move 4 → 6** in the same commit. It asserts `claude_args` holds exactly
   four single quotes; a third quoted flag fails the build.
-
-## Why `claude.yml` carries no comment about this
-
-Editing `templates/github/claude.yml` puts all **18 pairs carrying `claude.yml`** out of content
-parity, so `tools/fleet-pin-audit.sh --stale` goes red fleet-wide until a re-copy wave — a real wave
-for a comment. Let a one-line caveat ride along with the next `claude.yml` release (v1.13.0 passed
-without it), in the style of the existing `WebSearch`/`WebFetch` caveat above `--allowedTools`.
