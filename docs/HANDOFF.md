@@ -1,7 +1,7 @@
 # Handoff — 2026-08-22
 
 State of play for the next session. Conventions, how-tos and release history live in
-[`README.md`](../README.md); this repo has no `CLAUDE.md` yet (pending Maria's `/init`).
+[`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
 
 ## Where things stand
 
