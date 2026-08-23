@@ -157,6 +157,20 @@ jobs:
           for n in $names; do
             if timeout 20 npm view --json -- "$n" name version dist-tags peerDependencies > n.json 2>/dev/null \
                && jq -e 'type == "object" and has("name")' n.json >/dev/null 2>&1; then
+              # `npm view pkg` describes `latest` only. A pre-release on another dist-tag (next, rc,
+              # canary) may already admit the new peer, and that is exactly the fact a verdict wants,
+              # so each such tag gets its own peer range under .tags. Only tags at or above latest's
+              # major can matter — older ones are leftovers (typescript-eslint still carries rc-v3) and
+              # would crowd out the live one under the cap. Tag names are registry data: same allowlist
+              # idea, `--` again, capped at 5.
+              for t in $(jq -r '(."dist-tags" // {}) as $t | ($t.latest // "0" | split(".")[0] | tonumber? // 0) as $m
+                                | $t | to_entries[] | select(.key != "latest")
+                                | select((.value | split(".")[0] | tonumber? // 0) >= $m) | .key' n.json \
+                         | grep -E '^[a-z0-9][a-z0-9._-]*$' | head -5); do
+                timeout 20 npm view --json -- "$n@$t" version peerDependencies > t.json 2>/dev/null \
+                  && jq -e 'type == "object"' t.json >/dev/null 2>&1 \
+                  && jq --arg t "$t" --slurpfile v t.json '.tags[$t] = $v[0]' n.json > n2.json && mv n2.json n.json
+              done
               cat n.json >> registry.ndjson; echo >> registry.ndjson
             else
               echo "registry: could not read $n" | tee -a "$LOG"
