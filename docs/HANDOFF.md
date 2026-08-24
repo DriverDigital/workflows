@@ -5,20 +5,24 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
-`v1.13.0` (`f6d25d3`) shipped and waved on 2026-08-22 — the release that sets the rail up to run
-without the box. The fleet is converged and the pipeline is proven end to end by the canary. What
-shipped, the canary run and the wave/audit numbers live in README's
-[`v1.13.0`](../README.md#v1130-f6d25d3-2026-08-22) section, which is their only home.
+`v1.14.0` (`539d7ea`) shipped and waved on 2026-08-22, hours after `v1.13.0` — the `DRIVER_AGENTS_REF`
+bump with the tripwire re-copy, plus the kit's first `dependabot.yml`. What shipped and the wave/audit
+numbers live in README's [`v1.14.0`](../README.md#v1140-539d7ea-2026-08-22) section, its only home.
 
-Nothing is in flight: no open branch, no half-finished wave, no pending secret deletion.
+**In flight: the Dependabot proof.** `vite-plugin-shopify-clean@main` was deliberately not waved
+(`--skip`), so it sits one tag behind — 3 stale pins and a stale `claude.yml` — until Dependabot
+opens the grouped PR. The 2026-08-23 triggered check **saw v1.14.0 and held it behind GitHub's new
+default 3-day cooldown** (`fleet-operations.md#dependabot-and-the-wave`); the tag becomes eligible
+2026-08-25, so re-trigger the `.github/workflows` check then (Insights → Dependency graph →
+Dependabot → *Check for updates*). When the PR lands: merge it, then wave that one repo
+(`tools/fleet-wave.sh --only vite-plugin-shopify-clean`) for the `claude.yml` half, and the audit
+reads converged again. Until then `fleet-pin-audit.sh --stale` is red by design.
 
 ## Open decisions
 
 - **Fable billing.** The canary ran clean on `claude-fable-5`; whether it draws usage credits was
   never checked. The decision (2026-08-21) is to watch it as pipeline traffic grows rather than gate
   on it. Fallback is `--model opus` — see the MODEL NOTE comment in `templates/github/claude.yml`.
-- **`DRIVER_AGENTS_REF` bump + tripwire re-copy** — done in PR #43 (`919ca79`, parity verified,
-  no tool interface change). Ships as `v1.14.0`: tag, repin, wave still to run.
 - **Reusable conversion of `claude.yml`** — still **TABLED**. The 2026-08-22 research weakens the
   OIDC blocker — the Phase 0 spike is now a confirmation, not a go/no-go — and its own lazy read
   is *not yet*: `fleet-wave.sh` took most of the win at zero build cost. The assessment that went
@@ -38,12 +42,13 @@ Nothing is in flight: no open branch, no half-finished wave, no pending secret d
 block and a tag lands before the wave (Palmers #93 and vite-plugin-shopify-clean #72, 2026-07-02).
 In practice the wave repins within minutes of every tag so Dependabot never gets a turn, and 5 of
 the 13 distinct repos behind the 20 pairs have no `github-actions` block at all, because the kit
-ships the stubs but had never shipped a `dependabot.yml`. The kit ships one now (2026-08-22,
+ships the stubs but had never shipped a `dependabot.yml`. The kit ships one now (v1.14.0,
 hand-installed, daily); what it can and cannot buy — the fleet's blocks are monthly and a Dependabot
-PR waits on a human merge, so the wave stays primary — and the one-off proof
-(`fleet-wave.sh --skip vite-plugin-shopify-clean` at the next tag) are in
-[`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave), the single home for this.
-Still open: installing the block on the five repos without one, and Avara's paused updater.
+PR waits on a human merge, so the wave stays primary — is in
+[`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave), the single home for this. The
+proof is running (above). Still open: installing the block on the five repos without one
+(`studio-sulzer`, `plugins`, `client-workspaces` have no file; `Driver-Digital-Website`,
+`The-Gathery` are npm-only), and Avara's paused updater.
 
 ## Ride along with the next `claude.yml` release
 
@@ -68,9 +73,9 @@ MCP caveat rode along in PR #43.)
 
 From the 2026-08-22 assessment — recommendations, not decisions.
 
-1. **Kit `dependabot.yml` + sequencing** (above). Smallest change on the list, it removes the
-   stub-pin half of the wave (the whole-file copies — `claude.yml`, `shopify-tool-smoke.yml`,
-   `lint.yml` — still need `fleet-wave.sh`), and the proving test costs nothing.
+1. **Close the Dependabot proof** (above), then install the kit block on the five repos without
+   one. Shipping the kit file taught us the wave stays primary either way, so this is hygiene, not
+   a process change.
 2. **Reusable conversion of `claude.yml`.** Weaker than it was — `tools/fleet-wave.sh` took most of
    the win at zero build cost — but still real: `claude.yml` changed in 6 of the last 8 releases.
 3. **Re-cost identity unification before starting 2.** It deletes the conversion's Phase 0 outright,
