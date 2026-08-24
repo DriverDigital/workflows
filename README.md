@@ -24,11 +24,10 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.13.0`** (`f6d25d3`, 2026-08-22) — the pass that sets the rail up to run without the
-box: `claude.yml` takes its direction from the dispatcher's issue body and pre-reviews its own diff,
-and `bonsai-status-sync` is retired. What shipped, the canary and the wave numbers are in
-[`v1.13.0`](#v1130-f6d25d3-2026-08-22) below. The three remaining Dependabot stubs are pinned to
-`f6d25d3`.
+Latest tag **`v1.14.0`** (`539d7ea`, 2026-08-22) — the `DRIVER_AGENTS_REF` bump with the canonical
+tripwire re-copy, and the kit's first Dependabot updater. Waved to 19 of the 20 targets;
+`vite-plugin-shopify-clean` was left to Dependabot on purpose — see
+[`v1.14.0`](#v1140-539d7ea-2026-08-22) below. The three Dependabot stubs are pinned to `539d7ea`.
 
 **State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
 
@@ -49,7 +48,38 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-`v1.11.0` → `v1.12.0` → **`v1.13.0`** (all below). `v1.3.0` was never tagged.
+`v1.11.0` → `v1.12.0` → `v1.13.0` → **`v1.14.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.14.0` (`539d7ea`, 2026-08-22)
+
+The queued `DRIVER_AGENTS_REF` bump and tripwire re-copy, plus the kit's first Dependabot updater.
+Waved 2026-08-22 to **19** of the 20 repin targets — `vite-plugin-shopify-clean` deliberately
+**skipped** (`--skip`) to prove Dependabot bumps the stub pins unaided. Audit the same day: **48 pins
+at `539d7eab`, 68 files matching `templates/`**, and exactly the expected drift — 3 stale pins and 4
+content rows, all `vite-plugin-shopify-clean@main`. `fleet-pin-audit.sh --stale` reads red by design
+until that repo catches up.
+
+- **`DRIVER_AGENTS_REF` → `919ca79`** (driver-agents `main`, committed 2026-08-07) in both kit
+  files. Under `tools/` the diff is one stderr message, jq summary phrases and a comment — no file,
+  mode, env var, argument or exit-code change.
+- **Tripwire blockquote re-copied** from canonical, 978 → 2,370 chars: the two exit-3 refusals are
+  split (allowlist vs argument guard), `menuUpdate` / metaobject `values` / `collectionUpdate`
+  `ruleSet` are flagged as replace-not-patch, `redirectNewHandle` is required on a handle change,
+  and the false "extend the allowlist with one reviewed line" blanket is gone. Parity verified
+  whitespace-collapsed at the pin.
+- **`templates/github/dependabot.yml`** — a daily grouped `github-actions` block, hand-installed
+  (it lives at `.github/` and merges into a repo's existing file; the three install cases are in
+  the kit README). The fleet's existing blocks are monthly and a Dependabot PR waits on a human
+  merge, so the wave stays primary —
+  [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
+- **`tools/fleet-wave.sh --skip <repo>`**, repeatable, resolved like `--only` so case or a typo
+  cannot wave the repo it was meant to spare; both flags refuse an empty value. The default commit
+  message no longer names the v1.13.0 retirement.
+- **`claude.yml` ride-alongs:** the dangling `docs/phase2-github-setup.md` pointer is gone and a
+  Figma MCP caveat sits beside the WebSearch one above `--allowedTools`
+  ([`docs/figma-mcp-in-ci.md`](docs/figma-mcp-in-ci.md)).
+- **this repo's own CI:** the kit actionlint pass excludes `dependabot.yml` (not a workflow).
+  `CLAUDE.md` added (#41).
 
 ### `v1.13.0` (`f6d25d3`, 2026-08-22)
 
