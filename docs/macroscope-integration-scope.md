@@ -42,8 +42,17 @@ First observation (workflows#34, the retirement PR itself, 2026-08-08): login **
 two check runs ("Macroscope - Approvability Check" / "Macroscope - Correctness Check", conclusion
 `skipping` — non-blocking); one PR comment with an approvability verdict ("Needs human review");
 one review submitted with state **`COMMENTED`** — no formal approve/request-changes on that PR.
-Whether it ever submits a formal APPROVE (the case the retired review leg would have mis-mapped)
-is still unobserved — keep watching.
+
+Second observation (workflows#41–45, 2026-08-22/24): the Approvability comment is **edited in
+place** as the PR changes (same comment id, verdict text replaced — a webhook consumer must handle
+`issue_comment.edited`, not just `created`); inline findings arrive as one review with inline
+comments, and the bot **resolves its own threads** when a push addresses them. On docs-only #44 it
+issued **a formal review, state `APPROVED`** (2026-08-24T13:36Z, after the Approvability verdict
+flipped to "Approved at `cf32d5e`") — so the case the retired review leg would have mis-mapped
+(bot APPROVE ≠ "Ready for QA") is real, not hypothetical, and the Phase 2 mapping must gate on
+actor. Behavior-changing PRs (#42/#43/#45) got "not approved — merits human review" with **no**
+formal APPROVED review. Still unobserved: a formal REQUEST_CHANGES, and the webhook payloads —
+keep watching.
 
 ## The build (Phase 2 — not scheduled)
 
