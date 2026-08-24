@@ -11,11 +11,12 @@ numbers live in README's [`v1.14.0`](../README.md#v1140-539d7ea-2026-08-22) sect
 
 **In flight: the Dependabot proof.** `vite-plugin-shopify-clean@main` was deliberately not waved
 (`--skip`), so it sits one tag behind — 3 stale pins and a stale `claude.yml` — until Dependabot
-opens the grouped PR. Its block is **monthly**, so either wait, flip its interval to daily, or
-trigger a check (Insights → Dependency graph → Dependabot → *Check for updates*, or
-`@dependabot recreate` on any open Dependabot PR there). When the PR lands: merge it, then wave that
-one repo (`tools/fleet-wave.sh --only vite-plugin-shopify-clean`) for the `claude.yml` half, and the
-audit reads converged again. Until then `fleet-pin-audit.sh --stale` is red by design.
+opens the grouped PR. The 2026-08-23 triggered check **saw v1.14.0 and held it behind GitHub's new
+default 3-day cooldown** (`fleet-operations.md#dependabot-and-the-wave`); the tag becomes eligible
+2026-08-25, so re-trigger the `.github/workflows` check then (Insights → Dependency graph →
+Dependabot → *Check for updates*). When the PR lands: merge it, then wave that one repo
+(`tools/fleet-wave.sh --only vite-plugin-shopify-clean`) for the `claude.yml` half, and the audit
+reads converged again. Until then `fleet-pin-audit.sh --stale` is red by design.
 
 ## Open decisions
 

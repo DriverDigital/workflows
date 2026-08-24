@@ -131,6 +131,17 @@ wave after Dependabot" can actually buy:
   `vite-plugin-shopify-clean` #72 took 6 days. A wave is one direct push; waiting on Dependabot is a
   PR someone has to merge.
 
+- **A third latency floor, found closing the v1.14.0 proof (2026-08-24): GitHub now applies a
+  default 3-day cooldown to `github-actions` version updates.** The 2026-08-23 job on
+  `vite-plugin-shopify-clean` saw the new tag ("Available release version/ref is 1.14.0") and held
+  it: "Days since release : 1 (cooldown days 3) … All versions are in cooldown period". The
+  2026-07-02 job log has no cooldown at all — the platform grew it between those dates, with no
+  `cooldown` key in either repo's config. So even a daily schedule bumps a stub pin at earliest
+  three days after the tag, unless the kit `dependabot.yml` adds a `cooldown:` block excluding
+  `DriverDigital/workflows*` (our own tags need no bake time). The job logs themselves are
+  fetchable — `gh run list --workflow "Dependabot Updates"`, then `gh run view <id> --log` — no UI
+  digging needed.
+
 So the wave stays the primary path — when `claude.yml` changed (most releases) it is pushing anyway
 and the repin rides in the same atomic commit at no cost. Dependabot earns its keep as the backstop:
 the five repos that had no updater, drift between waves, and a reusable-only tag where no whole-file
