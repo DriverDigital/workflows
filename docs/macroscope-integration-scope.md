@@ -46,13 +46,23 @@ one review submitted with state **`COMMENTED`** — no formal approve/request-ch
 Second observation (workflows#41–45, 2026-08-22/24): the Approvability comment is **edited in
 place** as the PR changes (same comment id, verdict text replaced — a webhook consumer must handle
 `issue_comment.edited`, not just `created`); inline findings arrive as one review with inline
-comments, and the bot **resolves its own threads** when a push addresses them. On docs-only #44 it
-issued **a formal review, state `APPROVED`** (2026-08-24T13:36Z, after the Approvability verdict
-flipped to "Approved at `cf32d5e`") — so the case the retired review leg would have mis-mapped
+comments, and the bot **resolves its own threads** when a push addresses them. On #44 it issued
+**a formal review, state `APPROVED`** (2026-08-24T13:36Z, after the Approvability verdict flipped
+to "Approved at `cf32d5e`") — so the case the retired review leg would have mis-mapped
 (bot APPROVE ≠ "Ready for QA") is real, not hypothetical, and the Phase 2 mapping must gate on
-actor. Behavior-changing PRs (#42/#43/#45) got "not approved — merits human review" with **no**
-formal APPROVED review. Still unobserved: a formal REQUEST_CHANGES, and the webhook payloads —
-keep watching.
+actor.
+
+What earns the approval is **risk, not docs-versus-code**: Palmers#116, a low-risk code change,
+also got a formal APPROVED review, while the behavior-changing #42/#43/#45 got "not approved —
+merits human review" with **no** formal APPROVED review. The Phase 2 mapping therefore must not
+gate on file type — it reads the verdict, not the diff.
+
+One trap for the receiver: a Macroscope **spending-limit stall** ("Monthly spending limit reached",
+seen on foundrae-blackridge#173) renders in the PR UI identically to a correctness refusal — no
+approval, same not-approved shape. A receiver or a human has to tell the two apart before treating
+"not approved" as a signal about the code.
+
+Still unobserved: a formal REQUEST_CHANGES, and the webhook payloads — keep watching.
 
 ## The build (Phase 2 — not scheduled)
 
