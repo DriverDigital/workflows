@@ -24,7 +24,7 @@ numbers are correct depending on the question:
 | **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 
 Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
-`pr-first-review.yml`: `driver-agents@main`, `driver-agents-app@main` (repin targets only between
+`pr-first-review.yml`: `driver-agents@main`, `driver-engineering-app@main` (repin targets only between
 2026-08-02 and the wave), and `driver-bonsai-mcp@main`. They now carry no caller stub — **no pin
 rows, but still content-checked** (the audit compares any fleet file whose basename exists in
 `templates/`), so drift in what remains (e.g. the kit `lint.yml`) is still visible.
@@ -260,7 +260,7 @@ same as requiring a human**, and the gap is wider than those two. Surveyed acros
 
 | Pairs | `required_approving_review_count` | |
 |---|---|---|
-| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-agents-app, driver-bonsai-mcp, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
+| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-bonsai-mcp, driver-engineering-app, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
 | **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
 | **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
 

@@ -119,7 +119,7 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 
    **Partial install (`lint.yml` only).** For a repo that is *not* on the Bonsai → PR pipeline —
    no dispatcher issues — `lint.yml` is the useful subset and the rest is inert weight. This is
-   what `driver-agents` and `driver-agents-app` run (their `pr-first-review.yml` was removed with
+   what `driver-agents` and `driver-engineering-app` run (their `pr-first-review.yml` was removed with
    the v1.12.0 retirement; Macroscope reviews their PRs like everyone else's). Add the Dependabot
    trio if and when such a repo turns Dependabot on.
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact

@@ -149,7 +149,7 @@ Macroscope→Bonsai build plan:
 all 23 pairs: the two review stubs **deleted** from every fleet pair that carried them (41 pin rows
 removed), `bonsai-status-sync.yml` whole-file replaced on 18 pairs, remaining stubs repinned.
 Audit clean same day: **69 pins at `b1fcb78c`, 90 files matching `templates/`, zero drift.** Three
-pairs' only pinned stub was `pr-first-review.yml` — `driver-agents@main`, `driver-agents-app@main`,
+pairs' only pinned stub was `pr-first-review.yml` — `driver-agents@main`, `driver-engineering-app@main`,
 `driver-bonsai-mcp@main` — so they now carry no pins at all (still content-checked) and the
 repin-target count lands at **20** (see `docs/fleet-operations.md`).
 
@@ -348,7 +348,7 @@ the stub pins between waves — installed by hand, merged into an existing file)
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
 `lint.yml` alone and skip the rest as inert weight.
 [`driver-agents`](https://github.com/DriverDigital/driver-agents) and
-[`driver-agents-app`](https://github.com/DriverDigital/driver-agents-app) run that subset (they took
+[`driver-engineering-app`](https://github.com/DriverDigital/driver-engineering-app) run that subset (they took
 `pr-first-review.yml` + `lint.yml` on 2026-08-02; the review stub was deleted in the v1.12.0
 retirement wave). The trade-off is written up in `templates/github/README.md` under *Partial install*.
 
