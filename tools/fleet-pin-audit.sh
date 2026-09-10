@@ -74,6 +74,18 @@ reference="$(
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
+  local repo="$1" ref="$2" f="$3"
+  kit_normalize < "$TMP/raw"  > "$TMP/deployed"
+  kit_normalize < "$KIT/$f"   > "$TMP/kit"
+  if command diff -q "$TMP/deployed" "$TMP/kit" >/dev/null 2>&1; then
+    echo "CONTENT $repo@$ref $f ok"
+  else
+    echo "CONTENT $repo@$ref $f DRIFT $(command diff "$TMP/deployed" "$TMP/kit" \
+      | grep -c '^[<>]') lines differ"
+  fi
+}
+
 scan_ref() {  # repo ref
   local repo="$1" ref="$2" files f
   files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
@@ -91,15 +103,14 @@ scan_ref() {  # repo ref
 
     # 3. CONTENT — only for files the kit actually ships.
     [ -f "$KIT/$f" ] || continue
-    kit_normalize < "$TMP/raw"  > "$TMP/deployed"
-    kit_normalize < "$KIT/$f"   > "$TMP/kit"
-    if command diff -q "$TMP/deployed" "$TMP/kit" >/dev/null 2>&1; then
-      echo "CONTENT $repo@$ref $f ok"
-    else
-      echo "CONTENT $repo@$ref $f DRIFT $(command diff "$TMP/deployed" "$TMP/kit" \
-        | grep -c '^[<>]') lines differ"
-    fi
+    content_row "$repo" "$ref" "$f"
   done
+  # The PR template is the one kit file outside .github/workflows/ (waved since v1.15.0).
+  f=pull_request_template.md
+  if gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
+       -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
+    content_row "$repo" "$ref" "$f"
+  fi
 }
 
 # Enumerate the fleet OUTSIDE the report subshell — a failure here has to be able to kill the run.

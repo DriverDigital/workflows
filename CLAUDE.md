@@ -20,8 +20,9 @@ The public home of Driver's Bonsai→GitHub pipeline workflows. Two products liv
 - **The onboarding kit** in `templates/github/` — what fleet repos copy into `.github/workflows/`:
   three caller stubs pinning a reusable by immutable SHA, plus three whole-file workflows
   (`claude.yml` the implementer, `shopify-tool-smoke.yml` store repos only, `lint.yml`) and
-  `pull_request_template.md` and `dependabot.yml` (hand-installed — it lives at `.github/`, outside
-  the wave's path). Kit install conventions: `templates/github/README.md`.
+  `pull_request_template.md` (lives at `.github/`; the wave carries it since v1.15.0) and
+  `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
+  Kit install conventions: `templates/github/README.md`.
 
 Two more files in `.github/workflows/` are this repo's own CI, not products: `lint.yml` and
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
