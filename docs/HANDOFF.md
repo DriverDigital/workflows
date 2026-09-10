@@ -12,8 +12,10 @@ Two releases shipped and waved on 2026-09-10, both recorded in README, their onl
 Dependabot proposes majors only). The audit after the second wave: 51 pins at `ff3ff344`, 88 files
 matching, and 2 drifted rows — the hand-installed `lint.yml` in driver-agents and
 driver-engineering-app, which the wave never reaches; a to-do is filed in each repo and the rows
-clear when they land. The Dependabot proof from the 2026-08-22 handoff closed that morning
-(vite-plugin-shopify-clean #95, opened unaided, merged, waved).
+clear when they land. Floating past majors (`@main`) was raised and declined the same day: the
+major tag is the maintainers' only compatibility promise, and reconciling a major across the fleet
+is one wave, so the refs stay where they are. The Dependabot proof from the 2026-08-22 handoff
+closed that morning (vite-plugin-shopify-clean #95, opened unaided, merged, waved).
 
 Nothing is in flight in this repo. The fleet's `claude.yml` now fails an issue run that leaves no PR
 and keeps the full transcript in the job log — and **no real ticket has run on it yet**. That run is
