@@ -5,11 +5,15 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
-`v1.15.0` (`15a34e9`) shipped and waved on 2026-09-10 — what it carries and the wave/audit numbers
-live in README's [`v1.15.0`](../README.md#v1150-15a34e9-2026-09-10) section, its only home. The audit
-read converged the same day (51 pins, 90 files, zero drift), the first time it counts the PR
-template. The Dependabot proof from the 2026-08-22 handoff closed that morning: Dependabot opened
-vite-plugin-shopify-clean #95 unaided, it was merged, and the repo was waved.
+Two releases shipped and waved on 2026-09-10, both recorded in README, their only home:
+[`v1.15.0`](../README.md#v1150-15a34e9-2026-09-10) (the issue path cannot end green without a PR; the
+`DRIVER_AGENTS_REF` bump; the wave carries stubs and the PR template whole-file) and
+[`v1.16.0`](../README.md#v1160-ff3ff34-2026-09-10) (every third-party action floats on its major tag;
+Dependabot proposes majors only). The audit after the second wave: 51 pins at `ff3ff344`, 88 files
+matching, and 2 drifted rows — the hand-installed `lint.yml` in driver-agents and
+driver-engineering-app, which the wave never reaches; a to-do is filed in each repo and the rows
+clear when they land. The Dependabot proof from the 2026-08-22 handoff closed that morning
+(vite-plugin-shopify-clean #95, opened unaided, merged, waved).
 
 Nothing is in flight in this repo. The fleet's `claude.yml` now fails an issue run that leaves no PR
 and keeps the full transcript in the job log — and **no real ticket has run on it yet**. That run is
