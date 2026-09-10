@@ -24,10 +24,10 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.14.0`** (`539d7ea`, 2026-08-22) — the `DRIVER_AGENTS_REF` bump with the canonical
-tripwire re-copy, and the kit's first Dependabot updater. Waved to 19 of the 20 targets;
-`vite-plugin-shopify-clean` was left to Dependabot on purpose — see
-[`v1.14.0`](#v1140-539d7ea-2026-08-22) below. The three Dependabot stubs are pinned to `539d7ea`.
+Latest tag **`v1.15.0`** (`15a34e9`, 2026-09-10) — the issue path can no longer end green without a
+PR, the `DRIVER_AGENTS_REF` bump with the tripwire re-copy, and a wave that carries the stubs and the
+PR template whole-file. Waved to all 20 targets the same day, audit converged — see
+[`v1.15.0`](#v1150-15a34e9-2026-09-10) below. The three Dependabot stubs are pinned to `15a34e9`.
 
 **State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
 
@@ -48,7 +48,43 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-`v1.11.0` → `v1.12.0` → `v1.13.0` → **`v1.14.0`** (all below). `v1.3.0` was never tagged.
+`v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → **`v1.15.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.15.0` (`15a34e9`, 2026-09-10)
+
+The wave that carries #50's issue-path guard, plus the ride-alongs decided 2026-09-10. Canaried on
+`vite-plugin-shopify-clean`, then waved 2026-09-10 to all **20** targets (19 pushed, the canary
+already current). Audit the same day: **51 pins at `15a34e98`, 90 files matching `templates/`, zero
+drift** — the first audit that counts the PR template.
+
+- **An issue run can no longer end green without a PR** (#50): a guard step fails the job when no
+  open PR exists from `issue-<n>` (Avara #195 pushed its branch and stopped, and nothing noticed).
+  `show_full_output: true` keeps the transcript in the masked job log — the log, not an artifact, so
+  registered secrets stay redacted (Macroscope on #50). `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` is
+  set at the step env **and** through the `settings` env (claude-code-action#1499: a run that
+  backgrounds subagents exits green with the work orphaned; the step-env form is what three
+  independent reports measured, the settings path is what the CLI reads from disk).
+- **`claude-code-action` → `c81e3bc` (`v1.0.201`)** in the kit, matching the reusables since #47.
+  foundrae-blackridge@staging had been moved to 1.0.210 by its own Dependabot (#174), not by hand;
+  the wave brought it back to the kit's pin, and when Dependabot bumps it again the audit will read
+  that as the kit being behind.
+- **`DRIVER_AGENTS_REF` → `b4ea94e`** (driver-agents `main`, 2026-09-10) in both kit files.
+  driver-agents PR #7: the guard reports a value-clearing write (`value` of `""`, `[]` or `{}`) on
+  the allow path — a stdout line, not a gate — and the canonical blockquote names three exit-3
+  refusal kinds and adds two paragraphs (an empty value is a delete; the `access.admin` enum). Kit
+  copy re-copied, 2,370 → 3,480 chars, parity verified whitespace-collapsed at the pin.
+- **`templates/github/dependabot.yml`** gains a `cooldown` block: GitHub's default 3 days stays for
+  third-party actions; `DriverDigital/workflows*` is exempt, so a repo the wave skipped bumps the
+  day the tag lands.
+- **The wave replaces every kit file whole-file**, the three stubs included (the pin-line sed let
+  per-repo stub edits survive, but the audit reports those as drift and none existed), and
+  **`pull_request_template.md` joins the file set** at `.github/` — the fleet's copies still
+  credited the retired status sync, invisible to the audit until it learned the path. Presence-based
+  as before: replaced where present, never installed.
+- **`tools/fleet-pin-audit.sh`** selects the newest `vX.Y.Z` by semver across every tag page and
+  fails closed on a failed page or an empty list (#51 — three Macroscope findings, each fixed).
+- **`dependabot-report`** headers (reusable and stub) no longer claim a reusable cannot see
+  `github.event.workflow_run`; the explicit inputs exist for the provenance assertion (#51).
 
 ### `v1.14.0` (`539d7ea`, 2026-08-22)
 
@@ -342,7 +378,7 @@ and [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.m
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
 carries the three caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
 `shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
-workflows), `pull_request_template.md` and `dependabot.yml` (the `github-actions` updater that bumps
+workflows), `pull_request_template.md` (waved since v1.15.0) and `dependabot.yml` (the `github-actions` updater that bumps
 the stub pins between waves — installed by hand, merged into an existing file).
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install

@@ -386,6 +386,20 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
 6. **Pin policy:** immutable SHAs vs a moving `@v1` tag for this first-party repo. A moving tag removes waves
    entirely, at the cost of deleting the only staging gate between a merge to `main` and the fleet. Genuine
    tradeoff — decide deliberately, do not drift into it.
+   > **Assessed 2026-09-10, declined for now.** The pattern Maria pointed at (TryGhost/Actions) turns
+   > out to be SHA pins bumped by Renovate with auto-merge for own-org actions — the same model as
+   > here plus an unattended bumper, and Dependabot already plays that part (vite-plugin-shopify-clean
+   > #95). A mutable ref is the only zero-commit mechanism (`uses:` resolves at run start), but across
+   > v1.7.0–v1.14.0 seven of eight releases changed a whole-file kit file that carries no pin, so a
+   > moving `@v1` on the three stubs would have removed one wave in eight; the per-repo commit is
+   > `claude.yml`'s churn, which is this conversion's case. Its real costs: the `driver-digital-agents`
+   > PAT holds admin here and lives in every client repo, so a moved tag's trust root is wider than the
+   > wave's; the audit's pre-run convergence proof and the `--only` canary go; and `fleet-wave.sh`
+   > guard 1, the audit's reference check, and `lint.yml`'s placeholder-pin guard all need rework
+   > first. An npm package is the same mutability trade with a registry, a per-repo read token, and no
+   > coverage from the org's `allowed_actions: selected` policy. Ruleset-required workflows are the one
+   > true no-file mechanism and are Enterprise Cloud (DriverDigital is on Team); they fit only
+   > `dependabot-validate`, whose move would break the `workflow_run` name-match to `-report`.
 
 ---
 
