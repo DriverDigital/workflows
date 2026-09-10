@@ -299,7 +299,7 @@ jobs:
       # respects the precision a ref chose and leaves `@v1` alone until a v2 exists; a short race
       # right after a release (before the tag moves) and one unanswered regression report are the
       # known exceptions, and a stray bump is drift the next wave rolls back — the kit's
-      # dependabot.yml also ignores minor/patch bumps of this action outright. What the pin bought:
+      # dependabot.yml also ignores every minor/patch action bump outright. What the pin bought:
       # `v1` is a mutable tag a bot repoints, and the CLI install below is already unpinned from the
       # same vendor, so the SHA covered one of two channels into a job holding the OAuth token — a
       # small reduction, not none. The trade: a regression in a new action release reaches every

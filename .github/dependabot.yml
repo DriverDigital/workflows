@@ -1,8 +1,9 @@
-# Keeps the SHA-pinned actions inside these reusable workflows current.
-# Dependabot reads the `# vX` comment on each `uses:` pin, watches for new
-# releases, and opens grouped PRs that bump the SHA (and the comment).
+# The actions inside these reusable workflows float on their major tag (@v7, @v1), so every run
+# picks up minor and patch releases on its own and Dependabot has nothing to propose below a
+# major. Policy (Maria, 2026-09-10): majors are the only action bumps that get a PR anywhere —
+# a breaking change is fixed after the fact rather than every patch being shepherded fleet-wide.
 #
-# Two groups, by risk:
+# Two groups, by risk, for those major bumps:
 #   • github-owned       (actions/*)    — GitHub-maintained, low-risk →
 #                                          AUTO-MERGED by dependabot-auto-merge.yml
 #   • claude-code-action (anthropics/*) — holds AGENTS_GH_PAT → a human reviews
@@ -16,6 +17,11 @@ updates:
     directory: "/" # scans .github/workflows/
     schedule:
       interval: "weekly"
+    # Minor and patch bumps never get a PR: a floating ref already has them, and this closes the
+    # reported Dependabot edge that rewrites a major-tag ref into a pinned patch.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
     groups:
       github-owned:
         patterns:

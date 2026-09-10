@@ -158,7 +158,7 @@ jobs:
 
       - name: Checkout the PR head (read-only review)
         if: steps.resolve.outputs.skip == 'false' && steps.round.outputs.over == 'false'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ steps.resolve.outputs.head_sha }}
           fetch-depth: 0
@@ -200,7 +200,7 @@ jobs:
         # Don't abort the job on a review error — the decide step turns an errored review into an
         # honest handoff (never a false "clean"). The review-step OUTCOME is what it reads.
         continue-on-error: true
-        uses: anthropics/claude-code-action@c81e3bc69d1b18badbb63ba39581218f02421678 # v1.0.201
+        uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"  # anthropics/claude-code-action#1499; see templates/github/claude.yml
         with:

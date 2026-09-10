@@ -353,8 +353,8 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
 action itself releases, so a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled
 it back (foundrae-blackridge #174). The three whole-file kit workflows therefore reference
 `actions/checkout@v7`, `actions/upload-artifact@v7` and `anthropics/claude-code-action@v1`, which
-Dependabot leaves alone until a new major exists. The reusables keep SHA pins, which Dependabot
-handles here. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
+Dependabot leaves alone until a new major exists. The reusables float the same way, so the only action
+bump that ever gets a PR — here or in a fleet repo — is a major. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
 kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
 smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
 `lint.yml`, which must be bumped together or the checksum check fails the job.
@@ -408,7 +408,8 @@ Two files in `.github/workflows/` are **this repo's own CI**, not products — t
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
 broken workflow can't reach consumer repos) and `dependabot-auto-merge.yml` (auto-merges this repo's own
 `github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded, so those land by
-hand).
+hand). Both are quiet below a major: every third-party action here and in the kit floats on its major
+tag, so a run already has each minor and patch, and `.github/dependabot.yml` ignores everything but majors.
 
 **`actionlint` is a required status check on `main`** (set 2026-08-02) — before that, `lint.yml` could
 report red without being able to block. Note the name collision: this repo's own `lint.yml` and the kit's
