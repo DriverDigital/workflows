@@ -117,7 +117,7 @@ jobs:
 
       - name: Checkout PR head (same-repo / trusted)
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
@@ -148,7 +148,7 @@ jobs:
       - name: Run /code-review (comments only — execution-free, read-only tools)
         id: review
         if: ${{ steps.guard.outputs.same_repo == 'true' && steps.ticket.outputs.has_ticket == 'false' }}
-        uses: anthropics/claude-code-action@c81e3bc69d1b18badbb63ba39581218f02421678 # v1.0.201
+        uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"  # anthropics/claude-code-action#1499; see templates/github/claude.yml
         with:

@@ -170,7 +170,9 @@ carried `a54c91e` in a pin line, so no diff base produced a matching `-` line an
 have rejected all five files on target #1. **Sed the pin; don't patch it.**
 
 **3. Per-repo state that must survive.** `SHOPIFY_STORE_NAME` in `claude.yml` and
-`shopify-tool-smoke.yml`, and any Dependabot-bumped action pins. Surveyed at v1.11.0: the fleet's
+`shopify-tool-smoke.yml` — nothing else: the kit's third-party actions float on major tags, and a
+repo's Dependabot moving one to a new major is drift for the wave to roll back, not state to keep.
+Surveyed at v1.11.0: the fleet's
 `claude.yml` copies were byte-identical to the kit except Avara's store handle, and there was no
 Dependabot drift — but survey, don't assume.
 
@@ -201,9 +203,9 @@ Two things worth knowing about check 3:
   correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
   the three pairs waved without a final newline are otherwise identical, and permanently-red rows
   for a byte nobody can act on is how a detector stops being read. Internal blank lines *are*
-  compared. Everything else that differs is reported, third-party action pins
-  included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
-  seeing, and it means the kit is behind, not that the repo is wrong.
+  compared. Everything else that differs is reported, third-party action refs
+  included: a repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of the kit is drift
+  worth seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
   which share basenames with the stubs that call them — so comparing it against `templates/` would
   report four phantom drifts — the three Dependabot stubs plus `lint.yml`, whose kit copy is a

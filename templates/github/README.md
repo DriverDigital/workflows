@@ -114,8 +114,9 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    entry already → keep it and set its `interval` to `daily`. Dependabot scans the default branch
    only, so a repo carrying the kit on other branches (Palmers) needs one entry per branch with
    `target-branch:` set.
-   **Re-copying into a repo that already has the kit?** Preserve that repo's own Dependabot action
-   pins — re-copy the workflow bodies, but don't clobber pins Dependabot has since bumped there.
+   **Re-copying into a repo that already has the kit?** Let the wave do it
+   (`tools/fleet-wave.sh --only <repo>`): whole-file, with `SHOPIFY_STORE_NAME` the one per-repo
+   value it preserves.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
 

@@ -78,7 +78,7 @@ jobs:
         id: download
         if: steps.provenance.outputs.report == 'true'
         continue-on-error: true # a real-outcome run with no artifact must still ping a human, not error the job
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@v8
         with:
           name: dependabot-validation
           path: _artifacts
@@ -115,7 +115,7 @@ jobs:
         # to initiate it does not widen the trust surface. continue-on-error: a verdict-generation hiccup
         # must never drop the human-ping in the steps below.
         continue-on-error: true
-        uses: anthropics/claude-code-action@c81e3bc69d1b18badbb63ba39581218f02421678 # v1.0.201
+        uses: anthropics/claude-code-action@v1
         env:
           CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"  # anthropics/claude-code-action#1499; see templates/github/claude.yml
         with:

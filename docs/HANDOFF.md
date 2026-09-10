@@ -33,13 +33,15 @@ Avara #195 diagnosis gets confirmed.
 
 - **The first real ticket through v1.15.0.** The guard step should stay quiet; if it fires, the
   failure note lands on the issue and the transcript is in the run log (`show_full_output`).
-- **foundrae-blackridge@staging** will drift again: its Dependabot bumped `claude-code-action` to
-  1.0.210 on 2026-09-02 (#174) and the wave brought it back to the kit's 1.0.201. The audit reports
-  that as the kit being behind, which is the correct reading.
+- **Major bumps of the kit's floated actions.** `actions/checkout@v7`, `actions/upload-artifact@v7`
+  and `anthropics/claude-code-action@v1` float in the kit; when a new major ships, a fleet repo's
+  Dependabot moves ahead and the audit reads the kit as behind until the kit's major is bumped.
+  Below a major boundary the foundrae-blackridge #174 drift-and-rollback cannot recur.
 - **The cooldown exemption** is unverified live until a tag lands and a repo carrying the kit block
   bumps the same day; vite-plugin-shopify-clean is the one to watch at the next tag.
-- **WebSearch/WebFetch** stay off: the caveat's condition (#690 fixed **and** the pin bumped) is half
-  met by this release; #690 was still open at 2026-07-28. Re-check at the next pin bump.
+- **WebSearch/WebFetch** stay off until #690 ships a fix (still open at 2026-07-28); the action
+  floats on `v1`, so the fix arrives on its own and the caveat comment in `claude.yml` is what gets
+  removed.
 - A human `@claude` (tag mode) still gets the action's own co-author text; the nine-item quality
   standard is global to `--append-system-prompt` — both unchanged.
 

@@ -44,8 +44,8 @@ LATEST="$(set -o pipefail; gh api "repos/$ORG/workflows/tags" --paginate --jq '.
 LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA:0:8}"
 
 # EXACTLY TWO normalizations, both deliberate. Everything else that differs is reported — third-party
-# action pins included: a consumer repo whose Dependabot bumped `actions/checkout` past the kit's pin
-# is drift worth seeing, since it means the kit is behind, not that the repo is wrong.
+# action refs included: a consumer repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of
+# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong.
 #
 #   1. SHOPIFY_STORE_NAME — the one difference a correctly-waved repo is SUPPOSED to have. The kit
 #      ships it empty; Avara carries "avara". Anchored to a line that STARTS with the key, so the ten

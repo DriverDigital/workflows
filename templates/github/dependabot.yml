@@ -18,6 +18,12 @@ updates:
       default-days: 3
       exclude:
         - "DriverDigital/workflows*"
+    # Actions float on their major tag in the kit, so a run already has every minor and patch;
+    # majors are the only action bumps that get a PR. This also closes the reported Dependabot edge
+    # that rewrites a major-tag ref into a pinned patch, which would stop that copy floating.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
     assignees:
       - "mcarter-astronautdev"
     groups:

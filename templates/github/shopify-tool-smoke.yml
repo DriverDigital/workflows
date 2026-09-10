@@ -105,7 +105,7 @@ jobs:
       # collector. run_attempt in the name avoids the immutable-artifact collision on re-runs.
       - name: Upload Shopify audit artifact
         if: ${{ always() && env.SHOPIFY_AUDIT_DIR != '' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@v7
         with:
           name: shopify-audit-${{ env.SHOPIFY_STORE_NAME }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.SHOPIFY_AUDIT_DIR }}

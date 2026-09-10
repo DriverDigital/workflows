@@ -91,9 +91,11 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   the lead-in that un-scopes the tripwire from them) is kit-side and must survive the re-copy. Parity
   is checked with whitespace collapsed (the kit flattens one paragraph break).
 - `DRIVER_AGENTS_REF` lives in `claude.yml` **and** `shopify-tool-smoke.yml`; same SHA in both, or the
-  smoke test verifies a revision the implementer never runs. Dependabot cannot bump it (raw SHA in
-  `env:`), nor any action pin inside `templates/` (it scans only `.github/workflows/`) — check
-  `actions/checkout` and `claude-code-action` against the reusables' pins at every tag.
+  smoke test verifies a revision the implementer never runs. Dependabot cannot bump it: a raw SHA in
+  `env:`, and it scans only `.github/workflows/`, never `templates/`. That is also why the kit's
+  whole-file workflows reference third-party actions by major tag (`@v1`, `@v7`) — a SHA there is a
+  pin nothing bumps while a fleet repo's Dependabot bumps its copy when the action releases. The
+  reusables float the same way; majors are the only action bumps that get a PR anywhere.
 - `dependabot-validate` stub `name:` stays byte-identical (`Dependabot validate`) — `-report`'s
   `workflow_run` name-matches it. The job always runs and branches internally; never `if:`-skip it.
 - Never `pull_request_target`. Never set `anthropic_api_key` (overrides OAuth, bills at API rates).

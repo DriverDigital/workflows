@@ -347,10 +347,14 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
    - Wave mechanics, the guards worth keeping, and what the pin audit cannot see:
      [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
-**Template pins are manual.** `.github/dependabot.yml` uses `directory: "/"`, which only scans
-`.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check
-`templates/github/claude.yml`'s `actions/checkout` + `claude-code-action` pins against the
-reusables' whenever you cut a tag. The same applies to `DRIVER_AGENTS_REF` — which appears in **two**
+**Template pins are manual — so the kit's third-party actions float.** `.github/dependabot.yml` uses
+`directory: "/"`, which only scans `.github/workflows/` — nothing will ever bump a pin inside
+`templates/`, while a fleet repo running the `github-actions` updater bumps its deployed copy when the
+action itself releases, so a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled
+it back (foundrae-blackridge #174). The three whole-file kit workflows therefore reference
+`actions/checkout@v7`, `actions/upload-artifact@v7` and `anthropics/claude-code-action@v1`, which
+Dependabot leaves alone until a new major exists. The reusables float the same way, so the only action
+bump that ever gets a PR — here or in a fleet repo — is a major. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
 kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
 smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
 `lint.yml`, which must be bumped together or the checksum check fails the job.
@@ -404,7 +408,8 @@ Two files in `.github/workflows/` are **this repo's own CI**, not products — t
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
 broken workflow can't reach consumer repos) and `dependabot-auto-merge.yml` (auto-merges this repo's own
 `github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded, so those land by
-hand).
+hand). Both are quiet below a major: every third-party action here and in the kit floats on its major
+tag, so a run already has each minor and patch, and `.github/dependabot.yml` ignores everything but majors.
 
 **`actionlint` is a required status check on `main`** (set 2026-08-02) — before that, `lint.yml` could
 report red without being able to block. Note the name collision: this repo's own `lint.yml` and the kit's
@@ -444,7 +449,7 @@ number, same-repo head). **Never use `pull_request_target`.**
 ## Consuming it (caller stubs)
 
 Install the matching stubs from **this repo's `templates/github/`** into a repo's `.github/workflows/`.
-Pin every `uses:` to an **immutable commit SHA** (decided 2026-06-17); a bot (Renovate/Dependabot) bumps the
+Pin every `uses:` of this repo's reusables to an **immutable commit SHA** (decided 2026-06-17); a bot (Renovate/Dependabot) bumps the
 SHAs. The `dependabot-validate` stub's `name:` MUST stay byte-identical (`Dependabot validate`) across all
 repos — the `dependabot-report` stub's `workflow_run` trigger name-matches it exactly, and a drift silently
 disables the human-ping.

@@ -4,7 +4,8 @@ name: Dependabot auto-merge (GitHub-owned actions)
 # (actions/checkout, actions/upload-artifact, actions/download-artifact — all
 # GitHub-maintained, low-risk). The `claude-code-action` group is a SEPARATE
 # Dependabot group and is deliberately NOT auto-merged: it holds AGENTS_GH_PAT,
-# so a human reviews those bumps.
+# so a human reviews those bumps. Since the actions float on their major tag,
+# the only PRs either group produces are major bumps.
 #
 # Uses only the built-in `gh` CLI (no external action) so it is not subject to
 # the allowed-actions allowlist. The approval counts because the repo has
