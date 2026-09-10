@@ -13,8 +13,9 @@ name: Dependabot report (reusable)
 #     and the agent's tool surface is read/write-file ONLY (no `gh`, no shell over
 #     the data) so a prompt injection in build.log cannot drive a PAT write.
 #   • Provenance is asserted before acting (a name-string match is NOT proof).
-#   • The reusable cannot see `github.event.workflow_run`; the caller passes the
-#     triggering-run context via `with:`.
+#   • The caller passes the triggering-run context via `with:` BY DESIGN — the `github`
+#     context in a called workflow is the caller's, so `github.event.workflow_run.*` would
+#     resolve here too; explicit inputs are what the provenance assertion is written against.
 #   • Runs on BOTH real validate outcomes (success + failure) so a human is pinged
 #     either way; any other outcome (cancelled/skipped/timed-out) posts nothing.
 # ─────────────────────────────────────────────────────────────────────────────
