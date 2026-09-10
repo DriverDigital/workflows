@@ -65,7 +65,7 @@ and `DRIVER_AGENTS_REF` stays hand-edited fleet-wide for as long as `shopify-too
 file (open decision 1). What conversion removes is the *logic* that a wave could hand-carry a subset of —
 which is the specific failure that produced the Avara incident.
 
-Secondary win: `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:310`) and
+Secondary win (moot since v1.16.0 — the kit floats these on major tags): `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:310`) and
 `actions/upload-artifact` (`:496`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
 which `.github/dependabot.yml` (`directory: "/"`) actually scans — converting **three** documented manual pins
 into bot-managed ones.

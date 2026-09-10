@@ -201,9 +201,9 @@ Two things worth knowing about check 3:
   correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
   the three pairs waved without a final newline are otherwise identical, and permanently-red rows
   for a byte nobody can act on is how a detector stops being read. Internal blank lines *are*
-  compared. Everything else that differs is reported, third-party action pins
-  included: a repo whose Dependabot bumped `actions/checkout` past the kit's pin is drift worth
-  seeing, and it means the kit is behind, not that the repo is wrong.
+  compared. Everything else that differs is reported, third-party action refs
+  included: a repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of the kit is drift
+  worth seeing, and it means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
   which share basenames with the stubs that call them — so comparing it against `templates/` would
   report four phantom drifts — the three Dependabot stubs plus `lint.yml`, whose kit copy is a

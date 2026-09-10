@@ -347,10 +347,13 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
    - Wave mechanics, the guards worth keeping, and what the pin audit cannot see:
      [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
-**Template pins are manual.** `.github/dependabot.yml` uses `directory: "/"`, which only scans
-`.github/workflows/` — nothing will ever bump an action pin inside `templates/`. Check
-`templates/github/claude.yml`'s `actions/checkout` + `claude-code-action` pins against the
-reusables' whenever you cut a tag. The same applies to `DRIVER_AGENTS_REF` — which appears in **two**
+**Template pins are manual — so the kit's third-party actions float.** `.github/dependabot.yml` uses
+`directory: "/"`, which only scans `.github/workflows/` — nothing will ever bump a pin inside
+`templates/`, while every fleet repo's Dependabot bumps its deployed copy the day a release ships, so
+a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled it back. Since v1.16.0 the
+three whole-file kit workflows reference `actions/checkout@v7`, `actions/upload-artifact@v7` and
+`anthropics/claude-code-action@v1`; Dependabot leaves a major-tag ref alone until a new major exists.
+The reusables keep SHA pins, which Dependabot handles here. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
 kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
 smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
 `lint.yml`, which must be bumped together or the checksum check fails the job.
@@ -444,7 +447,7 @@ number, same-repo head). **Never use `pull_request_target`.**
 ## Consuming it (caller stubs)
 
 Install the matching stubs from **this repo's `templates/github/`** into a repo's `.github/workflows/`.
-Pin every `uses:` to an **immutable commit SHA** (decided 2026-06-17); a bot (Renovate/Dependabot) bumps the
+Pin every `uses:` of this repo's reusables to an **immutable commit SHA** (decided 2026-06-17); a bot (Renovate/Dependabot) bumps the
 SHAs. The `dependabot-validate` stub's `name:` MUST stay byte-identical (`Dependabot validate`) across all
 repos — the `dependabot-report` stub's `workflow_run` trigger name-matches it exactly, and a drift silently
 disables the human-ping.
