@@ -201,6 +201,8 @@ jobs:
         # honest handoff (never a false "clean"). The review-step OUTCOME is what it reads.
         continue-on-error: true
         uses: anthropics/claude-code-action@c81e3bc69d1b18badbb63ba39581218f02421678 # v1.0.201
+        env:
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"  # anthropics/claude-code-action#1499; see templates/github/claude.yml
         with:
           path_to_claude_code_executable: /home/runner/.local/bin/claude
           github_token: ${{ secrets.AGENTS_GH_PAT }}
