@@ -24,10 +24,10 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.15.0`** (`15a34e9`, 2026-09-10) — the issue path can no longer end green without a
-PR, the `DRIVER_AGENTS_REF` bump with the tripwire re-copy, and a wave that carries the stubs and the
-PR template whole-file. Waved to all 20 targets the same day, audit converged — see
-[`v1.15.0`](#v1150-15a34e9-2026-09-10) below. The three Dependabot stubs are pinned to `15a34e9`.
+Latest tag **`v1.16.0`** (`ff3ff34`, 2026-09-10) — every third-party action floats on its major tag,
+in the kit and the reusables, and Dependabot proposes majors only; hours after `v1.15.0`, which made
+the issue path unable to end green without a PR. Both waved to all 20 targets the same day — see
+[`v1.16.0`](#v1160-ff3ff34-2026-09-10) below. The three Dependabot stubs are pinned to `ff3ff34`.
 
 **State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
 
@@ -48,7 +48,41 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-`v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → **`v1.15.0`** (all below). `v1.3.0` was never tagged.
+`v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → `v1.15.0` → **`v1.16.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.16.0` (`ff3ff34`, 2026-09-10)
+
+Every third-party action floats on its major tag, in the kit and the reusables, and Dependabot
+proposes majors only. Canaried on `vite-plugin-shopify-clean`, then waved 2026-09-10 to all **20**
+targets (19 pushed, the canary already current). Audit the same day: **51 pins at `ff3ff344`, 88
+files matching `templates/`, 2 drifted** — the hand-installed `lint.yml` copies in driver-agents and
+driver-engineering-app, which the wave never reaches (neither carries `claude.yml` or a stub); a
+to-do is filed in each and the rows clear when they land.
+
+- **Why.** A SHA in `templates/` is a pin nothing bumps (Dependabot scans `.github/workflows/` only),
+  while a fleet repo's Dependabot bumps its deployed copy when the action releases, so the fleet
+  always ran ahead of the kit and each wave rolled it back — foundrae-blackridge #174 took
+  `claude-code-action` 1.0.195 → 1.0.210 and the v1.15.0 wave put it back to 1.0.201. Maria's
+  policy (2026-09-10): action refs stay current with no commit anywhere, and a breaking change is
+  fixed after the fact rather than every patch shepherded across 20 branches.
+- **Refs:** `actions/checkout@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8` and
+  `anthropics/claude-code-action@v1` — in `claude.yml`, `lint.yml` and `shopify-tool-smoke.yml`, the
+  three Dependabot reusables, the two retired review rails, and this repo's own `lint.yml`. A run
+  resolves the tag fresh, so every minor and patch arrives on its own; Dependabot opens a PR only
+  for a new major, and Anthropic re-points `v1` within seconds of each release.
+- **Dependabot, here and in the kit:** minor and patch bumps of `actions/*` and `anthropics/*` are
+  ignored (a floating ref already has them, and it closes a reported edge where Dependabot rewrites
+  a major-tag ref into a pinned patch). The kit block names the two owners rather than `*`, so the
+  `DriverDigital/workflows` stub bumps it exists for still flow — the tagged kit file said `*`;
+  corrected on `main` the same day, before any repo installed it. Here, `github-owned` majors still
+  auto-merge and `claude-code-action` majors land by hand.
+- **The trade, recorded in `claude.yml`:** `v1` is a mutable tag a bot repoints, and the SHA covered
+  one of two channels into a job holding the OAuth token — the CLI install was already unpinned — so
+  a small reduction, not none. Macroscope's Critical on `actions/checkout@v7` (#55) was assessed and
+  kept, by decision, in its thread.
+- **Docs** updated in place: `CLAUDE.md`'s invariant, README's "Template pins are manual", the
+  audit's normalization note, `fleet-operations.md`, the kit README, `HANDOFF.md`'s watch-items,
+  and the conversion scope doc, whose "three action pins" secondary win is gone.
 
 ### `v1.15.0` (`15a34e9`, 2026-09-10)
 
