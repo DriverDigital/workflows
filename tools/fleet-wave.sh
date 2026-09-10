@@ -12,9 +12,10 @@
 # .github/workflows/claude.yml OR .github/workflows/dependabot-validate.yml — the stub-only pairs
 # never took the full kit but still carry pins to move (Palmers: every branch named main*).
 # Per target, in one commit:
-#   claude.yml / shopify-tool-smoke.yml / lint.yml  <- kit version (store handle restored)
-#   dependabot-*.yml                     <- only the `uses: DriverDigital/workflows/...@SHA` line changes
-#   bonsai-status-sync.yml               <- deleted if present (kit no longer ships it)
+#   every kit file the branch already carries  <- kit version (claude.yml's store handle restored);
+#                                                 the PR template lives at .github/, the rest at
+#                                                 .github/workflows/
+#   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 #
 # Guards, in order:
 #   0. a real (non-dry) wave only runs from a clean `main` that contains the tag — dry runs anywhere;
@@ -74,10 +75,16 @@ if printf '%s\n' "$KIT_PINS" | grep -v "@$TAG_SHA" >/dev/null; then
   echo "kit stubs are not all pinned to $TAG ($TAG_SHA) — repin templates/github first" >&2; exit 2
 fi
 
-# lint.yml carries no pin and no per-repo state; kit version verbatim.
-FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml)   # whole-file replace (store handle restored)
-PIN_FILES=(dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml)
+# Every kit file a target carries is replaced with the kit's copy — the stubs too, since v1.15.0.
+# A pin-line sed used to let per-repo stub edits survive, but fleet-pin-audit.sh reports any such
+# edit as drift, so nothing the kit does not ship should outlive a wave. The store handle in
+# claude.yml / shopify-tool-smoke.yml is the one per-repo value, restored below.
+FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml
+            dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml
+            pull_request_template.md)
 DELETE_FILES=(bonsai-status-sync.yml)
+# Where a kit file lives in a target repo: the PR template is the one outside .github/workflows/.
+dest() { case "$1" in pull_request_template.md) echo ".github/$1" ;; *) echo ".github/workflows/$1" ;; esac; }
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -97,7 +104,7 @@ SKIP=$canon
 # skipped. The raw media type is the same idiom fleet-pin-audit.sh uses, and it sidesteps the
 # base64 --decode portability question entirely. (`$3` before `$2` reads oddly but matches the
 # repo/branch/file argument order used at both call sites.)
-raw() { api "repos/$ORG/$1/contents/.github/workflows/$3?ref=$2" -H 'Accept: application/vnd.github.raw'; }
+raw() { api "repos/$ORG/$1/contents/$(dest "$3")?ref=$2" -H 'Accept: application/vnd.github.raw'; }
 b64() { base64 | tr -d '\n'; }                                   # macOS base64 wraps at 76 cols
 # Not for the failed-POST case: plan_and_push runs straight in the loop, not in a command
 # substitution (the errexit hole targets() documents), so a failing api call aborts the wave on its
@@ -182,15 +189,20 @@ plan_and_push() {
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
   local changes=0 existing
-  existing=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].name') \
+  existing=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].path') \
     || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
   # An empty listing here would make every grep below miss and the target report "(no changes)" —
   # a repo silently dropped from the wave. Discovery proved it carries at least one kit file, so
   # empty is a lie.
   [ -n "$existing" ] || { echo "  $repo@$branch: empty .github/workflows listing" >&2; exit 3; }
+  # .github/ itself, for the PR template — its own assignment, so a failure here cannot hide
+  # behind the workflows listing above (errexit is off inside an assignment's substitution).
+  dotgithub=$(api "repos/$ORG/$repo/contents/.github?ref=$branch" --jq '.[] | select(.type == "file") | .path') \
+    || { echo "  $repo@$branch: cannot list .github" >&2; exit 3; }
+  existing="$existing"$'\n'"$dotgithub"
 
   for f in "${FULL_FILES[@]}"; do
-    grep -qxF "$f" <<<"$existing" || continue
+    grep -qxF "$(dest "$f")" <<<"$existing" || continue
     # errexit would abort on the sed's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
     [ -f "$KIT/$f" ] \
@@ -205,26 +217,13 @@ plan_and_push() {
     [ "$(handle_of "$tmp/$f")" = "$handle" ] \
       || { echo "  $repo@$branch $f: store handle did not survive" >&2; exit 3; }
     if ! cmp -s "$cur" "$tmp/$f"; then
-      actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; }
+      case "$f" in *.yml) actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; } ;; esac
       tree+=("$f"); changes=1; echo "  write  $f"
     fi
   done
 
-  # The `# vX.Y.Z` trailer moves with the SHA: the two halves are one pin, and a stale comment is
-  # what fleet-pin-audit.sh compares on. Anchored at `uses:` so a commented-out example is left
-  # alone, and the trailer group is optional so a line without one gains it.
-  for f in "${PIN_FILES[@]}"; do
-    grep -qxF "$f" <<<"$existing" || continue
-    cur="$tmp/deployed-$f"; raw "$repo" "$branch" "$f" > "$cur"
-    sed -E "s#^([[:space:]]*uses:[[:space:]]*$ORG/workflows/\.github/workflows/[a-z0-9-]+\.yml@)[0-9a-f]{40}([[:space:]]*\# *v[0-9][0-9.]*)?#\1$TAG_SHA \# $TAG#" "$cur" > "$tmp/$f"
-    if ! cmp -s "$cur" "$tmp/$f"; then
-      actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; }
-      tree+=("$f"); changes=1; echo "  repin  $f"
-    fi
-  done
-
   for f in "${DELETE_FILES[@]}"; do
-    if grep -qxF "$f" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi
+    if grep -qxF "$(dest "$f")" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi
   done
 
   [ "$changes" -eq 1 ] || { echo "  (no changes)"; return 0; }
@@ -232,7 +231,7 @@ plan_and_push() {
   # ---- nothing above this line writes; every gh call past it does. ----
 
   # Guard 6: no path twice. (${arr[@]+"${arr[@]}"} is the empty-array-safe form under set -u on
-  # bash 3.2.) Dead while the three lists stay disjoint — it exists for the edit that overlaps them.
+  # bash 3.2.) Dead while the two lists stay disjoint — it exists for the edit that overlaps them.
   if printf '%s\n' ${tree[@]+"${tree[@]}"} ${deletes[@]+"${deletes[@]}"} | sort | uniq -d | grep .; then
     echo "  duplicate path" >&2; exit 3
   fi
@@ -246,12 +245,12 @@ plan_and_push() {
     blob=$(jq -nc --arg c "$(b64 <"$tmp/$f")" '{content:$c,encoding:"base64"}' \
       | api "repos/$ORG/$repo/git/blobs" --input - --jq .sha)
     sha40 "$blob" || { echo "  $repo@$branch $f: blob create returned no sha" >&2; exit 3; }
-    entries=$(jq -c --arg p ".github/workflows/$f" --arg s "$blob" \
+    entries=$(jq -c --arg p "$(dest "$f")" --arg s "$blob" \
       '. + [{path:$p,mode:"100644",type:"blob",sha:$s}]' <<<"$entries")
   done
   # `sha: null` is how the trees API deletes a path against a base_tree; jq emits a real JSON null.
   for f in ${deletes[@]+"${deletes[@]}"}; do
-    entries=$(jq -c --arg p ".github/workflows/$f" \
+    entries=$(jq -c --arg p "$(dest "$f")" \
       '. + [{path:$p,mode:"100644",type:"blob",sha:null}]' <<<"$entries")
   done
   new_tree=$(jq -nc --arg b "$base_tree" --argjson t "$entries" '{base_tree:$b,tree:$t}' \
