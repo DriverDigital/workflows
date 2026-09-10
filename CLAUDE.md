@@ -94,7 +94,8 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   smoke test verifies a revision the implementer never runs. Dependabot cannot bump it: a raw SHA in
   `env:`, and it scans only `.github/workflows/`, never `templates/`. That is also why the kit's
   whole-file workflows reference third-party actions by major tag (`@v1`, `@v7`) — a SHA there is a
-  pin nothing bumps while every fleet repo's Dependabot bumps its copy. The reusables stay SHA-pinned.
+  pin nothing bumps while a fleet repo's Dependabot bumps its copy when the action releases. The
+  reusables stay SHA-pinned.
 - `dependabot-validate` stub `name:` stays byte-identical (`Dependabot validate`) — `-report`'s
   `workflow_run` name-matches it. The job always runs and branches internally; never `if:`-skip it.
 - Never `pull_request_target`. Never set `anthropic_api_key` (overrides OAuth, bills at API rates).

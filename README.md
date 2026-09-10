@@ -349,11 +349,12 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
 
 **Template pins are manual — so the kit's third-party actions float.** `.github/dependabot.yml` uses
 `directory: "/"`, which only scans `.github/workflows/` — nothing will ever bump a pin inside
-`templates/`, while every fleet repo's Dependabot bumps its deployed copy the day a release ships, so
-a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled it back. Since v1.16.0 the
-three whole-file kit workflows reference `actions/checkout@v7`, `actions/upload-artifact@v7` and
-`anthropics/claude-code-action@v1`; Dependabot leaves a major-tag ref alone until a new major exists.
-The reusables keep SHA pins, which Dependabot handles here. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
+`templates/`, while a fleet repo running the `github-actions` updater bumps its deployed copy when the
+action itself releases, so a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled
+it back (foundrae-blackridge #174). The three whole-file kit workflows therefore reference
+`actions/checkout@v7`, `actions/upload-artifact@v7` and `anthropics/claude-code-action@v1`, which
+Dependabot leaves alone until a new major exists. The reusables keep SHA pins, which Dependabot
+handles here. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
 kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
 smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
 `lint.yml`, which must be bumped together or the checksum check fails the job.

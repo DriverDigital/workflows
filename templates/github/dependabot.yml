@@ -18,6 +18,11 @@ updates:
       default-days: 3
       exclude:
         - "DriverDigital/workflows*"
+    # The kit's claude.yml floats the action on `v1`, which Dependabot leaves alone by design; this
+    # closes the reported edge where it bumps a major-tag ref to a patch anyway. Majors still flow.
+    ignore:
+      - dependency-name: "anthropics/claude-code-action"
+        update-types: ["version-update:semver-minor", "version-update:semver-patch"]
     assignees:
       - "mcarter-astronautdev"
     groups:

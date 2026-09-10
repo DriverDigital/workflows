@@ -37,8 +37,8 @@ Three things moved. None of them flips the status on its own.
 - **The business case shrank.** "A wave is re-copying the whole file while hand-preserving per-repo edits"
   stopped being true at v1.13.0 — `tools/fleet-wave.sh` does exactly that mechanically and
   `fleet-pin-audit.sh` compares whole-file content. What is left of the case: churn (`claude.yml` changed
-  in 6 of the last 8 releases), moving three action pins somewhere Dependabot can see them, and one
-  central `DRIVER_AGENTS_REF`. Effort is unchanged at **20–27h**.
+  in 6 of the last 8 releases) and one central `DRIVER_AGENTS_REF` — the three action refs left the case
+  when the kit floated them on major tags. Effort is unchanged at **20–27h**.
 
 ---
 
@@ -65,10 +65,9 @@ and `DRIVER_AGENTS_REF` stays hand-edited fleet-wide for as long as `shopify-too
 file (open decision 1). What conversion removes is the *logic* that a wave could hand-carry a subset of —
 which is the specific failure that produced the Avara incident.
 
-Secondary win (moot since v1.16.0 — the kit floats these on major tags): `actions/checkout` (`templates/github/claude.yml:130`), `claude-code-action` (`:310`) and
-`actions/upload-artifact` (`:496`, added by v1.8.0) move out of `templates/` and into `.github/workflows/`,
-which `.github/dependabot.yml` (`directory: "/"`) actually scans — converting **three** documented manual pins
-into bot-managed ones.
+Secondary win, gone: the three third-party action refs in `templates/github/claude.yml` float on major
+tags now, so nothing there is a manual pin for the conversion to move; `DRIVER_AGENTS_REF` is the one
+central pin left.
 
 ---
 

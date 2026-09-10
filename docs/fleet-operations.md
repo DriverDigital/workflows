@@ -170,7 +170,9 @@ carried `a54c91e` in a pin line, so no diff base produced a matching `-` line an
 have rejected all five files on target #1. **Sed the pin; don't patch it.**
 
 **3. Per-repo state that must survive.** `SHOPIFY_STORE_NAME` in `claude.yml` and
-`shopify-tool-smoke.yml`, and any Dependabot-bumped action pins. Surveyed at v1.11.0: the fleet's
+`shopify-tool-smoke.yml` — nothing else: the kit's third-party actions float on major tags, and a
+repo's Dependabot moving one to a new major is drift for the wave to roll back, not state to keep.
+Surveyed at v1.11.0: the fleet's
 `claude.yml` copies were byte-identical to the kit except Avara's store handle, and there was no
 Dependabot drift — but survey, don't assume.
 
