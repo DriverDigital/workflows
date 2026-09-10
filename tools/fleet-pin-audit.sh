@@ -36,7 +36,7 @@ KIT="$(cd "$(dirname "$0")/../templates/github" && pwd)"
 # Newest vX.Y.Z by semver, not the API's first row: the tags endpoint orders by ref name, which
 # GitHub does not document, so a non-release tag could land at .[0] and every guard below would
 # measure against it. --jq runs per page under --paginate, so the max is taken after, in sort -V.
-LATEST="$(gh api "repos/$ORG/workflows/tags" --paginate --jq '.[] | select(.name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$")) | "\(.name) \(.commit.sha)"' | sort -V | tail -1)"
+LATEST="$(gh api "repos/$ORG/workflows/tags" --paginate --jq '.[] | select(.name | test("^v(0|[1-9][0-9]*)(\\.(0|[1-9][0-9]*)){2}$")) | "\(.name) \(.commit.sha)"' | sort -V | tail -1)"
 LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA:0:8}"
 
 # EXACTLY TWO normalizations, both deliberate. Everything else that differs is reported — third-party
