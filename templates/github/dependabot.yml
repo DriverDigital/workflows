@@ -12,6 +12,12 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    # GitHub's default 3-day cooldown stays for third-party actions. Kit tags are exempt so a repo
+    # the wave skipped (or cannot reach) bumps the day the tag lands, not three days later.
+    cooldown:
+      default-days: 3
+      exclude:
+        - "DriverDigital/workflows*"
     assignees:
       - "mcarter-astronautdev"
     groups:

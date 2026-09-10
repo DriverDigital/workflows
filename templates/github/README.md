@@ -105,6 +105,8 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    cp templates/github/lint.yml                 .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    ```
+   Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
+   it replaces what a branch already carries and installs nothing).
    **Then `dependabot.yml`, by hand** — it is the updater for the stub pins (without it nothing
    bumps the `uses: DriverDigital/workflows/...@<sha>` lines between waves), and most repos already
    have one, so never blind-copy it. No `.github/dependabot.yml` → copy the kit's. One without a

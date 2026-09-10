@@ -73,8 +73,10 @@ One atomic commit per branch via the Git Data API (blobs → tree → commit →
 commit per file. Per target:
 
 1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
-2. The three Dependabot stubs ← **sed the pin line only**, so any per-repo edit survives;
-   `lint.yml` ← kit version (it carries no pin line and no per-repo state).
+2. The three Dependabot stubs, `lint.yml` and `pull_request_template.md` ← kit version verbatim
+   (since v1.15.0 the stubs too: a pin-line sed let per-repo stub edits survive, but the audit reports
+   any such edit as drift). The template is the one file written under `.github/` rather than
+   `.github/workflows/`.
 3. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
 4. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
 5. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
