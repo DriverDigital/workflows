@@ -1,95 +1,73 @@
-# Handoff — 2026-08-22
+# Handoff — 2026-09-10
 
 State of play for the next session. Conventions, how-tos and release history live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
 
 ## Where things stand
 
-`v1.14.0` (`539d7ea`) shipped and waved on 2026-08-22, hours after `v1.13.0` — the `DRIVER_AGENTS_REF`
-bump with the tripwire re-copy, plus the kit's first `dependabot.yml`. What shipped and the wave/audit
-numbers live in README's [`v1.14.0`](../README.md#v1140-539d7ea-2026-08-22) section, its only home.
+`v1.15.0` (`15a34e9`) shipped and waved on 2026-09-10 — what it carries and the wave/audit numbers
+live in README's [`v1.15.0`](../README.md#v1150-15a34e9-2026-09-10) section, its only home. The audit
+read converged the same day (51 pins, 90 files, zero drift), the first time it counts the PR
+template. The Dependabot proof from the 2026-08-22 handoff closed that morning: Dependabot opened
+vite-plugin-shopify-clean #95 unaided, it was merged, and the repo was waved.
 
-**In flight: the Dependabot proof.** `vite-plugin-shopify-clean@main` was deliberately not waved
-(`--skip`), so it sits one tag behind — 3 stale pins and a stale `claude.yml` — until Dependabot
-opens the grouped PR. The 2026-08-23 triggered check **saw v1.14.0 and held it behind GitHub's new
-default 3-day cooldown** (`fleet-operations.md#dependabot-and-the-wave`); the tag becomes eligible
-2026-08-25, so re-trigger the `.github/workflows` check then (Insights → Dependency graph →
-Dependabot → *Check for updates*). When the PR lands: merge it, then wave that one repo
-(`tools/fleet-wave.sh --only vite-plugin-shopify-clean`) for the `claude.yml` half, and the audit
-reads converged again. Until then `fleet-pin-audit.sh --stale` is red by design.
+Nothing is in flight in this repo. The fleet's `claude.yml` now fails an issue run that leaves no PR
+and keeps the full transcript in the job log — and **no real ticket has run on it yet**. That run is
+the acceptance test (step 7 of the 2026-09-10 state-of-play), and reading its transcript is how the
+Avara #195 diagnosis gets confirmed.
 
 ## Open decisions
 
-- **Fable billing.** The canary ran clean on `claude-fable-5`; whether it draws usage credits was
-  never checked. The decision (2026-08-21) is to watch it as pipeline traffic grows rather than gate
-  on it. Fallback is `--model opus` — see the MODEL NOTE comment in `templates/github/claude.yml`.
-- **Reusable conversion of `claude.yml`** — still **TABLED**. The 2026-08-22 research weakens the
-  OIDC blocker — the Phase 0 spike is now a confirmation, not a go/no-go — and its own lazy read
-  is *not yet*: `fleet-wave.sh` took most of the win at zero build cost. The assessment that went
-  to Maria leans the other way (it is still the file that changed in 6 of the last 8 releases) —
-  her call. It also found the risk that has to be designed around — since claude-code-action PR
-  #1417 a workflow-validation failure is a **silent green skip**, so a canary must assert
-  `::warning::Skipping action due to workflow validation` is absent. 20–27h;
-  [`reusable-conversion-scope.md`](reusable-conversion-scope.md).
-- **Identity unification** — still **DEFERRED**, but cheaper than its doc said: retiring the review
-  rails deleted its Phase 3 and its worst silent-failure risk, re-costing it at 21–24h. The 58–61%
-  API-ceiling drop stands and is still the argument against;
+- **Fable billing.** Unchanged since 2026-08-21: watch, don't gate; fallback `--model opus` (MODEL
+  NOTE in `templates/github/claude.yml`). It needs an actual answer before the next `claude.yml`
+  wave — [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md).
+- **Reusable conversion of `claude.yml`** — still **TABLED**, and the 2026-09-10 pin-model
+  investigation strengthened the case: across the last eight releases, seven changed a whole-file
+  kit file (`claude.yml` in six), so the per-repo commit per release is `claude.yml`'s churn, not the
+  SHA pin. Mutable refs, an npm package, and ruleset-required workflows were assessed and declined
+  — the dated note in [`reusable-conversion-scope.md`](reusable-conversion-scope.md).
+- **Identity unification** — still **DEFERRED**;
   [`identity-unification-scope.md`](identity-unification-scope.md).
-
-## The Dependabot finding
-
-"Dependabot never bumps our reusable pins" is false. It does — when a repo has a `github-actions`
-block and a tag lands before the wave (Palmers #93 and vite-plugin-shopify-clean #72, 2026-07-02).
-In practice the wave repins within minutes of every tag so Dependabot never gets a turn, and 5 of
-the 13 distinct repos behind the 20 pairs have no `github-actions` block at all, because the kit
-ships the stubs but had never shipped a `dependabot.yml`. The kit ships one now (v1.14.0,
-hand-installed, daily); what it can and cannot buy — the fleet's blocks are monthly and a Dependabot
-PR waits on a human merge, so the wave stays primary — is in
-[`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave), the single home for this. The
-proof is running (above). Still open: installing the block on the five repos without one
-(`studio-sulzer`, `plugins`, `client-workspaces` have no file; `Driver-Digital-Website`,
-`The-Gathery` are npm-only), and Avara's paused updater.
-
-## Ride along with the next `claude.yml` release
-
-None of these earns a wave on its own. (The dangling `phase2-github-setup.md` pointer and the Figma
-MCP caveat rode along in PR #43.)
-
-- The fleet's `pull_request_template.md` copies still credit the retired **status sync** with
-  resolving the linked issue. The kit copy is corrected, but `tools/fleet-wave.sh`'s file set does
-  not include that file — either add it or re-onboard the repos.
 
 ## Watch-items
 
-- The nine-item quality standard is **global** to `--append-system-prompt`, so it reaches the
-  ticketed revision rail too — watch the first revision round against the 90-minute cap.
-- A human `@claude` (tag mode) still gets the action's own co-author text; the attribution setting
-  covers the agent rails only.
-- `/code-review`'s 50-file cap means a large migration gets a partial pre-review. The prompt requires
-  the run to say so — check that it does.
-- The first real ticket through the rail. The canary was torn down, so nothing has run since.
+- **The first real ticket through v1.15.0.** The guard step should stay quiet; if it fires, the
+  failure note lands on the issue and the transcript is in the run log (`show_full_output`).
+- **foundrae-blackridge@staging** will drift again: its Dependabot bumped `claude-code-action` to
+  1.0.210 on 2026-09-02 (#174) and the wave brought it back to the kit's 1.0.201. The audit reports
+  that as the kit being behind, which is the correct reading.
+- **The cooldown exemption** is unverified live until a tag lands and a repo carrying the kit block
+  bumps the same day; vite-plugin-shopify-clean is the one to watch at the next tag.
+- **WebSearch/WebFetch** stay off: the caveat's condition (#690 fixed **and** the pin bumped) is half
+  met by this release; #690 was still open at 2026-07-28. Re-check at the next pin bump.
+- A human `@claude` (tag mode) still gets the action's own co-author text; the nine-item quality
+  standard is global to `--append-system-prompt` — both unchanged.
 
 ## Recommended next steps
 
-From the 2026-08-22 assessment — recommendations, not decisions.
+The 2026-09-10 state-of-play sets the order; the workflows-side pieces are:
 
-1. **Close the Dependabot proof** (above), then install the kit block on the five repos without
-   one. Shipping the kit file taught us the wave stays primary either way, so this is hygiene, not
-   a process change.
-2. **Reusable conversion of `claude.yml`.** Weaker than it was — `tools/fleet-wave.sh` took most of
-   the win at zero build cost — but still real: `claude.yml` changed in 6 of the last 8 releases.
-3. **Re-cost identity unification before starting 2.** It deletes the conversion's Phase 0 outright,
-   so identity-first may simply be the cheaper order.
-4. Cheap and unscoped: the kit's `lint.yml` is fleet-uniform, touches no OIDC path, and is the one
-   file that could become a reusable without any of the above blocking it.
+1. **One real ticket end to end** on the v1.15.0 rail, transcript read. Pairs with the dispatcher
+   heartbeat in driver-agents.
+2. **The next `claude.yml` wave** — ride-alongs and gates in
+   [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md); the Figma REST wrapper (driver-agents) gates
+   two of them, a Macroscope answer on headless CLI auth gates the third.
+3. **Check Run agents pilot** (Avara first). When the prompts exist in driver-agents,
+   `tools/fleet-wave.sh` gains `.macroscope/check-run-agents/` as a second file set — the `dest()`
+   helper is where a second root goes.
+4. **Fleet `dependabot.yml` audit** (to-do): the kit block, cooldown included, is the house-standard
+   candidate; the five repos without a `github-actions` block are listed in
+   [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
 
 ## Pointers
 
 - [`README.md`](../README.md) — release + repin order, what's in the kit, dated release history.
 - [`fleet-operations.md`](fleet-operations.md) — wave mechanics, the fleet counts, what the pin audit
   cannot see, branch protection.
+- [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md) — the next implementer wave and its gates.
 - [`macroscope-integration-scope.md`](macroscope-integration-scope.md) — the Macroscope → Bonsai
-  build, and what replaced the retired bridge server.
-- `driver-bonsai-mcp` — the pipeline dispatcher, its box-retirement spec
-  (`docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md` §5a), and
+  build, and what replaced the retired bridge server. Observed 2026-09-10: it re-reviews every push,
+  resolves its own threads once a push addresses them, and its verdict reads `Approved at <sha>`
+  once nothing is left; a fleet-changing kit release gets "not approved" on risk with zero findings.
+- `driver-agents` — the dispatcher (since 2026-09-10), the box-retirement spec, and
   `config/reviewers.json`, the live reviewer map.
