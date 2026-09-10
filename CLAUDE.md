@@ -42,7 +42,7 @@ No build, no test suite. CI is `lint.yml`; reproduce it locally before pushing:
 ```sh
 brew install actionlint shellcheck jq         # CI pins actionlint 1.7.12 (VERSION + SHA256 in lint.yml — bump together)
 SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color                         # globs .github/workflows/
-SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color templates/github/*.yml  # the kit is outside that glob
+SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color $(ls templates/github/*.yml | grep -v dependabot.yml)  # kit; dependabot.yml is not a workflow
 grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/              # must print nothing (placeholder-pin guard)
 ```
 
