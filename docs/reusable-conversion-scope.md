@@ -202,14 +202,11 @@ today, because in a called workflow "the `github` context is always associated w
   production at `:55`, `:56`, `:61` (the fork guard), `:80`, and `:113` (the checkout ref). If a reusable
   could not see the caller's `github.event`, the fork guard would compare an empty string and the rail would
   be broken on every run.
-  > **Correction (2026-08-02).** The original draft said this contradicts a stale *"a reusable cannot
-  > see `github.event`"* claim in `dependabot-report.yml`'s header. The actual comment is **narrower** than
-  > that paraphrase — it says specifically `github.event.workflow_run` — and it exists in **two** files:
-  > `.github/workflows/dependabot-report.yml:16-17` and `templates/github/dependabot-report.yml:6`. Both are
-  > still wrong (the `github` context in a called workflow comes from the caller, so a reusable invoked from a
-  > `workflow_run`-triggered stub *would* see it), but fix both, and quote them accurately. Note the *design*
-  > — passing the context explicitly via `with:` — remains defensible on provenance-auditability grounds
-  > (`.github/workflows/dependabot-report.yml:47-60`); only the stated justification is false.
+  > **Correction (2026-08-02, applied 2026-09-10).** Both `dependabot-report.yml` headers — the reusable's
+  > and the stub's — justified the explicit `with:` inputs with "a reusable cannot see
+  > `github.event.workflow_run`", which the rule above makes false. The comments now give the real reason:
+  > the *design* — passing the context explicitly — stands on provenance-auditability grounds
+  > (`.github/workflows/dependabot-report.yml:47-60`); only the stated justification was wrong.
 - `github.token` — the **caller repo's** installation token, so
   `gh pr view --json closingIssuesReferences` resolves unchanged.
 - `vars.*` — repository variables resolve against the **caller**. Proven at the v1.11.0 pilot, along with
