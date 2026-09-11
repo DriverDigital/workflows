@@ -9,7 +9,7 @@ workflow here touches it.
 
 | File | Goes to | Does |
 |---|---|---|
-| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it pre-reviews its own branch with the built-in `/code-review` skill before opening the PR, requests the reviewer named by a **Reviewer:** line in the issue, and honours an "Instructions from the ticket" section. Commits carry no attribution trailer and PR bodies no footer (the action's settings input). |
+| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it honours an "Instructions from the ticket" section. It does not review its own PR and requests no GitHub reviewer: Macroscope reviews every PR, and the dispatcher assigns the Bonsai reviewer. Commits carry no attribution trailer and PR bodies no footer (the action's settings input). |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs link automatically via the issue's development branch. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
@@ -25,9 +25,11 @@ trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
 
-**PR review is Macroscope's job, not the kit's** (decided 2026-08-08). The old review rails —
-`pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted here and
-fleet-wide, reusables preserved caller-less in the central repo. See
+**PR review is Macroscope's job, not the kit's** (decided 2026-08-08, reaffirmed 2026-09-12). The old
+review rails — `pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted
+here and fleet-wide, reusables preserved caller-less in the central repo. Since 2026-09-12 the
+implementer no longer pre-reviews its own branch either; Claude reviews a PR only when a person `@claude`s it
+(optionally naming `/code-review`). See
 [`../../docs/macroscope-integration-scope.md`](../../docs/macroscope-integration-scope.md).
 
 Two rules that fail **silently** if broken:
