@@ -18,13 +18,12 @@ is one wave, so the refs stay where they are. The Dependabot proof from the 2026
 closed that morning (vite-plugin-shopify-clean #95, opened unaided, merged, waved).
 
 2026-09-12: **Macroscope owns automatic PR review, org-wide** (Maria). Claude is the pipeline and the
-on-demand second opinion, never an automatic reviewer. #57 takes the in-run pre-review and the
-`Reviewer:` → `--add-reviewer` arm out of the kit's `claude.yml` (decision record:
-[`macroscope-integration-scope.md`](macroscope-integration-scope.md)). Kit-only and **untagged**: every
-fleet copy still self-reviews next to Macroscope until a tag is cut — its own (v1.7.0–v1.9.0 were
-kit-only tags) or the next ride-along's. A fleet scan the same day found no other automatic Claude
-review anywhere; `dependabot-report` is the one automatic Claude-on-a-PR rail left, and Macroscope
-reviews Dependabot PRs too since 2026-09-10 — whether it stays is Maria's call. The to-do list was
+on-demand second opinion, never an automatic reviewer of an opened PR; the implementer's own
+pre-review before it opens a PR is implementing and stays. #57 records the decision
+([`macroscope-integration-scope.md`](macroscope-integration-scope.md)) and changes no workflow: a fleet
+scan the same day found no Claude review on any `pull_request` event, so the kit already complied.
+`dependabot-report` is the one Claude-driven automatic verdict on a PR left, and Macroscope reviews
+Dependabot PRs too since 2026-09-10 — whether it stays is Maria's call. The to-do list was
 reconciled against the 2026-09-11 state-of-play survey; the one new gated item is the Check Run
 agents file set for `fleet-wave.sh`.
 
@@ -72,17 +71,15 @@ Avara #195 diagnosis gets confirmed.
 
 The 2026-09-10 state-of-play sets the order; the workflows-side pieces are:
 
-1. **Tag and wave the pre-review removal** (#57, once merged) so Macroscope is the only automatic
-   reviewer in practice, not just in the kit. The wave plan's canary steps apply.
-2. **One real ticket end to end** on the v1.15.0 rail, transcript read. Pairs with the dispatcher
+1. **One real ticket end to end** on the v1.15.0 rail, transcript read. Pairs with the dispatcher
    heartbeat in driver-agents.
-3. **The next `claude.yml` wave** — ride-alongs and gates in
+2. **The next `claude.yml` wave** — ride-alongs and gates in
    [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md); the Figma REST wrapper (driver-agents) gates
    two of them, a Macroscope answer on headless CLI auth gates the third.
-4. **Check Run agents pilot** (Avara first). When the prompts exist in driver-agents,
+3. **Check Run agents pilot** (Avara first). When the prompts exist in driver-agents,
    `tools/fleet-wave.sh` gains `.macroscope/check-run-agents/` as a second file set — the `dest()`
    helper is where a second root goes.
-5. **Fleet `dependabot.yml` audit** (to-do): the kit block, cooldown included, is the house-standard
+4. **Fleet `dependabot.yml` audit** (to-do): the kit block, cooldown included, is the house-standard
    candidate; the five repos without a `github-actions` block are listed in
    [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
 

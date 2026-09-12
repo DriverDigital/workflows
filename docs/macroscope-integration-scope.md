@@ -7,17 +7,16 @@ manual re-runs) vs. a vendor product that already does the loop.
 
 Decision (Maria, 2026-09-12): **Macroscope owns automatic PR review for the whole org, alone.** Claude
 is the agentic pipeline (issue → PR, `@claude` revisions) and the on-demand second opinion (a person
-`@claude`s the PR, optionally naming `/code-review`) — never an automatic reviewer. Two things left the kit's `claude.yml` on that
-decision: the in-run pre-review (`/code-review high` before `gh pr create`, v1.13.0–v1.16.0) and the
-`Reviewer:` → `gh pr edit --add-reviewer` arm (the dispatcher assigns the reviewer in Bonsai since
-2026-09-11; Maria: no GitHub reviewer needed). Kit-only, so it reaches the fleet with the next tag.
-The split is also a usage split: Claude's Max-plan usage stays on the pipeline, Macroscope bills its
-own reviews. The Claude GitHub App reviews nothing on its own
-(Anthropic's managed Code Review is a Team/Enterprise toggle in claude.ai admin settings, not a
-Max-plan feature), and no fleet workflow runs Claude against a PR diff (fleet scan, 2026-09-12). The
-one automatic Claude-on-a-PR rail left is `dependabot-report`: `workflow_run` after a Dependabot
-validate, reasoning over the inert artifact, never the diff. Macroscope reviews Dependabot PRs too
-since 2026-09-10, so whether that rail stays is an open question for Maria.
+`@claude`s the PR, optionally naming `/code-review`) — never an automatic reviewer of an opened PR.
+What the implementer does to its own branch before it opens the PR (the in-run `/code-review high`
+pass and the `Pre-review:` body line, v1.13.0) is implementing, not PR review, and **stays**. Verified
+the same day, so nothing in the kit had to change: no fleet workflow runs Claude on a `pull_request`
+event (45 repo/branch pairs scanned), the Claude GitHub App reviews nothing on its own (Anthropic's
+managed Code Review is a Team/Enterprise toggle in claude.ai admin settings, not a Max-plan feature),
+and the only Claude-driven automatic verdict on a PR is `dependabot-report` — `workflow_run` after a
+Dependabot validate, reasoning over the inert artifact, never the diff. Macroscope reviews Dependabot
+PRs too since 2026-09-10, so whether that rail stays is an open question for Maria. The split is also
+a usage split: Claude's Max-plan usage stays on the pipeline, Macroscope bills its own reviews.
 
 ## What v1.12.0 retired
 
@@ -40,7 +39,8 @@ since 2026-09-10, so whether that rail stays is an open question for Maria.
 - The status moves after Internal Review are **manual** (PM): Revisions Requested and Ready for QA.
   Since 2026-09-11 the dispatcher assigns the reviewer in Bonsai at Internal Review (driver-agents
   #12) and, once a person sets Revisions Requested, forwards the revisions to the PR as an `@claude`
-  comment; the GitHub reviewer request `claude.yml` carried from v1.13.0 was removed 2026-09-12.
+  comment. `claude.yml` still requests the GitHub reviewer named on the issue body when it opens the
+  PR (v1.13.0).
 - `claude.yml` still carries the ticketed-loop machinery (round-marker prompt branch, actor gate,
   re-request step) — v1.13.0 rewrote the issue prompt around it and left it intact. It looks dead;
   it is not — it's the re-entry point below. **Do not strip it in a claude.yml wave.**
@@ -96,8 +96,8 @@ Building blocks that already exist — reuse, don't rebuild:
   + `@claude`. The receiver posts that comment via `AGENTS_GH_PAT` and the whole revise loop comes
   back — Macroscope-driven instead of ticketed-review-driven.
 - **Human handoff:** done by the dispatcher since 2026-09-11 — it assigns the Bonsai reviewer at
-  Internal Review from `driver-agents/config/reviewers.json`. No GitHub reviewer request exists any
-  more (removed from `claude.yml` 2026-09-12).
+  Internal Review from `driver-agents/config/reviewers.json`; the GitHub-side reviewer request still
+  ships in `claude.yml` (v1.13.0) — one `gh pr edit --add-reviewer` with the same PAT.
 - **Status flips:** a public-API write too (note below); the bridge endpoint the retired sync rail
   used is gone.
 

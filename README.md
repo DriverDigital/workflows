@@ -509,9 +509,9 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 Retired with the review rails at v1.12.0 — nothing here reassigns a Bonsai task or requests a reviewer
 *on review completion* any more; the status moves are a PM's job until the Macroscope→Bonsai
-integration lands. The dispatcher (driver-agents) assigns the reviewer in Bonsai when the PR reaches
-Internal Review (since 2026-09-11); the GitHub reviewer request `claude.yml` carried from v1.13.0 was
-removed from the kit on 2026-09-12 — no GitHub reviewer is needed.
+integration lands. Since v1.13.0 `claude.yml` requests the GitHub reviewer named on the issue body's
+`Reviewer:` line when it opens the PR, and since 2026-09-11 the dispatcher (driver-agents) assigns the
+reviewer in Bonsai when the PR reaches Internal Review.
 The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
