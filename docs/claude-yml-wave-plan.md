@@ -19,8 +19,9 @@ implementation plan was deleted in #40 once executed. Two items deliberately div
 - **The ticketed-review prompt arm** was to be stripped; it is kept on purpose as the Macroscope
   revise-loop re-entry point (`macroscope-integration-scope.md`). Do not strip it.
 
-`v1.14.0` and `v1.15.0` were further `claude.yml` waves (README has each). Nothing below is
-un-started Plan B work; it is the ride-along list for the wave after `v1.15.0`.
+`v1.14.0`, `v1.15.0` and `v1.16.0` were further `claude.yml` waves (README has each; `v1.16.0`
+carried none of the table below). Nothing below is un-started Plan B work; it is the ride-along list
+for the next `claude.yml` wave.
 
 ## Ride-alongs for the next wave, with their gates
 

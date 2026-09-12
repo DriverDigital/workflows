@@ -24,6 +24,11 @@ The public home of Driver's Bonsai→GitHub pipeline workflows. Two products liv
   `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
   Kit install conventions: `templates/github/README.md`.
 
+PR review is Macroscope's, org-wide (Maria, 2026-09-12): Claude reviews a PR only when a person `@claude`s it
+(optionally naming `/code-review`). The implementer's own `/code-review` pass before it opens a PR is
+implementing, not PR review — keep it. Never add an automatic Claude review of an opened PR —
+`docs/macroscope-integration-scope.md`.
+
 Two more files in `.github/workflows/` are this repo's own CI, not products: `lint.yml` and
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
 different files** with the same name and the same job id `actionlint` (the required-check context).

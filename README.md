@@ -507,16 +507,17 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 ## Reviewer handoff
 
-Retired with the review rails at v1.12.0 — no workflow reassigns a Bonsai task, or requests a reviewer
-*on review completion*, any more; that's a PM's job until the Macroscope→Bonsai integration lands.
-Since v1.13.0 `claude.yml` does request the GitHub reviewer named on the issue body's `Reviewer:` line
-when it opens the PR, so a ticketed PR still pings someone the moment it exists.
+Retired with the review rails at v1.12.0 — nothing here reassigns a Bonsai task or requests a reviewer
+*on review completion* any more; the status moves are a PM's job until the Macroscope→Bonsai
+integration lands. Since v1.13.0 `claude.yml` requests the GitHub reviewer named on the issue body's
+`Reviewer:` line when it opens the PR, and since 2026-09-11 the dispatcher (driver-agents) assigns the
+reviewer in Bonsai when the PR reaches Internal Review.
 The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 `dependabot-report` still requests a human reviewer on Dependabot PRs (default `mcarter-astronautdev`,
 per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**). The live reviewer map is
-`driver-bonsai-mcp/config/reviewers.json`, read by the dispatcher to write the issue's
+`driver-agents/config/reviewers.json`, read by the dispatcher to write the issue's
 `**Reviewer:**` line; this repo no longer carries a copy.
 
 ## First-run / required-check

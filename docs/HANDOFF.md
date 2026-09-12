@@ -1,4 +1,4 @@
-# Handoff — 2026-09-10
+# Handoff — 2026-09-12
 
 State of play for the next session. Conventions, how-tos and release history live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
@@ -17,8 +17,18 @@ major tag is the maintainers' only compatibility promise, and reconciling a majo
 is one wave, so the refs stay where they are. The Dependabot proof from the 2026-08-22 handoff
 closed that morning (vite-plugin-shopify-clean #95, opened unaided, merged, waved).
 
-Nothing is in flight in this repo. The fleet's `claude.yml` now fails an issue run that leaves no PR
-and keeps the full transcript in the job log — and **no real ticket has run on it yet**. That run is
+2026-09-12: **Macroscope owns automatic PR review, org-wide** (Maria). Claude is the pipeline and the
+on-demand second opinion, never an automatic reviewer of an opened PR; the implementer's own
+pre-review before it opens a PR is implementing and stays. #57 records the decision
+([`macroscope-integration-scope.md`](macroscope-integration-scope.md)) and changes no workflow: a fleet
+scan the same day found no Claude review on any `pull_request` event, so the kit already complied.
+`dependabot-report` is the one Claude-driven automatic verdict on a PR left, and Macroscope reviews
+Dependabot PRs too since 2026-09-10 — whether it stays is Maria's call. The to-do list was
+reconciled against the 2026-09-11 state-of-play survey; the one new gated item is the Check Run
+agents file set for `fleet-wave.sh`.
+
+Otherwise nothing is in flight. The fleet's `claude.yml` fails an issue run that leaves no PR and
+keeps the full transcript in the job log — and **no real ticket has run on it yet**. That run is
 the acceptance test (step 7 of the 2026-09-10 state-of-play), and reading its transcript is how the
 Avara #195 diagnosis gets confirmed.
 
@@ -34,6 +44,12 @@ Avara #195 diagnosis gets confirmed.
   — the dated note in [`reusable-conversion-scope.md`](reusable-conversion-scope.md).
 - **Identity unification** — still **DEFERRED**;
   [`identity-unification-scope.md`](identity-unification-scope.md).
+- **`dependabot-report`'s future.** It runs Claude automatically on every Dependabot PR (verdict over
+  the inert artifact, never the diff). Macroscope reviews Dependabot PRs too since 2026-09-10, so it is
+  the one place two bots still review automatically. Keep, or retire like the review rails.
+- **Marcella-NYC-Main review coverage.** Macroscope cannot reach a repo outside the org, so that
+  active client work gets no bot review. Install Macroscope there, transfer the repo, or accept it
+  (state-of-play survey, 2026-09-11).
 
 ## Watch-items
 
@@ -73,8 +89,9 @@ The 2026-09-10 state-of-play sets the order; the workflows-side pieces are:
 - [`fleet-operations.md`](fleet-operations.md) — wave mechanics, the fleet counts, what the pin audit
   cannot see, branch protection.
 - [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md) — the next implementer wave and its gates.
-- [`macroscope-integration-scope.md`](macroscope-integration-scope.md) — the Macroscope → Bonsai
-  build, and what replaced the retired bridge server. Observed 2026-09-10: it re-reviews every push,
+- [`macroscope-integration-scope.md`](macroscope-integration-scope.md) — the 2026-09-12 decision that
+  Macroscope owns automatic review, the Macroscope → Bonsai build, and what replaced the retired
+  bridge server. Observed 2026-09-10: it re-reviews every push,
   resolves its own threads once a push addresses them, and its verdict reads `Approved at <sha>`
   once nothing is left; a fleet-changing kit release gets "not approved" on risk with zero findings.
 - `driver-agents` — the dispatcher (since 2026-09-10), the box-retirement spec, and

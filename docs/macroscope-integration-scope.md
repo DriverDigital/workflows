@@ -5,6 +5,19 @@ rails are retired so it gets a clean trial. Executed at `v1.12.0`. The driver: t
 maintenance burden (distributing workflow files, troubleshooting reviews that silently don't run,
 manual re-runs) vs. a vendor product that already does the loop.
 
+Decision (Maria, 2026-09-12): **Macroscope owns automatic PR review for the whole org, alone.** Claude
+is the agentic pipeline (issue → PR, `@claude` revisions) and the on-demand second opinion (a person
+`@claude`s the PR, optionally naming `/code-review`) — never an automatic reviewer of an opened PR.
+What the implementer does to its own branch before it opens the PR (the in-run `/code-review high`
+pass and the `Pre-review:` body line, v1.13.0) is implementing, not PR review, and **stays**. Verified
+the same day, so nothing in the kit had to change: no fleet workflow runs Claude on a `pull_request`
+event (45 repo/branch pairs scanned), the Claude GitHub App reviews nothing on its own (Anthropic's
+managed Code Review is a Team/Enterprise toggle in claude.ai admin settings, not a Max-plan feature),
+and the only Claude-driven automatic verdict on a PR is `dependabot-report` — `workflow_run` after a
+Dependabot validate, reasoning over the inert artifact, never the diff. Macroscope reviews Dependabot
+PRs too since 2026-09-10, so whether that rail stays is an open question for Maria. The split is also
+a usage split: Claude's Max-plan usage stays on the pipeline, Macroscope bills its own reviews.
+
 ## What v1.12.0 retired
 
 - **`pr-first-review.yml` + `ticketed-review.yml` caller stubs** — deleted from `templates/github/`
@@ -23,10 +36,11 @@ manual re-runs) vs. a vendor product that already does the loop.
 
 - Auto-flips still live, polled by the dispatcher now: issue opened → **In Progress**; non-draft PR
   dev-linked to the issue → **Internal Review**.
-- Everything after Internal Review is **manual** (PM): Revisions Requested, Ready for QA, and the
-  move of a Bonsai task off **Agents** to a human reviewer. Since v1.13.0 the PR itself does ping a
-  human — `claude.yml` requests the reviewer named on the issue body when it opens the PR — but
-  nothing moves the Bonsai task, so that is where a ticket stalls.
+- The status moves after Internal Review are **manual** (PM): Revisions Requested and Ready for QA.
+  Since 2026-09-11 the dispatcher assigns the reviewer in Bonsai at Internal Review (driver-agents
+  #12) and, once a person sets Revisions Requested, forwards the revisions to the PR as an `@claude`
+  comment. `claude.yml` still requests the GitHub reviewer named on the issue body when it opens the
+  PR (v1.13.0).
 - `claude.yml` still carries the ticketed-loop machinery (round-marker prompt branch, actor gate,
   re-request step) — v1.13.0 rewrote the issue prompt around it and left it intact. It looks dead;
   it is not — it's the re-entry point below. **Do not strip it in a claude.yml wave.**
@@ -81,9 +95,9 @@ Building blocks that already exist — reuse, don't rebuild:
   `driver-digital-agents` (id `261291955`) posts a comment carrying `<!-- ticketed-review-round -->`
   + `@claude`. The receiver posts that comment via `AGENTS_GH_PAT` and the whole revise loop comes
   back — Macroscope-driven instead of ticketed-review-driven.
-- **Human handoff:** reassigning the Bonsai task is a public-API write now and the reviewer handle
-  comes from the issue body (2026-08-21 note below); the GitHub-side reviewer request already ships
-  in `claude.yml` (v1.13.0) — one `gh pr edit --add-reviewer` with the same PAT.
+- **Human handoff:** done by the dispatcher since 2026-09-11 — it assigns the Bonsai reviewer at
+  Internal Review from `driver-agents/config/reviewers.json`; the GitHub-side reviewer request still
+  ships in `claude.yml` (v1.13.0) — one `gh pr edit --add-reviewer` with the same PAT.
 - **Status flips:** a public-API write too (note below); the bridge endpoint the retired sync rail
   used is gone.
 
@@ -93,6 +107,7 @@ the Agents API key, and triggers the dispatcher via workflow_dispatch { task_uui
 driver-bonsai-mcp. The Reviewer custom field is not readable through the public API; the reviewer
 comes from the issue body's **Reviewer:** line instead.
 
-Open questions for the build: Macroscope's webhook auth/payload shape; where the receiver
-terminates; whether the remaining two status legs (issue → In Progress, PR → Internal Review) fold
-into the receiver eventually or stay with the dispatcher's polling.
+Open questions for the build: Macroscope's webhook auth/payload shape — moot if the Check Run agents
+pilot (`docs/HANDOFF.md`, next steps) gives the receiver GitHub's own `check_run` event as its
+contract; where the receiver terminates; whether the remaining two status legs (issue → In Progress,
+PR → Internal Review) fold into the receiver eventually or stay with the dispatcher's polling.

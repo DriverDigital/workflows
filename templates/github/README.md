@@ -25,9 +25,13 @@ trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
 
-**PR review is Macroscope's job, not the kit's** (decided 2026-08-08). The old review rails —
-`pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted here and
-fleet-wide, reusables preserved caller-less in the central repo. See
+**PR review is Macroscope's job, not the kit's** (decided 2026-08-08, reaffirmed 2026-09-12). The old
+review rails — `pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted
+here and fleet-wide, reusables preserved caller-less in the central repo. Claude reviews a PR only when
+a person `@claude`s it (optionally naming `/code-review`); the implementer's own `/code-review` pass
+before it opens a PR is part of implementing, not PR review, and stays. Macroscope is installed
+org-wide, so a repo outside DriverDigital gets no automatic review at all (open decision,
+`../../docs/HANDOFF.md`). See
 [`../../docs/macroscope-integration-scope.md`](../../docs/macroscope-integration-scope.md).
 
 Two rules that fail **silently** if broken:
