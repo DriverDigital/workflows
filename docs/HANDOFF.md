@@ -19,13 +19,16 @@ closed that morning (vite-plugin-shopify-clean #95, opened unaided, merged, wave
 
 2026-09-12: **Macroscope owns automatic PR review, org-wide** (Maria). Claude is the pipeline and the
 on-demand second opinion, never an automatic reviewer of an opened PR; the implementer's own
-pre-review before it opens a PR is implementing and stays. #57 records the decision
+pre-review before it opens a PR is implementing and stays. #57 (merged) records the decision
 ([`macroscope-integration-scope.md`](macroscope-integration-scope.md)) and changes no workflow: a fleet
 scan the same day found no Claude review on any `pull_request` event, so the kit already complied.
 `dependabot-report` is the one Claude-driven automatic verdict on a PR left, and Macroscope reviews
-Dependabot PRs too since 2026-09-10 — whether it stays is Maria's call. The to-do list was
-reconciled against the 2026-09-11 state-of-play survey; the one new gated item is the Check Run
-agents file set for `fleet-wave.sh`.
+Dependabot PRs too since 2026-09-10 — whether it stays is Maria's call. #58 repoints every live
+`driver-bonsai-mcp` reference at driver-agents (the repo was archived 2026-09-11) and drops the dead
+ngrok default from the retired ticketed rail — in flight. The to-do list was swept the same day
+against the decision and the 2026-09-11 state-of-play survey (Maria's claude.ai artifact, the
+cross-repo order of work; steps 6 and 8 are this repo's): eight items stand, and the one new gated
+item is the Check Run agents file set for `fleet-wave.sh`.
 
 Otherwise nothing is in flight. The fleet's `claude.yml` fails an issue run that leaves no PR and
 keeps the full transcript in the job log — and **no real ticket has run on it yet**. That run is
@@ -50,6 +53,9 @@ Avara #195 diagnosis gets confirmed.
 - **Marcella-NYC-Main review coverage.** Macroscope cannot reach a repo outside the org, so that
   active client work gets no bot review. Install Macroscope there, transfer the repo, or accept it
   (state-of-play survey, 2026-09-11).
+- **The two retired review rails** (`pr-first-review.yml`, `ticketed-review.yml`) are kept caller-less
+  for re-activation, and re-activating an automatic Claude review now contradicts the 2026-09-12
+  decision. Delete them, or keep them as the fallback if Macroscope ever goes.
 
 ## Watch-items
 
