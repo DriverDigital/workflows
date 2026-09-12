@@ -6,17 +6,18 @@ an **immutable commit SHA**; a bot (Dependabot/Renovate) bumps the SHAs as new t
 **public** so cross-repo reusable calls resolve from any consuming repo (the org enforces a
 selected-actions allowlist at the org/enterprise tier).
 
-## How the three repos fit together
+## How the repos fit together
 
 - **workflows** (this repo, public) — the reusable GitHub workflows + this onboarding kit. Fleet
   repos carry thin SHA-pinned caller stubs; these run the GitHub side (the implementer and the
   Dependabot rails) once an issue exists.
-- **[driver-bonsai-mcp](https://github.com/DriverDigital/driver-bonsai-mcp)** — the **pipeline
-  dispatcher**: a scheduled Actions workflow that triages ready Bonsai tasks, opens those GitHub
-  issues, and polls the Bonsai status back.
 - **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the Shopify
   admin-tool wrapper and the canonical operator instructions, cloned at the pinned
-  `DRIVER_AGENTS_REF`; it was also the box's headless `claude -p` cron runner.
+  `DRIVER_AGENTS_REF`; also the **pipeline dispatcher** (`pipeline-dispatch.yml`, scheduled) that
+  triages ready Bonsai tasks, opens those GitHub issues, and polls the Bonsai status back. It was
+  also the box's headless `claude -p` cron runner.
+- **driver-bonsai-mcp** — archived 2026-09-11; it held the dispatcher and the Bonsai bridge server
+  until 2026-09-10. Mentions of it below are history.
 
 Flow: a Bonsai ticket assigned to **Agents** → the dispatcher triages it and opens a GitHub issue →
 the target repo's `claude.yml` implements it and opens the PR → the dispatcher moves the Bonsai

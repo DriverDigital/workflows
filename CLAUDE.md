@@ -38,8 +38,9 @@ machinery (round-marker prompt arm, actor carve-out, re-request step) looks dead
 gone; it is the designed re-entry point for the Macroscope revise loop
 (`docs/macroscope-integration-scope.md` — live, not research). Do not strip it.
 
-Sibling repos: `driver-bonsai-mcp` (the dispatcher) and `driver-agents` (private; canonical Shopify
-instructions, pinned by `DRIVER_AGENTS_REF`) — README, *How the three repos fit together*.
+Sibling repo: `driver-agents` (private; the dispatcher, plus the canonical Shopify instructions
+pinned by `DRIVER_AGENTS_REF`) — README, *How the repos fit together*. `driver-bonsai-mcp`, the
+dispatcher until 2026-09-10, was archived 2026-09-11 — every mention of it is history.
 
 ## Commands
 

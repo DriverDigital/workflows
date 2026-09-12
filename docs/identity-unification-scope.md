@@ -204,7 +204,7 @@ mode is selected, `checkContainsTrigger` returns false, and `run.ts:212` logs "N
 
 Three things must move in one commit: the four `contains()` clauses
 (`templates/github/claude.yml:94,98,102,104`), a `trigger_phrase` input on the action, and **the dispatcher in
-`driver-bonsai-mcp`, which writes `@claude` into every issue body it opens**.
+`driver-agents`, which writes `@claude` into every issue body it opens**.
 
 Note `trigger_phrase` **does not exist in this repo today** (`git grep` → zero hits) — the action runs on its
 default phrase. So it must be *added* in the same commit, not edited. That is a small but real difference: the
@@ -364,7 +364,7 @@ permission requirement GitHub does not publish. This must be proven in the pilot
 set. **Zero UX change** — humans still type `@claude`.
 
 **Wave 2 — trigger phrase.** Flip to `@driver-digital-agents` in one coordinated commit spanning this repo,
-the fleet, and the dispatcher in `driver-bonsai-mcp`.
+the fleet, and the dispatcher in `driver-agents`.
 
 **Then the reusable conversion**, which is now materially cheaper: Phase 0 (the OIDC spike) **ceases to
 exist**, and the stub no longer needs `id-token: write`.

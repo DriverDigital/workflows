@@ -7,7 +7,7 @@
 different content.
 
 *The `bonsai-status-sync.yml` half of this project shipped at `v1.11.0` (waved 2026-08-02) and was
-**retired outright at `v1.13.0`** — the dispatcher in `driver-bonsai-mcp` polls Bonsai status now. Its
+**retired outright at `v1.13.0`** — the dispatcher in `driver-agents` polls Bonsai status now. Its
 sections have been removed from this document; what remains is the `claude.yml` half.*
 
 > ## Decision — Maria, 2026-08-02: TABLED
