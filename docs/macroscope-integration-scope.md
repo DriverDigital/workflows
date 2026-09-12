@@ -80,8 +80,9 @@ Still unobserved: a formal REQUEST_CHANGES, and the webhook payloads — keep wa
 
 ## The build (Phase 2 — not scheduled)
 
-A webhook receiver owned by **driver-bonsai-mcp** (the repo that holds Bonsai access; the
-2026-08-21 sketch is a GitHub App on Vercel — that repo's box-retirement spec, §9). Mapping Maria
+A webhook receiver owned by **driver-agents** (the repo that holds Bonsai access; the
+2026-08-21 sketch is a GitHub App on Vercel — that repo's
+`docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md`, §9). Mapping Maria
 sketched:
 
 | Macroscope event | Action |
@@ -104,7 +105,7 @@ Building blocks that already exist — reuse, don't rebuild:
 2026-08-21: the bridge server that carried the old `/tasks/*` endpoints is retired. Phase 2 writes
 Bonsai status through the public API (PATCH /public-api/v1/tasks/{uuid} with task_status_id) using
 the Agents API key, and triggers the dispatcher via workflow_dispatch { task_uuid } in
-driver-bonsai-mcp. The Reviewer custom field is not readable through the public API; the reviewer
+driver-agents. The Reviewer custom field is not readable through the public API; the reviewer
 comes from the issue body's **Reviewer:** line instead.
 
 Open questions for the build: Macroscope's webhook auth/payload shape — moot if the Check Run agents

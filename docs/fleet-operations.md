@@ -12,22 +12,23 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v
 ## The fleet
 
 **20 repo@branch pairs** carry kit stubs after the v1.13.0 wave (2026-08-22; verified by a live
-audit run across the 23 pairs it enumerates — the 20 targets plus the three that carry no pins —
-**51 pins at `f6d25d34`, 72 content matches, zero drift**; the drop from v1.12.0's 69/90 is exactly
+audit run across the 23 pairs it enumerated then — the 20 targets plus the three that carried no
+pins — **51 pins at `f6d25d34`, 72 content matches, zero drift**; the drop from v1.12.0's 69/90 is exactly
 the 18 `bonsai-status-sync.yml` copies the wave deleted). The split matters because two different
 numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 23) and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 22) and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deleted — verified branch-by-branch across all 618 org branches beforehand: zero rows where one was present without the other.) |
 | **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 
 Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
 `pr-first-review.yml`: `driver-agents@main`, `driver-engineering-app@main` (repin targets only between
-2026-08-02 and the wave), and `driver-bonsai-mcp@main`. They now carry no caller stub — **no pin
-rows, but still content-checked** (the audit compares any fleet file whose basename exists in
-`templates/`), so drift in what remains (e.g. the kit `lint.yml`) is still visible.
+2026-08-02 and the wave), and `driver-bonsai-mcp@main` — archived 2026-09-11, no longer scanned.
+The two live ones carry no caller stub — **no pin rows, but still content-checked** (the audit
+compares any fleet file whose basename exists in `templates/`), so drift in what remains (e.g. the
+kit `lint.yml`) is still visible.
 
 Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
 `-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
@@ -201,7 +202,7 @@ Two things worth knowing about check 3:
 
 - **Exactly two things are normalized away.** First, `SHOPIFY_STORE_NAME` — the one difference a
   correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
-  the three pairs waved without a final newline are otherwise identical, and permanently-red rows
+  the two pairs waved without a final newline are otherwise identical, and permanently-red rows
   for a byte nobody can act on is how a detector stops being read. Internal blank lines *are*
   compared. Everything else that differs is reported, third-party action refs
   included: a repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of the kit is drift
@@ -259,16 +260,16 @@ the installed stub — the wave covers it anyway.
 `enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
 branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
 protection endpoint). Every other kit branch has a protection object — but **having one is not the
-same as requiring a human**, and the gap is wider than those two. Surveyed across all 23 pairs
-2026-08-02:
+same as requiring a human**, and the gap is wider than those two. Surveyed across all pairs
+2026-08-02; `driver-bonsai-mcp@main` has since been archived and is dropped from the counts:
 
 | Pairs | `required_approving_review_count` | |
 |---|---|---|
-| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-bonsai-mcp, driver-engineering-app, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
+| 12 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-engineering-app, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
 | **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
 | **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
 
-The kit's onboarding steps assume a human-approver rule exists. On **10** of the 23 pairs it does
+The kit's onboarding steps assume a human-approver rule exists. On **10** of the 22 pairs it does
 not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`

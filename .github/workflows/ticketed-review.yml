@@ -252,7 +252,7 @@ jobs:
           R: ${{ steps.round.outputs.r }}
           SINCE: ${{ steps.clock.outputs.since }}
           REVIEW_OUTCOME: ${{ steps.review.outcome }}
-          BONSAI_URL: ${{ vars.BONSAI_URL || 'https://driver-bonsai-mcp.ngrok.app' }}
+          BONSAI_URL: ${{ vars.BONSAI_URL }}
           BONSAI_TOKEN: ${{ secrets.BONSAI_BEARER_TOKEN }}
         run: |
           set -euo pipefail
@@ -289,6 +289,7 @@ jobs:
             # above the server's lock-acquire timeout so it always returns a verdict; --retry covers a
             # transient 503 BROWSER_BUSY (reassign is idempotent). A hard failure fails the step RED
             # (visible) rather than silently dropping the handoff.
+            : "${BONSAI_URL:?set it to a live receiver — the driver-bonsai-mcp bridge that served /tasks/reviewer-handoff is gone (repo archived 2026-09-11)}"
             RESP=$(curl -fsS --retry 3 --retry-delay 30 --max-time 130 -X POST "$BONSAI_URL/tasks/reviewer-handoff" \
               -H "Authorization: Bearer $BONSAI_TOKEN" -H "Content-Type: application/json" \
               -d "$(jq -n --arg uuid "$UUID" '{uuid:$uuid}')")

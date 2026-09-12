@@ -15,7 +15,7 @@ name: Claude Code
 # the issue (`gh issue develop`, so issue<->branch<->PR are natively connected and visible from
 # any node in the GitHub UI), implement on it, push, then open a REAL PR (`gh pr create`). The PR
 # is authored by the Claude App.
-# Bonsai status is polled by the pipeline dispatcher in driver-bonsai-mcp (In Progress on issue
+# Bonsai status is polled by the pipeline dispatcher in driver-agents (In Progress on issue
 # creation, Internal Review once a non-draft PR is dev-linked). NOTHING depends on a task URL being
 # copied into the PR body. This branch+PR flow is model-driven (claude-code-action has no native
 # dev-link / no auto-PR), so CONFIRM on a pilot run that the chain forms:

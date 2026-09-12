@@ -28,7 +28,8 @@ access token anywhere. Two mechanisms can deliver it, and **the box uses the sec
   **`mcp__claude_ai_Figma__*`**. Loads only under an interactive `claude login`.
 
 **The production box already runs the second one — do not "fix" it by adding a local entry.** The job
-pack in `driver-bonsai-mcp/pipeline/` has this wired and the reasoning recorded in `triage.job.env`:
+pack in `driver-bonsai-mcp/pipeline/` (archived 2026-09-11 — history) has this wired and the
+reasoning recorded in `triage.job.env`:
 
 - `STRICT_MCP=0`, so the leg inherits every MCP server on the box's interactive login.
 - **No `CLAUDE_CODE_OAUTH_TOKEN`** — deliberate and load-bearing. A setup-token drops every claude.ai
@@ -86,8 +87,8 @@ to decide whether to install it. No such path exists for a third-party server.
 
 The triage leg reads the design and **writes what it found into the GitHub issue body**; the
 implementer then works from that text and never needs Figma. This is implemented — see the
-"Figma-bearing tickets" section of `driver-bonsai-mcp/pipeline/orchestrator.md`, which states the
-constraint in its own words: "the agent that writes the code CANNOT see Figma … *you* are the only
+"Figma-bearing tickets" section of `driver-bonsai-mcp/pipeline/orchestrator.md` (archived
+2026-09-11 — history), which states the constraint in its own words: "the agent that writes the code CANNOT see Figma … *you* are the only
 step in the chain that can read the design — put what it needs in the issue body. An issue that just
 links Figma sends the implementer in blind, which is worse than escalating."
 

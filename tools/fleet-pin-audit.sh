@@ -50,10 +50,10 @@ LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA
 #   1. SHOPIFY_STORE_NAME — the one difference a correctly-waved repo is SUPPOSED to have. The kit
 #      ships it empty; Avara carries "avara". Anchored to a line that STARTS with the key, so the ten
 #      other mentions per file (comments, shell) still compare normally.
-#   2. Trailing blank lines and the final newline. Three stub-rails-only pairs (Team-Laird@develop,
-#      The-Gathery@develop, driver-bonsai-mcp@main) were waved without a final newline and are
+#   2. Trailing blank lines and the final newline. Two stub-rails-only pairs (Team-Laird@develop,
+#      The-Gathery@develop) were waved without a final newline and are
 #      otherwise byte-identical. That is not drift anyone can act on, and a detector that reports
-#      nine permanent red rows is a detector nobody reads. Internal blank lines ARE still compared —
+#      permanent red rows is a detector nobody reads. Internal blank lines ARE still compared —
 #      awk buffers blanks and only emits them once a non-blank line follows.
 kit_normalize() {
   sed 's/^\( *SHOPIFY_STORE_NAME:\).*/\1 <per-repo>/' \

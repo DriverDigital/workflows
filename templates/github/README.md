@@ -1,7 +1,7 @@
 # GitHub pipeline kit (Phase 2)
 
 Drop-in workflows that connect a DriverDigital repo to the Bonsai → PR pipeline. The pipeline
-dispatcher (in `driver-bonsai-mcp`) opens a GitHub **issue** from a ready Bonsai task and
+dispatcher (in `driver-agents`) opens a GitHub **issue** from a ready Bonsai task and
 `@claude`s it; these workflows take it from there. Bonsai status is polled by the dispatcher — no
 workflow here touches it.
 
@@ -92,7 +92,7 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
      report a trip on a rail with no exit code; see the comment in `claude.yml`). The whole value
      rides inside a **single-quoted** CLI token: **no apostrophes anywhere in it** — one apostrophe
      silently truncates the prompt instead of erroring. `lint.yml` asserts the quote count.
-3. **Issue creation:** the pipeline dispatcher (driver-bonsai-mcp, a scheduled Actions workflow)
+3. **Issue creation:** the pipeline dispatcher (driver-agents, a scheduled Actions workflow)
    opens issues as the driver-digital-agents PAT, which is what lets `claude.yml` fire on
    `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). Bonsai status is
    polled by the dispatcher — no per-repo workflow is involved. The PAT is fine-grained — **All
