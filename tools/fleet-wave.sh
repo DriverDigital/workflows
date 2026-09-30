@@ -189,18 +189,23 @@ plan_and_push() {
   local repo=$1 branch=$2 tmp f cur
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
-  local changes=0 existing
-  existing=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].path') \
-    || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
-  # An empty listing here would make every grep below miss and the target report "(no changes)" —
-  # a repo silently dropped from the wave. Discovery proved it carries at least one kit file, so
-  # empty is a lie.
-  [ -n "$existing" ] || { echo "  $repo@$branch: empty .github/workflows listing" >&2; exit 3; }
-  # .github/ itself, for the PR template and claude-standards.md — its own assignment, so a failure here cannot hide
-  # behind the workflows listing above (errexit is off inside an assignment's substitution).
-  dotgithub=$(api "repos/$ORG/$repo/contents/.github?ref=$branch" --jq '.[] | select(.type == "file") | .path') \
+  local changes=0 existing dotgithub workflows kit_paths
+  # Each listing is its own assignment so a failure cannot hide behind another (errexit is off inside
+  # an assignment's substitution). A standards-only target has no .github/workflows, so that listing
+  # runs only when .github says the directory exists.
+  dotgithub=$(api "repos/$ORG/$repo/contents/.github?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list .github" >&2; exit 3; }
-  existing="$existing"$'\n'"$dotgithub"
+  existing=$(sed -n 's/^file //p' <<<"$dotgithub")
+  if grep -qxF "dir .github/workflows" <<<"$dotgithub"; then
+    workflows=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].path') \
+      || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
+    existing="$existing"$'\n'"$workflows"
+  fi
+  # Discovery proved the target carries at least one kit file, so a listing with none is a lie — and
+  # would otherwise report "(no changes)", silently dropping the repo from the wave.
+  kit_paths=$(for f in "${FULL_FILES[@]}"; do dest "$f"; done)
+  grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
+    || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
   for f in "${FULL_FILES[@]}"; do
     grep -qxF "$(dest "$f")" <<<"$existing" || continue
