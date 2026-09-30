@@ -122,7 +122,8 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   keeps skipped runs out of the job-level concurrency group.
 - The reusable's "Trusted authors" step is the prompt-injection defense: only collaborators,
   `driver-digital-agents` and four named bots reach Claude through `include_comments_by_actor`, and a run on
-  an issue or PR written by anyone else is refused, since the action cannot filter a body. It fails
+  an issue or PR written by anyone else is refused, since the action cannot filter a body, as is a
+  fork PR. It runs first, before checkout and provisioning, and fails
   the run when the collaborator list cannot be read — never fall back to an empty filter, which
   includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the

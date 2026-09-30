@@ -36,12 +36,11 @@ None is gated except where stated.
 | **WebSearch / WebFetch** | Re-add to `--allowedTools`. | **Gated:** anthropics/claude-code-action#690 fix. The kit floats on `v1`; the caveat comment is what gets removed. |
 | **repository_dispatch on a Macroscope review** (optional) | On `pull_request_review` submitted by `macroscopeapp` on a `claude[bot]` PR, fire driver-agents `pipeline-dispatch.yml` for latency. | **Gated:** `AGENTS_GH_PAT` needs Contents: write on driver-agents — check first. |
 
-**Pending Maria's decision (2026-10-01): fork PRs skip the implementer.** Today a fork PR only
-loses its store credentials; the job still checks out and runs fork code holding `id-token: write`,
-and on `issue_comment` the OIDC claims describe the base repo, so the planned Admin API gate
-(driver-engineering-app PR #7) could not tell a fork run apart. Proposal: the "Trusted authors" step
-moves first, ahead of checkout, and refuses fork PRs as it refuses outsiders; the provisioning
-step's fork check goes. Cost: no `@claude` on a contributor's fork PR.
+**Fork PRs are refused (Maria, 2026-10-01).** A fork PR used to lose only its store credentials; the
+job still checked out and ran fork code holding `id-token: write`, and on `issue_comment` the OIDC
+claims describe the base repo, so the planned Admin API gate (driver-engineering-app PR #7) could not
+tell a fork run apart. The "Trusted authors" step now runs first, ahead of checkout, and refuses fork
+PRs as it refuses outsiders. Cost: no `@claude` on a contributor's fork PR.
 
 ## Running it
 
