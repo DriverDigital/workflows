@@ -121,7 +121,7 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   a fork PR's comments from loading the reusable (a call is validated before its gate runs) and
   keeps skipped runs out of the job-level concurrency group.
 - The reusable's "Trusted authors" step is the prompt-injection defense: only collaborators,
-  `driver-digital-agents` and `*[bot]` reach Claude through `include_comments_by_actor`, and a run on
+  `driver-digital-agents` and four named bots reach Claude through `include_comments_by_actor`, and a run on
   an issue or PR written by anyone else is refused, since the action cannot filter a body. It fails
   the run when the collaborator list cannot be read — never fall back to an empty filter, which
   includes everyone.
