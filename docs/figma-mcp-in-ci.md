@@ -1,8 +1,18 @@
-# Figma MCP: works on the box, blocked in the CI rail
+# Figma MCP: on the box and in the CI rail
 
-**Verdict (2026-08-02): the box can use Figma MCP today with no token work. The GitHub Actions
-implementer rail (`templates/github/claude.yml`) cannot, and no `--allowedTools` edit changes that.**
-`claude.yml` carries a one-line caveat above `--allowedTools` (since v1.14.0) and no other change.
+**Verdict (2026-09-30): the implementer reads Figma in CI through driver-agents' own Figma MCP
+server, not Figma's.** The reusable (`.github/workflows/claude.yml`) passes it inline with
+`--mcp-config`, bearer `FIGMA_MCP_SECRET` (optional; unset, the server rejects the call and the run
+goes on without Figma), allows `mcp__figma`, and sets `MAX_MCP_OUTPUT_TOKENS` to 200000 because node
+JSON runs large. Proven by driver-agents `figma-mcp-smoke.yml` (run 34982197161). Its limits:
+
+- It reads node JSON from **Driver-plan files only** — client-owned files 403.
+- It **never writes**; no write tool is offered.
+- **No rendered image reaches the model** until a canary proves `figma_get_image` does, so triage
+  still puts what the implementer needs in the issue body (below).
+
+The box needs no token work either. The gates below are why the rail cannot use Figma's remote
+server (`mcp.figma.com`); they still hold.
 
 These are two different execution environments and they fail differently. Conflating them is the easy
 mistake — this doc exists to keep them apart.
@@ -44,7 +54,7 @@ mismatch against the existing allow-list. Don't.
 (The laptop and the box differ because they are signed into **different accounts** — Maria's, versus
 the agents' Max account that holds the Figma seat.)
 
-## The CI rail: two documented gates, then Figma's own refusal
+## Figma's remote server in CI: two documented gates, then Figma's own refusal
 
 ### Gate 1 — account connectors never reach CI
 
@@ -54,10 +64,10 @@ claude.ai account connectors (the `claude.ai <Name>` entries in `claude mcp list
 `claude.yml` uses can never satisfy it. Both CI auth paths are excluded **by documentation**, not
 inference:
 
-- `CLAUDE_CODE_OAUTH_TOKEN` (what `claude.yml:315` uses): "It can only make model requests, so it
+- `CLAUDE_CODE_OAUTH_TOKEN` (what `claude.yml` uses): "It can only make model requests, so it
   can't establish Remote Control sessions or **fetch claude.ai connectors**. MCP servers you configure
   locally still work." — [authentication](https://code.claude.com/docs/en/authentication#generate-a-long-lived-token)
-- `ANTHROPIC_API_KEY` (the commented-out fallback at `claude.yml:327`): connectors "aren't loaded when
+- `ANTHROPIC_API_KEY` (the commented-out fallback in `claude.yml`): connectors "aren't loaded when
   ANTHROPIC_API_KEY … is active, **even if you previously ran `/login`**. They also aren't loaded when
   `CLAUDE_CODE_OAUTH_TOKEN` holds a token from `claude setup-token`." — [mcp](https://code.claude.com/docs/en/mcp#use-mcp-servers-from-claude-ai)
 
@@ -86,7 +96,8 @@ to decide whether to install it. No such path exists for a third-party server.
 ## How design→code actually works here (already built)
 
 The triage leg reads the design and **writes what it found into the GitHub issue body**; the
-implementer then works from that text and never needs Figma. This is implemented — see the
+implementer works from that text, and reaches Figma itself only for node JSON in a Driver-plan file.
+This is implemented — see the
 "Figma-bearing tickets" section of `driver-bonsai-mcp/pipeline/orchestrator.md` (archived
 2026-09-11 — history), which states the constraint in its own words: "the agent that writes the code CANNOT see Figma … *you* are the only
 step in the chain that can read the design — put what it needs in the issue body. An issue that just
@@ -104,24 +115,25 @@ Second-order constraint: Figma's MCP rate limits attach to a **human seat** (~20
 Full, 600 on Organization), not to the automation. Capturing once at triage — rather than per
 implementer run and per revision round — is also what keeps that quota sane.
 
-## Re-open tripwire
+## Wiring notes
 
-Revisit the CI rail **only** if Figma ships a non-interactive credential for `mcp.figma.com` (PAT
-header, service account, or client-credentials grant). Nothing on our side changes the answer. Watch
+Figma's remote server stays out of reach until Figma ships a non-interactive credential for
+`mcp.figma.com` (PAT header, service account, or client-credentials grant) — watch
 [forum 55558](https://forum.figma.com/ask-the-community-7/token-based-authentication-support-for-figma-mcp-personal-access-token-plan-access-token-55558).
-
-When it unblocks, the wiring is short — written down so it is not re-researched:
+What the rail's wiring rests on, so it is not re-researched:
 
 - **Inline JSON, never a file path.** v1.0.195 (`d40ddef`) still has **no `mcp_config` input** —
   last verified at v1.0.183/`be7b93b`; re-check `action.yml` at the current pin. `mcp_config` was
   removed in the v0→v1 migration. Servers go in via
-  `claude_args: --mcp-config '{"mcpServers":{"figma":{"type":"http","url":"https://mcp.figma.com/mcp","headers":{…}}}}'`.
+  `claude_args: --mcp-config '{"mcpServers":{"figma":{"type":"http","url":"…","headers":{…}}}}'`.
   A **file path is silently dropped** whenever the action contributes its own inline JSON, which is
   always true in tag mode.
 - User config **merges** with the built-ins (`Object.assign` over `mcpServers`), so the inline-comment
   poster survives.
-- Allow-list `mcp__figma` (bare server name is documented wildcard syntax, equivalent to `mcp__figma__*`).
-  Read tools only — exclude `use_figma`, `create_new_file`, `generate_figma_design`, `upload_assets`,
-  `add_code_connect_map`, `send_code_connect_mappings`.
-- **`lint.yml`'s quote gate must move 4 → 6** in the same commit. It asserts `claude_args` holds exactly
-  four single quotes; a third quoted flag fails the build.
+- Allow-list `mcp__figma` (bare server name is documented wildcard syntax, equivalent to
+  `mcp__figma__*`). The whole server is safe to allow because it offers no write tool; Figma's own
+  server would need its writers excluded (`use_figma`, `create_new_file`, `generate_figma_design`,
+  `upload_assets`, `add_code_connect_map`, `send_code_connect_mappings`).
+- **`lint.yml`'s quote gate counts six** single quotes in `claude_args`: `--allowedTools`,
+  `--mcp-config` (the third quoted flag) and `--append-system-prompt`. Another quoted flag moves it
+  again, in the same commit.

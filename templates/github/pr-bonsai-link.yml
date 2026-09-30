@@ -23,8 +23,11 @@ jobs:
         env:
           BODY: ${{ github.event.pull_request.body }}
         run: |
-          uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
-          if grep -qiE "app\.hellobonsai\.com/tasks/$uuid|^[[:space:]*_-]*Bonsai task:[[:space:]*_]*none([^[:alnum:]]|$)" <<<"$BODY"; then
+          uuid='[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}([^0-9a-z]|$)'
+          # A task URL (/tasks/<uuid>, or the board form ?task=<uuid>), or a `Bonsai task: none` line.
+          url="(^|[^[:alnum:].-])app\.hellobonsai\.com/(tasks/|[^[:space:]]*[?&]task=)$uuid"
+          none='^[[:space:]>*_-]*Bonsai task:[[:space:]*_`]*none([^[:alnum:]]|$)'
+          if grep -qiE "$url|$none" <<<"$BODY"; then
             echo "Bonsai task named"; exit 0
           fi
           echo "::error::Name the Bonsai task in the PR body: a line reading 'Bonsai task: <the app.hellobonsai.com/tasks/ URL>', or 'Bonsai task: none' when there is no task."

@@ -23,7 +23,8 @@
 #   1. the kit's own stubs must all pin the latest tag's SHA (and there must BE pins to check);
 #   2. the kit repo itself is never a target — its .github/workflows/ holds the reusables;
 #   3. a SHOPIFY_STORE_NAME we cannot parse aborts rather than being dropped unread;
-#   4. a deployed store handle aborts unless the repo's SHOPIFY_STORE_NAME variable already holds it;
+#   4. a deployed store handle blocks the wave unless the repo's SHOPIFY_STORE_NAME variable holds
+#      it, checked fleet-wide before the first push; the kit may carry no literal handle at all;
 #   5. every file is actionlinted before it is written;
 #   6. no path is written twice in one commit;
 #   7. discovery failures are fatal — a short target list is never reported as a clean fleet;
@@ -75,6 +76,11 @@ KIT_PINS=$(grep -hoE "$ORG/workflows/[^@]+@[0-9a-f]{40}" "$KIT"/*.yml || true)
 if printf '%s\n' "$KIT_PINS" | grep -v "@$TAG_SHA" >/dev/null; then
   echo "kit stubs are not all pinned to $TAG ($TAG_SHA) — repin templates/github first" >&2; exit 2
 fi
+# A kit file with a literal handle would overwrite a store repo's handle with "" once guard 4 is
+# satisfied — the pre-v1.17.0 whole-file claude.yml carries no pin, so guard 1 cannot see it.
+if grep -lE '^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"' "$KIT"/*.yml; then
+  echo "the kit files above carry a literal SHOPIFY_STORE_NAME — it belongs in the repo variable" >&2; exit 2
+fi
 
 # Every kit file a target carries is replaced with the kit's copy — the stubs too, since v1.15.0.
 # A pin-line sed used to let per-repo stub edits survive, but fleet-pin-audit.sh reports any such
@@ -115,12 +121,12 @@ b64() { base64 | tr -d '\n'; }                                   # macOS base64 
 sha40() { case "$1" in *[!0-9a-f]*|"") return 1;; esac; [ ${#1} -eq 40 ]; }
 HANDLE_RE='^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"[^"]*"'  # portable ERE (BSD + GNU)
 
-# The store handle a pre-v1.17.0 file carries, or empty when the key is absent or empty. Only the
-# double-quoted form is parseable, and a handle we cannot read is a handle guard 4 cannot check —
-# so refuse instead of guessing. A v1.17.0 file reads the handle from `vars`, so this returns empty.
+# The store handle a pre-v1.17.0 file carries, or empty when the key is absent, empty, or reads
+# `vars`. Only the double-quoted form is parseable, and a handle we cannot read is a handle guard 4
+# cannot check — so refuse instead of guessing.
 handle_of() {
   local keys quoted
-  keys=$(grep -cE '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" || true)
+  keys=$(grep -E '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" | grep -cvF 'vars.SHOPIFY_STORE_NAME' || true)
   quoted=$(grep -cE "$HANDLE_RE" "$1" || true)
   [ "$keys" = "$quoted" ] || { echo "$1: SHOPIFY_STORE_NAME is not a double-quoted value" >&2; return 3; }
   sed -nE 's/^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"([^"]*)".*/\1/p' "$1" | head -1
@@ -219,8 +225,12 @@ plan_and_push() {
     local handle; handle=$(handle_of "$cur")
     # Replacing a file that still carries its handle would switch store tooling off without a
     # sound — the provisioning step self-skips on an empty handle.
-    if [ -n "$handle" ] && [ "$(api "repos/$ORG/$repo/actions/variables/SHOPIFY_STORE_NAME" --jq .value 2>/dev/null)" != "$handle" ]; then
-      echo "  $repo@$branch $f: set the repository variable SHOPIFY_STORE_NAME=$handle first" >&2; exit 3
+    if [ -n "$handle" ]; then
+      local var; var=$(api "repos/$ORG/$repo/actions/variables/SHOPIFY_STORE_NAME" --jq .value 2>/dev/null) || var="(unset or unreadable)"
+      if [ "$var" != "$handle" ]; then
+        echo "  $repo@$branch $f: repository variable SHOPIFY_STORE_NAME must be '$handle', reads $var" >&2
+        BLOCKED=1; return 0
+      fi
     fi
     cp "$KIT/$f" "$tmp/$f"
     if ! cmp -s "$cur" "$tmp/$f"; then
@@ -278,10 +288,20 @@ echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"
 # wave would report `targets: 12` and exit 0. Capturing it makes the status observable — see the
 # errexit note on targets() for why the calls in there still need their own `|| exit`.
 TARGETS=$(targets)
+BLOCKED=0
 [ -n "$TARGETS" ] || { echo "no targets discovered — refusing to call that a clean fleet" >&2; exit 2; }
+# Guard 4 is checked across the whole fleet before the first push: a real wave plans every target
+# silently first, so a blocked repo stops it before anything is written rather than halfway.
+if [ "$DRY" -eq 0 ]; then
+  DRY=1
+  while read -r repo branch; do [ -z "$repo" ] || plan_and_push "$repo" "$branch" >/dev/null; done <<<"$TARGETS"
+  DRY=0
+  [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
+fi
 n=0
 while read -r repo branch; do
   [ -n "$repo" ] || continue
   echo "== $repo@$branch"; plan_and_push "$repo" "$branch"; n=$((n+1))
 done <<<"$TARGETS"
 echo "targets: $n"
+[ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }

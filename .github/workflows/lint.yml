@@ -133,7 +133,7 @@ jobs:
         # the implementer never runs.
         run: |
           set -euo pipefail
-          ref() { grep -oE 'DRIVER_AGENTS_REF: [0-9a-f]{40}' "$1" | sort -u; }
+          ref() { grep -oE 'DRIVER_AGENTS_REF: [0-9a-f]{40}' "$1" | sort -u || true; }
           a=$(ref .github/workflows/claude.yml); b=$(ref templates/github/shopify-tool-smoke.yml)
           [ "$(wc -l <<<"$a")" -eq 1 ] && [ -n "$a" ] || { echo "::error::expected one DRIVER_AGENTS_REF in .github/workflows/claude.yml, got: $a"; exit 1; }
           [ "$a" = "$b" ] || { echo "::error::DRIVER_AGENTS_REF differs: claude.yml has '${a#* }', shopify-tool-smoke.yml has '${b#* }'"; exit 1; }

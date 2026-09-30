@@ -13,6 +13,9 @@ reusable instead of in 18 copies. Design,
 risks and the corrected silent-skip guard: [`reusable-conversion-scope.md`](reusable-conversion-scope.md)
 (2026-09-30 update at the top).
 
+**Built on branch `claude-yml-reusable`:** the conversion and every ride-along below except the two
+gated ones (WebSearch / WebFetch, and the optional `repository_dispatch`).
+
 The model does not change: `--model fable --effort xhigh` stays (Maria, 2026-09-30 — quality is good,
 don't disturb it). Fable billing is no longer tracked; the MODEL NOTE in the header goes.
 
@@ -36,11 +39,72 @@ None is gated except where stated.
 ## Running it
 
 1. ~~Spike~~ — passed 2026-09-30, green and red (reusable-conversion-scope, Phase 0 result).
-2. Write the reusable and the stub, then edit the kit; run the four local CI checks (`CLAUDE.md` → Commands), including the tokenization
-   step, which is the only automated check on the prompt.
-3. Merge, tag, repin, then `tools/fleet-wave.sh --dry-run` and canary with
-   `--only vite-plugin-shopify-clean`. On the canary, assert the log does not contain
-   `::warning::Skipping action due to workflow validation` — a validation failure is a silent green skip.
-4. Wave, then `tools/fleet-pin-audit.sh --stale` must read converged.
-5. Run one real ticket through with the transcript on (`show_full_output`) and read it before calling
-   the wave done.
+2. ~~Write the reusable and the stub, then edit the kit; run the local CI checks~~ — done on
+   `claude-yml-reusable`.
+3. Merge and tag. At step 2 of the release order, replace `templates/github/claude.yml` with the stub
+   below, pinned to the tag (it cannot land earlier: the pin does not exist, and `lint.yml` refuses
+   the placeholder), then delete the stub from this doc.
+4. Set the repository variable `SHOPIFY_STORE_NAME=avara` on Avara — the wave refuses Avara until it
+   is set.
+5. `tools/fleet-wave.sh --dry-run`, then canary with `--only vite-plugin-shopify-clean`: one
+   `@claude` issue must open a `claude[bot]` PR carrying a `Bonsai task:` line, with no
+   `Skipping action due to workflow validation` in the log; a plain comment must skip the job with no
+   runner.
+6. Wave, then `tools/fleet-pin-audit.sh --stale` must read converged. On Avara, the first store run's
+   log must read `Provisioned store 'avara'` — the proof that `vars` resolves against the caller.
+7. Run one real ticket through with the transcript on (`show_full_output`) and read it before calling
+   the wave done. Then make `bonsai-link` a required check per repo.
+
+The stub (`templates/github/claude.yml` from the release):
+
+```yaml
+name: Claude Code
+
+# CALLER STUB — the implementer. Everything but the triggers, the concurrency group and the
+# permissions lives in the reusable this pins (DriverDigital/workflows .github/workflows/claude.yml),
+# including the actor gate that decides whether a trigger runs.
+#
+# Silent failures if edited:
+#   • Each of the five permissions is required. The reusable can only narrow them, and without
+#     `id-token: write` the Claude App token cannot mint.
+#   • `secrets: inherit` carries the org-level SHOPIFY_ALERT_WEBHOOK; an explicit map that forgot it
+#     would switch destructive-call alerts off on a green run.
+#   • The token exchange requires this file to match its copy on the default branch, so it only
+#     works once merged there. A mismatch is a green run that did nothing, which the reusable fails.
+# The store handle is the SHOPIFY_STORE_NAME repository variable; leave it unset without a store.
+
+# issue_comment and pull_request_review_comment stay [created]: the implementer edits its own
+# comment, and subscribing to `edited` would re-run it on itself.
+on:
+  issue_comment:
+    types: [created]
+  issues:
+    # 'opened' only — 'assigned' would re-launch the implementer when an @claude'd issue is assigned.
+    types: [opened]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  claude:
+    # Coarse: load the reusable only when @claude is present. It holds the real actor gate, but a
+    # call is validated before that gate runs, so without this every comment or review on a fork
+    # PR (no secrets, read-only token) would fail red. Skipped runs also stay out of the
+    # concurrency group below, so a later comment without @claude cannot cancel a queued run.
+    if: >-
+      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
+      (github.event_name != 'issues' && contains(github.event.comment.body || github.event.review.body, '@claude'))
+    # Review events carry pull_request.number, not issue.number.
+    concurrency:
+      group: claude-${{ github.event.pull_request.number || github.event.issue.number }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    uses: DriverDigital/workflows/.github/workflows/claude.yml@0000000000000000000000000000000000000000 # vX.Y.Z
+    secrets: inherit
+```

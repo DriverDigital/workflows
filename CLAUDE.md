@@ -16,14 +16,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The public home of Driver's Bonsai→GitHub pipeline workflows. Two products live here:
 
-- **Reusables** in `.github/workflows/` — `workflow_call`-only: the three Dependabot rails
-  (`dependabot-validate` / `-report` / `-keep-current`). The two review rails retired at v1.12.0 were
-  deleted 2026-09-30; any tag through `v1.16.0` still holds them.
+- **Reusables** in `.github/workflows/` — `workflow_call`-only: `claude.yml` (the implementer) and the
+  three Dependabot rails (`dependabot-validate` / `-report` / `-keep-current`). The two review rails
+  retired at v1.12.0 were deleted 2026-09-30; any tag through `v1.16.0` still holds them.
 - **The onboarding kit** in `templates/github/` — what fleet repos copy into `.github/workflows/`:
-  three caller stubs pinning a reusable by immutable SHA, plus three whole-file workflows
-  (`claude.yml` the implementer, `shopify-tool-smoke.yml` store repos only, `lint.yml`) and
-  `pull_request_template.md` and `claude-standards.md` (both live at `.github/`; the wave carries them) and
-  `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
+  four caller stubs pinning a reusable by immutable SHA (`claude.yml` and the Dependabot three), plus
+  three whole-file workflows (`shopify-tool-smoke.yml` store repos only, `lint.yml`,
+  `pr-bonsai-link.yml` beside `claude.yml`) and `pull_request_template.md` and `claude-standards.md`
+  (both live at `.github/`; the wave carries them) and `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
   Kit install conventions: `templates/github/README.md`.
 
 PR review is Macroscope's, org-wide (Maria, 2026-09-12): Claude reviews a PR only when a person `@claude`s it
@@ -35,13 +35,9 @@ Two more files in `.github/workflows/` are this repo's own CI, not products: `li
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
 different files** with the same name and the same job id `actionlint` (the required-check context).
 
-`claude.yml` is a full per-repo copy, not a reusable — the kit's main drift surface; converting it
-to a reusable + stub is the plan for the next `claude.yml` wave; the spike passed 2026-09-30
-(`docs/claude-yml-wave-plan.md`). Its round-marker prompt arm and
-re-request step are dead and go in that wave: the Macroscope revise loop lives in the driver-agents
-dispatcher, which summons the implementer with a plain tag-mode `@claude` (driver-agents spec
-2026-09-18 §3, §9). The actor carve-out that admits `driver-digital-agents` is what the loop runs
-through — keep it.
+The Macroscope revise loop lives in the driver-agents dispatcher, which summons the implementer with a
+plain tag-mode `@claude` (driver-agents spec 2026-09-18 §3, §9). The actor carve-out that admits
+`driver-digital-agents` is what the loop runs through — keep it.
 
 Sibling repo: `driver-agents` (private; the dispatcher, plus the canonical Shopify instructions
 pinned by `DRIVER_AGENTS_REF`) — README, *How the repos fit together*. `driver-bonsai-mcp`, the
@@ -58,10 +54,11 @@ SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color $(ls templates/github/*.yml
 grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/              # must print nothing (placeholder-pin guard)
 ```
 
-The fourth CI check — `claude.yml`'s prompt survives tokenization — is the python step at
-`.github/workflows/lint.yml:81`; run it verbatim (needs PyYAML) after any edit to `claude.yml`'s
-`claude_args` or `prompt:`. It is the only automated check for the first invariant below; the rest are
-unenforced, and the blockquote parity check in particular is by hand at release time.
+Two more CI checks: the prompt survives tokenization (the python step at
+`.github/workflows/lint.yml:82`; run it verbatim, needs PyYAML, after any edit to the reusable
+`claude.yml`'s `claude_args` or `prompt:`), and `DRIVER_AGENTS_REF` matches in the reusable and
+`shopify-tool-smoke.yml` (the step after it). Those check the first and third invariants below; the rest
+are unenforced, and the blockquote parity check in particular is by hand at release time.
 
 Fleet tools (both work through `gh api`, no clones; the audit needs only authenticated `gh`, the wave
 also `jq` + `actionlint`):
@@ -92,34 +89,43 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
 
 ## Invariants that fail silently
 
-- `templates/github/claude.yml` `--append-system-prompt`: **no apostrophe, no `$`, no newline** —
-  shell-quote truncates rather than errors, every flag still parses, a wave copies the truncated prompt
-  fleet-wide green. `claude_args` holds exactly four single quotes. The `prompt:` scalar is a
-  `format()` literal: the only permitted brace is `{0}`.
+- `.github/workflows/claude.yml` `--append-system-prompt`: **no apostrophe, no `$`, no newline** —
+  shell-quote truncates rather than errors, every flag still parses, a repin ships the truncated prompt
+  fleet-wide green. `claude_args` holds exactly six single quotes (`--allowedTools`, `--mcp-config`,
+  `--append-system-prompt`). The `prompt:` scalar is a `format()` literal: the only permitted brace
+  is `{0}`.
 - The Shopify blockquote inside `--append-system-prompt` is a verbatim copy of driver-agents
   `docs/agent-instructions-shopify.md` — edit there first, then re-copy. Canonical begins at
   `All Shopify Admin API calls go through`; everything before it (conduct block, quality standard, and
-  the lead-in that un-scopes the tripwire from them) is kit-side and must survive the re-copy. Parity
-  is checked with whitespace collapsed (the kit flattens one paragraph break).
-- `DRIVER_AGENTS_REF` lives in `claude.yml` **and** `shopify-tool-smoke.yml`; same SHA in both, or the
-  smoke test verifies a revision the implementer never runs. Dependabot cannot bump it: a raw SHA in
-  `env:`, and it scans only `.github/workflows/`, never `templates/`. That is also why the kit's
+  the lead-in that un-scopes the tripwire from them) is ours and must survive the re-copy. Parity
+  is checked with whitespace collapsed (the copy flattens one paragraph break).
+- `DRIVER_AGENTS_REF` lives in the reusable `claude.yml` **and** the kit's `shopify-tool-smoke.yml`; same
+  SHA in both (lint-checked), or the smoke test verifies a revision the implementer never runs. The
+  store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store tooling.
+  Dependabot cannot bump the ref: a raw SHA in `env:`, and it scans only `.github/workflows/`, never `templates/`. That is also why the kit's
   whole-file workflows reference third-party actions by major tag (`@v1`, `@v7`) — a SHA there is a
   pin nothing bumps while a fleet repo's Dependabot bumps its copy when the action releases. The
   reusables float the same way; majors are the only action bumps that get a PR anywhere.
 - `dependabot-validate` stub `name:` stays byte-identical (`Dependabot validate`) — `-report`'s
   `workflow_run` name-matches it. The job always runs and branches internally; never `if:`-skip it.
 - Never `pull_request_target`. Never set `anthropic_api_key` (overrides OAuth, bills at API rates).
-- `claude.yml`'s `actions/checkout` keeps `persist-credentials` at default — claude-code-action's
-  early fetch 403s on a private repo without it. The reusables' checkouts set it `false` on purpose.
-- `claude.yml`'s `prompt:` has three arms: the branch-and-PR prompt on issue events, the round-marker
-  prompt on a `driver-digital-agents` comment carrying the ticketed-review marker, and **empty** (tag
-  mode) for every human `@claude`.
-- `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Two deliberate exceptions use
-  the default token: `claude.yml`'s failed-run notice (posts as github-actions[bot] so it cannot
-  re-trigger the workflow) and this repo's `dependabot-auto-merge.yml`.
-- `claude.yml`'s `issue_comment` and `pull_request_review_comment` triggers stay `types: [created]`.
-  The implementer's final answer edits its own comment; subscribing to `edited` re-runs it on itself.
+- The `claude.yml` reusable's `actions/checkout` keeps `persist-credentials` at default —
+  claude-code-action's early fetch 403s on a private repo without it. The Dependabot reusables' checkouts
+  set it `false` on purpose.
+- The `claude.yml` reusable's `prompt:` has two arms: the branch-and-PR prompt on issue events, and
+  **empty** (tag mode) for every comment, the dispatcher's revise-loop `@claude` included.
+- The `claude.yml` stub grants all five permissions and passes `secrets: inherit`. The reusable can
+  only narrow permissions (without `id-token: write` no App token mints), and an explicit secrets map that forgot
+  the org-level `SHOPIFY_ALERT_WEBHOOK` switches destructive-call alerts off on a green run. The
+  reusable's job-level `if:` is the actor gate; the stub's is a coarse `@claude` filter that keeps
+  a fork PR's comments from loading the reusable (a call is validated before its gate runs) and
+  keeps skipped runs out of the job-level concurrency group.
+- `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
+  default token: `claude.yml`'s failed-run notice (posts as github-actions[bot] so it cannot re-trigger
+  the workflow) and its no-PR check, and this repo's `dependabot-auto-merge.yml`.
+- The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
+  `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`
+  re-runs it on itself.
 - Two identities, and the split is load-bearing: `claude[bot]` implements and authors PRs,
   `driver-digital-agents` dispatches, summons and authors issues. The actor gate and driver-agents'
   `dispatch.sh` guards both key on it.

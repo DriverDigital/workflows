@@ -9,19 +9,20 @@ workflow here touches it.
 
 | File | Goes to | Does |
 |---|---|---|
-| `claude.yml` | `.github/workflows/claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it pre-reviews its own branch with the built-in `/code-review` skill before opening the PR, requests the reviewer named by a **Reviewer:** line in the issue, and honours an "Instructions from the ticket" section. Commits carry no attribution trailer and PR bodies no footer (the action's settings input). |
-| `pull_request_template.md` | `.github/pull_request_template.md` | Prompts human PRs to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs link automatically via the issue's development branch. |
+| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Fails a PR whose body names no Bonsai task: an `app.hellobonsai.com/tasks/<uuid>` URL, or a `Bonsai task: none` line. Dependabot PRs are exempt. Check-run context is the job id, **`bonsai-link`**; make it required per repo only once the wave has installed it. |
+| `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` | The house commit-message and code-comment standard. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy), so local sessions load it (CI loading is unconfirmed — `../../docs/HANDOFF.md`). Lint-only repos are wave targets through it. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 
-All three go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
+All four go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
 trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is recorded.
 
 | File | Rail |
 |---|---|
+| `claude.yml` | The implementer — claude-code-action reads an `@claude`'d issue, creates a **development-linked branch** from it, writes code, and opens a **real PR** from that branch; it addresses revisions when `@claude`'d on the PR (standalone comment, review, or inline comment). On an issue it pre-reviews its own branch with the built-in `/code-review` skill before opening the PR, honours an "Instructions from the ticket" section, requests no GitHub reviewer (the Bonsai assignment is the review request), and writes a `Bonsai task:` line into the PR body. Commits carry no attribution trailer and PR bodies no footer. The stub holds only the triggers, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
@@ -35,13 +36,16 @@ org-wide, so a repo outside DriverDigital gets no automatic review at all (accep
 Marcella-NYC-Main). See
 [`../../docs/macroscope-integration-scope.md`](../../docs/macroscope-integration-scope.md).
 
-Two rules that fail **silently** if broken:
+Three rules that fail **silently** if broken:
 
 - The `dependabot-validate.yml` stub's `name:` must stay byte-identical (`Dependabot validate`)
   across every repo — `dependabot-report.yml`'s `workflow_run` trigger name-matches it exactly, and
   a drift disables the human-ping with no error.
 - Every caller stub must keep its own `permissions:` block. A repo whose default workflow token is
   read-only otherwise produces a silent `startup_failure` — no check run, no notification.
+- The `claude.yml` stub grants all five permissions and keeps `secrets: inherit`. Without
+  `id-token: write` no App token mints; an explicit secrets map that forgets the org-level
+  `SHOPIFY_ALERT_WEBHOOK` turns destructive-call alerts off on a green run.
 
 ## Status machine
 
@@ -61,22 +65,24 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 
 1. **Install the Claude GitHub App** on the repo — `/install-github-app` from the Claude Code
    CLI, or install `github.com/apps/claude` manually. The App identity is what opens/pushes PRs.
-2. **Secrets** (repo or org → Settings → Secrets and variables → Actions). The two core ones are
+2. **Secrets** (repo or org → Settings → Secrets and variables → Actions). The core ones are
    already **org-level** Actions secrets available to every consuming repo — no per-repo setup:
    - `CLAUDE_CODE_OAUTH_TOKEN` — output of `claude setup-token` run as the **Agents** account
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
      override the OAuth token and bill at API rates.
    - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT. The `GH_TOKEN` on every `gh`
      step (never the default `GITHUB_TOKEN`): `dependabot-report`'s verdict comment + reviewer
-     request, and `claude.yml`'s sentinel posts.
+     request, and the implementer's `driver-agents` clone on store repos.
+   - `FIGMA_MCP_SECRET` — the bearer for driver-agents' Figma MCP server, which the implementer
+     reads design files through (`../../docs/figma-mcp-in-ci.md`).
 
    Optional, per-repo:
    - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the
      Dependabot-report rail (default `mcarter-astronautdev`).
    - **Shopify admin tooling** — only for repos with a store. Set all three secrets
      `DRIVER_ENGINEERING_APP_CLIENT_ID`, `DRIVER_ENGINEERING_APP_CLIENT_SECRET`, `SHOPIFY_STORE` (the
-     myshopify domain) **and** edit `SHOPIFY_STORE_NAME` in the repo's copy of `claude.yml` to the
-     store handle. Leave `SHOPIFY_STORE_NAME` empty and the provisioning step self-skips cleanly.
+     myshopify domain) **and** the repository **variable** `SHOPIFY_STORE_NAME` to the store handle.
+     Leave the variable unset and the provisioning step self-skips cleanly.
      The handle must be a plain `[A-Za-z0-9._-]` string — it becomes a filename, and anything else
      fails the step loudly. Even on a store repo the step skips the read-only `/code-review` rail,
      so a review run never holds the app's long-lived credentials; and `driver-agents` is cloned at
@@ -87,12 +93,13 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
      run URL; if that secret is ever absent, alerts are silently off and nothing else changes.
      The implementer's system prompt carries the Shopify operator tripwire (never bypass the
      wrapper; never evade an exit-3 refusal) — the blockquote is copied verbatim from driver-agents
-     `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy here on
-     the next kit bump, **preserving the kit-side scope lead-in that precedes it** (it is not
-     canonical text — it un-scopes the block from the conduct rules above and tells the model how to
-     report a trip on a rail with no exit code; see the comment in `claude.yml`). The whole value
-     rides inside a **single-quoted** CLI token: **no apostrophes anywhere in it** — one apostrophe
-     silently truncates the prompt instead of erroring. `lint.yml` asserts the quote count.
+     `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy into the
+     reusable (`../../.github/workflows/claude.yml`) at the next release, **preserving the scope
+     lead-in that precedes it** (it is not canonical text — it un-scopes the block from the conduct
+     rules above and tells the model how to report a trip on a rail with no exit code; see the
+     comment in the reusable). The whole value rides inside a **single-quoted** CLI token: **no
+     apostrophes anywhere in it** — one apostrophe silently truncates the prompt instead of
+     erroring. This repo's `lint.yml` asserts the quote count.
 3. **Issue creation:** the pipeline dispatcher (driver-agents, a scheduled Actions workflow)
    opens issues as the driver-digital-agents PAT, which is what lets `claude.yml` fire on
    `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). Bonsai status is
@@ -108,13 +115,15 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    cp templates/github/dependabot-report.yml    .github/workflows/
    cp templates/github/dependabot-keep-current.yml .github/workflows/
    cp templates/github/lint.yml                 .github/workflows/
+   cp templates/github/pr-bonsai-link.yml       .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    cp templates/github/claude-standards.md      .github/claude-standards.md
    ```
    Then add `@.github/claude-standards.md` to the repo's `CLAUDE.md` (a new repo: start `CLAUDE.md`
    as that line and let `/init` write the rest around it).
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
-   it replaces what a branch already carries and installs nothing).
+   it replaces what a branch already carries, and installs only `pr-bonsai-link.yml`, beside
+   `claude.yml`).
    **Then `dependabot.yml`, by hand** — it is the updater for the stub pins (without it nothing
    bumps the `uses: DriverDigital/workflows/...@<sha>` lines between waves), and most repos already
    have one, so never blind-copy it. No `.github/dependabot.yml` → copy the kit's. One without a
@@ -123,8 +132,9 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    only, so a repo carrying the kit on other branches (Palmers) needs one entry per branch with
    `target-branch:` set.
    **Re-copying into a repo that already has the kit?** Let the wave do it
-   (`tools/fleet-wave.sh --only <repo>`): whole-file, with `SHOPIFY_STORE_NAME` the one per-repo
-   value it preserves.
+   (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value. It
+   refuses a repo whose deployed file still carries a store handle the `SHOPIFY_STORE_NAME` variable
+   does not hold — set the variable first.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
 
@@ -138,7 +148,10 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    workflow display **name** is never part of it. Two shapes:
    - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
      that is **`validate / validate`** (`dependabot-validate`).
-   - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**.
+   - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml`
+     **`bonsai-link`**.
+     Before requiring `bonsai-link` on a private repo, check that fork PRs are either disabled or
+     allowed to run workflows — a fork PR that never runs it waits on "Expected" forever.
 
    On a partial install with no `dependabot-validate`, `actionlint` is the one check that runs on
    every PR unconditionally, so it is the right thing to require — but **run it once and let it go

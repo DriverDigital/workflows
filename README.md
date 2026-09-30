@@ -342,13 +342,12 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
    - **If the release moves `DRIVER_AGENTS_REF`**, re-run the tripwire parity check first: extract the
      `>` lines from driver-agents `docs/agent-instructions-shopify.md` at the new pin, strip the `> `
      prefixes, NFC-normalize, **collapse whitespace**, and diff against the blockquote portion of
-     `claude.yml`'s `--append-system-prompt`. The whitespace collapse is mandatory — the kit flattens
-     canonical's paragraph break to a single space (forced by the no-newline constraint), so a strict
-     byte compare reports a false failure. **Nothing else re-checks this.** `fleet-pin-audit.sh` proves
-     the fleet matches `templates/github/claude.yml` — it cannot prove that file's blockquote still
-     matches canonical at the new pin, and `DRIVER_AGENTS_REF` is a raw SHA in an env var that no bot
-     can bump. The audit catches a *fleet* that fell behind `templates/`; only this step catches
-     `templates/` falling behind driver-agents.
+     `.github/workflows/claude.yml`'s `--append-system-prompt`. The whitespace collapse is mandatory —
+     the copy flattens canonical's paragraph break to a single space (forced by the no-newline
+     constraint), so a strict byte compare reports a false failure. **Nothing else re-checks this.**
+     `lint.yml` proves the reusable and `shopify-tool-smoke.yml` carry the same `DRIVER_AGENTS_REF`,
+     not that the blockquote matches canonical at it, and the ref is a raw SHA in an env var that no
+     bot can bump.
 2. Repin every caller stub in `templates/github/` to that tag's SHA **and** its `# vX.Y.Z` trailer,
    then commit. Until this lands, the kit's stubs still point at the PREVIOUS tag's reusables.
    - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
@@ -387,13 +386,14 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
 `directory: "/"`, which only scans `.github/workflows/` — nothing will ever bump a pin inside
 `templates/`, while a fleet repo running the `github-actions` updater bumps its deployed copy when the
 action itself releases, so a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled
-it back (foundrae-blackridge #174). The three whole-file kit workflows therefore reference
-`actions/checkout@v7`, `actions/upload-artifact@v7` and `anthropics/claude-code-action@v1`, which
-Dependabot leaves alone until a new major exists. The reusables float the same way, so the only action
-bump that ever gets a PR — here or in a fleet repo — is a major. `DRIVER_AGENTS_REF` stays manual — it appears in **two**
-kit files, `claude.yml` and `shopify-tool-smoke.yml`, and must carry the same pin in both or the
-smoke test verifies a revision the implementer never runs — and to the `VERSION` + `SHA256` pair in
-`lint.yml`, which must be bumped together or the checksum check fails the job.
+it back (foundrae-blackridge #174). The kit's whole-file workflows and the reusables therefore
+reference third-party actions by major tag (`actions/checkout@v7`, `actions/upload-artifact@v7`,
+`anthropics/claude-code-action@v1`), which Dependabot leaves alone until a new major exists, so the
+only action bump that ever gets a PR — here or in a fleet repo — is a major. `DRIVER_AGENTS_REF` stays
+manual — it appears in the `claude.yml` reusable and the kit's `shopify-tool-smoke.yml`, and must carry
+the same pin in both (`lint.yml` checks) or the smoke test verifies a revision the implementer never
+runs — and so does the `VERSION` + `SHA256` pair in `lint.yml`, which must be bumped together or the
+checksum check fails the job.
 
 **Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
 repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
@@ -405,6 +405,7 @@ produces a silent `startup_failure` — no check run, no notification).
 
 | Reusable (`.github/workflows/`) | Privilege | Trigger (in the caller) | Job |
 |---|---|---|---|
+| `claude.yml` | secrets (OAuth + PAT + optional store and Figma), write token | `issues` opened, `issue_comment`, `pull_request_review`, `pull_request_review_comment` | the implementer: `@claude`'d issue → dev-linked branch → PR; `@claude` on a PR → revisions |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
@@ -414,9 +415,9 @@ Two review reusables, `pr-first-review.yml` and `ticketed-review.yml`, were reti
 all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries the three caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
-`shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
-workflows), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
+carries a caller stub for each reusable above, plus `shopify-tool-smoke.yml` (store repos only),
+`lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
+that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
 standard, imported by each repo's `CLAUDE.md`, waved at `.github/`) and `dependabot.yml` (the `github-actions` updater that bumps
 the stub pins between waves — installed by hand, merged into an existing file).
 
@@ -434,10 +435,9 @@ creates the wave**, because the moment the latest tag moves the audit's referenc
 against every stub in `templates/` and they must be repinned and re-copied everywhere. Let a kit-only file
 ride along with the next release that actually changes a reusable.
 
-**`claude.yml` is still a per-repo copy** — the kit's main drift surface and the reason re-copies need care.
-Converting it to a reusable is a go (2026-09-30; the spike passed the same day), as the next `claude.yml` wave:
-[`docs/claude-yml-wave-plan.md`](docs/claude-yml-wave-plan.md),
-[`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
+**`claude.yml` is a reusable** (2026-09-30), so an implementer change reaches the fleet as a repin, not a
+whole-file wave. The store handle is the `SHOPIFY_STORE_NAME` repository variable, so no kit file carries a
+per-repo value. Design and spike: [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
 
 Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
@@ -450,7 +450,8 @@ tag, so a run already has each minor and patch, and `.github/dependabot.yml` ign
 report red without being able to block. Note the name collision: this repo's own `lint.yml` and the kit's
 `templates/github/lint.yml` are **different files**. The kit one runs actionlint over the installing repo's
 `.github/workflows/` and nothing else; this one additionally lints `templates/github/`, gates on placeholder
-pins, and asserts `claude.yml`'s system prompt still tokenizes. Both use the job id `actionlint`, so the
+pins, asserts `claude.yml`'s system prompt still tokenizes, and checks `DRIVER_AGENTS_REF` matches in the
+reusable and `shopify-tool-smoke.yml`. Both use the job id `actionlint`, so the
 required-check context string is the same either way. `enforce_admins` stays **`false`** here, deliberately
 — which means an admin can still merge past a red `actionlint`. Requiring the check makes it binding for
 everyone else and puts a red X in front of an admin who previously had nothing to override; that was worth
@@ -464,8 +465,8 @@ having on its own. Flipping the flag would break this repo's own release habit �
 - **`driver-digital-agents`** (the `AGENTS_GH_PAT` fine-grained PAT) — the agent-rail actor: `GH_TOKEN`
   on every agent-acting `gh` step (the default `GITHUB_TOKEN` is used only where a post must not
   cascade — `claude.yml`'s failed-run notice), `dependabot-report`'s comment/reviewer-request
-  identity, and the author of `claude.yml`'s sentinel comments. It was the reviewer on the retired
-  review rails.
+  identity, and the author of the dispatcher's issues and revise-loop `@claude` comments. It was the
+  reviewer on the retired review rails.
 - **Anthropic billing** — `CLAUDE_CODE_OAUTH_TOKEN` (Max). **Never set `anthropic_api_key`** (it overrides
   OAuth and bills at API rates).
 
@@ -510,9 +511,9 @@ run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if c
 
 Retired with the review rails at v1.12.0 — nothing here reassigns a Bonsai task or requests a reviewer
 *on review completion* any more; the status moves are a PM's job until the Macroscope→Bonsai
-integration lands. Since v1.13.0 `claude.yml` requests the GitHub reviewer named on the issue body's
-`Reviewer:` line when it opens the PR, and since 2026-09-11 the dispatcher (driver-agents) assigns the
-reviewer in Bonsai when the PR reaches Internal Review.
+integration lands. The implementer requests no GitHub reviewer: since 2026-09-11 the dispatcher
+(driver-agents) assigns the reviewer in Bonsai when the PR reaches Internal Review, and that assignment is
+the review request.
 The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).

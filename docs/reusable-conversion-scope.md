@@ -12,6 +12,15 @@ sections have been removed from this document; what remains is the `claude.yml` 
 
 ## Update — 2026-09-30: go, spike first, as the next `claude.yml` wave
 
+**Built (branch `claude-yml-reusable`).** Open decision 1: `shopify-tool-smoke.yml` stays a copied
+whole file, and `.github/workflows/lint.yml` asserts its `DRIVER_AGENTS_REF` equals the reusable's.
+Open decision 2: `secrets: inherit`. The store handle is the `SHOPIFY_STORE_NAME` repository
+variable, which the reusable and the smoke test read directly as `vars.SHOPIFY_STORE_NAME` — a called
+workflow sees the caller's `vars`, so no `with:` input is needed. The stub's job carries a coarse
+`@claude` filter and the concurrency group (design decision 4 is superseded): a call is validated
+before the reusable's gate runs, so a fork PR's comments would otherwise fail red, and a job-level
+group keeps skipped runs from cancelling a queued `@claude`.
+
 **Phase 0 result — PASS, both paths.** The reusable was pinned at `97d40ff`; `main` was then moved to
 `578850d`, which changed the reusable's content, so the pin was behind and different.
 - **Green:** vite-plugin-shopify-clean issue #98 →
@@ -197,6 +206,8 @@ This keeps the gate in one file that a single repin updates fleet-wide, instead 
 shows skipped with zero runner minutes. If it unexpectedly provisions one, fall back to caller-level
 `jobs.<id>.if` — same expression moved up one file, a 10-line stub edit, not a redesign.
 
+*Superseded 2026-09-30: the handle is a repository variable read via `vars` (see Built, above).*
+
 **3. `SHOPIFY_STORE_NAME` must become a `with:` input.** A reusable-calling job may only use
 `name/uses/with/secrets/strategy/needs/if/concurrency/permissions` — no `env:`, no `steps:`. So the current
 job-level `env:` knob (`templates/github/claude.yml:120-128`, the file's *only* job-level env key) has nowhere
@@ -293,7 +304,8 @@ v1.8.0 added an audit-artifact upload (`templates/github/claude.yml:494-500`, mi
 `always()`, `env.*` read from `$GITHUB_ENV`, and `upload-artifact`'s own `ACTIONS_RUNTIME_TOKEN` auth are all
 unaffected by `workflow_call`. Two things do change:
 
-- **`env.SHOPIFY_STORE_NAME` in the artifact name must become `inputs.*`** — see design decision 3 above.
+- ~~**`env.SHOPIFY_STORE_NAME` in the artifact name must become `inputs.*`** — see design decision 3 above.~~
+  Superseded: job-level `env` reads `vars.SHOPIFY_STORE_NAME`, so the artifact name is unchanged.
 - **A called workflow does not get its own run id.** `github.run_id` and `github.run_attempt` resolve to the
   **caller's** run. That is the *desirable* outcome for the collector — the artifact lands in the consuming
   repo's run, where the box's nightly `audit-publish.sh` already looks. But it degrades the collision guard
