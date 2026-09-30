@@ -81,10 +81,10 @@ fi
 # claude.yml / shopify-tool-smoke.yml is the one per-repo value, restored below.
 FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml
             dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml
-            pull_request_template.md)
+            pull_request_template.md claude-standards.md)
 DELETE_FILES=(bonsai-status-sync.yml)
-# Where a kit file lives in a target repo: the PR template is the one outside .github/workflows/.
-dest() { case "$1" in pull_request_template.md) echo ".github/$1" ;; *) echo ".github/workflows/$1" ;; esac; }
+# Where a kit file lives in a target repo: the PR template and the house standards sit in .github/.
+dest() { case "$1" in pull_request_template.md|claude-standards.md) echo ".github/$1" ;; *) echo ".github/workflows/$1" ;; esac; }
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT

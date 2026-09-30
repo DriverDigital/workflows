@@ -408,11 +408,9 @@ produces a silent `startup_failure` — no check run, no notification).
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
 
-Two more reusables sit in `.github/workflows/` **retired** (v1.12.0, 2026-08-08): `pr-first-review.yml`
-(human no-ticket PR → `/code-review` + reviewer request) and `ticketed-review.yml` (claude[bot] ticketed
-PR → capped revise loop → Bonsai reviewer handoff). Macroscope reviews all PRs now; both files are
-`workflow_call`-only with **no callers anywhere**, preserved for re-activation — see the banner in each
-and [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
+Two review reusables, `pr-first-review.yml` and `ticketed-review.yml`, were retired at v1.12.0
+(2026-08-08) and deleted 2026-09-30; any tag through `v1.16.0` still holds them. Macroscope reviews
+all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
 carries the three caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
