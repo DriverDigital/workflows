@@ -61,26 +61,15 @@ The stub (`templates/github/claude.yml` from the release):
 ```yaml
 name: Claude Code
 
-# CALLER STUB — the implementer. Everything but the triggers, the concurrency group and the
-# permissions lives in the reusable this pins (DriverDigital/workflows .github/workflows/claude.yml),
-# including the actor gate that decides whether a trigger runs.
-#
-# Silent failures if edited:
-#   • Each of the five permissions is required. The reusable can only narrow them, and without
-#     `id-token: write` the Claude App token cannot mint.
-#   • `secrets: inherit` carries the org-level SHOPIFY_ALERT_WEBHOOK; an explicit map that forgot it
-#     would switch destructive-call alerts off on a green run.
-#   • The token exchange requires this file to match its copy on the default branch, so it only
-#     works once merged there. A mismatch is a green run that did nothing, which the reusable fails.
-# The store handle is the SHOPIFY_STORE_NAME repository variable; leave it unset without a store.
+# Caller stub for the implementer: triggers, concurrency and permissions live here, and everything
+# else in the reusable it pins, including the actor gate. The store handle is the
+# SHOPIFY_STORE_NAME repository variable.
 
-# issue_comment and pull_request_review_comment stay [created]: the implementer edits its own
-# comment, and subscribing to `edited` would re-run it on itself.
+# [created] only: the implementer edits its own comment, and `edited` would re-run it on itself.
 on:
   issue_comment:
     types: [created]
   issues:
-    # 'opened' only — 'assigned' would re-launch the implementer when an @claude'd issue is assigned.
     types: [opened]
   pull_request_review:
     types: [submitted]
@@ -89,17 +78,16 @@ on:
 
 jobs:
   claude:
-    # Coarse: load the reusable only when @claude is present. It holds the real actor gate, but a
-    # call is validated before that gate runs, so without this every comment or review on a fork
-    # PR (no secrets, read-only token) would fail red. Skipped runs also stay out of the
-    # concurrency group below, so a later comment without @claude cannot cancel a queued run.
+    # A coarse @claude filter. The reusable is validated before its own gate runs, so without this a
+    # fork PR's comments fail red; skipped runs also stay out of the concurrency group.
     if: >-
       (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
       (github.event_name != 'issues' && contains(github.event.comment.body || github.event.review.body, '@claude'))
-    # Review events carry pull_request.number, not issue.number.
     concurrency:
       group: claude-${{ github.event.pull_request.number || github.event.issue.number }}
       cancel-in-progress: false
+    # All five are needed: the reusable can only narrow them, and id-token mints the App token.
+    # inherit, not a map: an explicit map that missed SHOPIFY_ALERT_WEBHOOK would mute alerts.
     permissions:
       contents: write
       pull-requests: write
