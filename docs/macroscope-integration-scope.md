@@ -1,4 +1,4 @@
-# Macroscope integration — what was retired, the interim, and the build
+# Macroscope integration — what was retired, and the loop that replaced it
 
 Decision (Maria, 2026-08-08): Macroscope reviews every PR fleet-wide, alone — the custom review
 rails are retired so it gets a clean trial. Executed at `v1.12.0`. The driver: two months of
@@ -21,9 +21,8 @@ a usage split: Claude's Max-plan usage stays on the pipeline, Macroscope bills i
 ## What v1.12.0 retired
 
 - **`pr-first-review.yml` + `ticketed-review.yml` caller stubs** — deleted from `templates/github/`
-  and from every fleet repo. The reusables stay in `.github/workflows/` here, `workflow_call`-only
-  with no callers (fire on nothing, still linted). Re-activation = restore the stubs from git
-  history (pre-v1.12.0), cut a tag, wave.
+  and from every fleet repo. The reusables stayed here caller-less until 2026-09-30, when they were
+  deleted too; any tag through `v1.16.0` still holds them.
 - **`bonsai-status-sync`'s review leg** — the `pull_request_review` trigger and its handler
   (changes_requested → "Revisions Requested", approved → "Ready for QA"). Removed outright, not
   actor-gated: we haven't seen what Macroscope's bot does yet, and if it submits formal reviews the
@@ -32,25 +31,29 @@ a usage split: Claude's Max-plan usage stays on the pipeline, Macroscope bills i
   PRs, the Bonsai reviewer handoff (`/tasks/reviewer-handoff`) on ticketed PRs, and the
   claude[bot] revise loop.
 
-## Interim state (until the build below)
+## The loop (driver-agents, since 2026-09-18)
 
-- Auto-flips still live, polled by the dispatcher now: issue opened → **In Progress**; non-draft PR
-  dev-linked to the issue → **Internal Review**.
-- The status moves after Internal Review are **manual** (PM): Revisions Requested and Ready for QA.
-  Since 2026-09-11 the dispatcher assigns the reviewer in Bonsai at Internal Review (driver-agents
-  #12) and, once a person sets Revisions Requested, forwards the revisions to the PR as an `@claude`
-  comment. `claude.yml` still requests the GitHub reviewer named on the issue body when it opens the
-  PR (v1.13.0).
-- `claude.yml` still carries the ticketed-loop machinery (round-marker prompt branch, actor gate,
-  re-request step) — v1.13.0 rewrote the issue prompt around it and left it intact. It looks dead;
-  it is not — it's the re-entry point below. **Do not strip it in a claude.yml wave.**
+The revise loop lives in the driver-agents dispatcher (#34), not in the kit. Each hourly fire derives a
+claude[bot] PR's review state from GitHub, and while Macroscope has unresolved findings it posts at most
+one plain top-level `@claude` comment (tag mode, admitted by `claude.yml`'s `driver-digital-agents`
+carve-out), capped at three turns per PR; it holds the Bonsai hand-off until the loop exits. Design:
+driver-agents `docs/superpowers/specs/2026-09-18-macroscope-review-loop-design.md`.
+
+- Status: issue opened → **In Progress** and PR → **Internal Review** are the dispatcher's polling;
+  the dispatcher assigns the Bonsai reviewer at Internal Review, and the Bonsai assignment is the
+  review request. Revisions Requested and Ready for QA stay manual (PM); a Revisions Requested ticket
+  is forwarded to the PR as an `@claude` comment.
+- The kit's round-marker prompt arm and "Re-request ticketed review" step were **not** used — agent
+  mode never shows the model the comment, and the step posts a false "Revisions addressed". They go
+  in the next `claude.yml` wave with the `--add-reviewer` step ([`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)).
+- The Phase 2 Macroscope → Bonsai webhook receiver was **retired unbuilt** (Maria, 2026-09-29,
+  driver-agents #41): the dispatcher does both legs, and Macroscope has no outbound review webhook.
 
 ## Watch item — first Macroscope reviews
 
 Observe on the first few PRs: the bot's login/id, whether it submits **formal** reviews
-(approve / request changes) or comments only, and what its webhooks can carry. The webhook payload
-is the integration's input contract; the login/id matters if any deterministic rail ever needs to
-gate on it.
+(approve / request changes) or comments only. The login/id matters wherever a deterministic rail
+gates on it — the dispatcher's loop does.
 
 First observation (workflows#34, the retirement PR itself, 2026-08-08): login **`macroscopeapp`**;
 two check runs ("Macroscope - Approvability Check" / "Macroscope - Correctness Check", conclusion
@@ -58,57 +61,21 @@ two check runs ("Macroscope - Approvability Check" / "Macroscope - Correctness C
 one review submitted with state **`COMMENTED`** — no formal approve/request-changes on that PR.
 
 Second observation (workflows#41–45, 2026-08-22/24): the Approvability comment is **edited in
-place** as the PR changes (same comment id, verdict text replaced — a webhook consumer must handle
-`issue_comment.edited`, not just `created`); inline findings arrive as one review with inline
+place** as the PR changes (same comment id, verdict text replaced — a reader must take the current body, not the first); inline findings arrive as one review with inline
 comments, and the bot **resolves its own threads** when a push addresses them. On #44 it issued
 **a formal review, state `APPROVED`** (2026-08-24T13:36Z, after the Approvability verdict flipped
 to "Approved at `cf32d5e`") — so the case the retired review leg would have mis-mapped
-(bot APPROVE ≠ "Ready for QA") is real, not hypothetical, and the Phase 2 mapping must gate on
+(bot APPROVE ≠ "Ready for QA") is real, not hypothetical, and any status mapping must gate on
 actor.
 
 What earns the approval is **risk, not docs-versus-code**: Palmers#116, a low-risk code change,
 also got a formal APPROVED review, while the behavior-changing #42/#43/#45 got "not approved —
-merits human review" with **no** formal APPROVED review. The Phase 2 mapping therefore must not
+merits human review" with **no** formal APPROVED review. A status mapping therefore must not
 gate on file type — it reads the verdict, not the diff.
 
-One trap for the receiver: a Macroscope **spending-limit stall** ("Monthly spending limit reached",
+One trap for the loop: a Macroscope **spending-limit stall** ("Monthly spending limit reached",
 seen on foundrae-blackridge#173) renders in the PR UI identically to a correctness refusal — no
-approval, same not-approved shape. A receiver or a human has to tell the two apart before treating
+approval, same not-approved shape. The dispatcher or a human has to tell the two apart before treating
 "not approved" as a signal about the code.
 
-Still unobserved: a formal REQUEST_CHANGES, and the webhook payloads — keep watching.
-
-## The build (Phase 2 — not scheduled)
-
-A webhook receiver owned by **driver-agents** (the repo that holds Bonsai access; the
-2026-08-21 sketch is a GitHub App on Vercel — that repo's
-`docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md`, §9). Mapping Maria
-sketched:
-
-| Macroscope event | Action |
-|---|---|
-| Review finds issues | Bonsai → **Revisions Requested**; keep the task in the agents' queue; re-summon the implementer |
-| Approved (all agents) | Tag a human reviewer + Bonsai → **Internal Review** (richer than the old flat mapping) |
-
-Building blocks that already exist — reuse, don't rebuild:
-
-- **Re-summoning the implementer:** `claude.yml`'s round-marker branch revises a PR when
-  `driver-digital-agents` (id `261291955`) posts a comment carrying `<!-- ticketed-review-round -->`
-  + `@claude`. The receiver posts that comment via `AGENTS_GH_PAT` and the whole revise loop comes
-  back — Macroscope-driven instead of ticketed-review-driven.
-- **Human handoff:** done by the dispatcher since 2026-09-11 — it assigns the Bonsai reviewer at
-  Internal Review from `driver-agents/config/reviewers.json`; the GitHub-side reviewer request still
-  ships in `claude.yml` (v1.13.0) — one `gh pr edit --add-reviewer` with the same PAT.
-- **Status flips:** a public-API write too (note below); the bridge endpoint the retired sync rail
-  used is gone.
-
-2026-08-21: the bridge server that carried the old `/tasks/*` endpoints is retired. Phase 2 writes
-Bonsai status through the public API (PATCH /public-api/v1/tasks/{uuid} with task_status_id) using
-the Agents API key, and triggers the dispatcher via workflow_dispatch { task_uuid } in
-driver-agents. The Reviewer custom field is not readable through the public API; the reviewer
-comes from the issue body's **Reviewer:** line instead.
-
-Open questions for the build: Macroscope's webhook auth/payload shape — moot if the Check Run agents
-pilot (`docs/HANDOFF.md`, next steps) gives the receiver GitHub's own `check_run` event as its
-contract; where the receiver terminates; whether the remaining two status legs (issue → In Progress,
-PR → Internal Review) fold into the receiver eventually or stay with the dispatcher's polling.
+Still unobserved: a formal REQUEST_CHANGES.

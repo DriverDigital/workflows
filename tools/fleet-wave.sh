@@ -81,10 +81,10 @@ fi
 # claude.yml / shopify-tool-smoke.yml is the one per-repo value, restored below.
 FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml
             dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml
-            pull_request_template.md)
+            pull_request_template.md claude-standards.md)
 DELETE_FILES=(bonsai-status-sync.yml)
-# Where a kit file lives in a target repo: the PR template is the one outside .github/workflows/.
-dest() { case "$1" in pull_request_template.md) echo ".github/$1" ;; *) echo ".github/workflows/$1" ;; esac; }
+# Where a kit file lives in a target repo: the PR template and the house standards sit in .github/.
+dest() { case "$1" in pull_request_template.md|claude-standards.md) echo ".github/$1" ;; *) echo ".github/workflows/$1" ;; esac; }
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -171,13 +171,14 @@ targets() {
     else
       branches=$def
     fi
-    # A branch is a target when it carries claude.yml OR dependabot-validate.yml: the stub-only pairs
-    # hold nothing but the three Dependabot stubs, and skipping them would strand their pins one tag
-    # behind for ever — fleet-pin-audit.sh --stale could never read clean. The second probe runs only
-    # when the first 404s, and plan_and_push skips the files a target does not have.
+    # A branch is a target when it carries claude.yml, dependabot-validate.yml or claude-standards.md:
+    # the stub-only pairs hold nothing but the three Dependabot stubs, and a lint-only repo may hold
+    # just the standards; skipping either would leave drift fleet-pin-audit.sh --stale reports for ever.
+    # Each probe runs only when the one before 404s; plan_and_push skips files a target does not have.
     for b in $branches; do
       if api "repos/$ORG/$r/contents/.github/workflows/claude.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
-         || api "repos/$ORG/$r/contents/.github/workflows/dependabot-validate.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
+         || api "repos/$ORG/$r/contents/.github/workflows/dependabot-validate.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
+         || api "repos/$ORG/$r/contents/.github/claude-standards.md?ref=$b" --jq .sha >/dev/null 2>&1; then
         echo "$r $b"
       fi
     done
@@ -188,18 +189,23 @@ plan_and_push() {
   local repo=$1 branch=$2 tmp f cur
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
-  local changes=0 existing
-  existing=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].path') \
-    || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
-  # An empty listing here would make every grep below miss and the target report "(no changes)" —
-  # a repo silently dropped from the wave. Discovery proved it carries at least one kit file, so
-  # empty is a lie.
-  [ -n "$existing" ] || { echo "  $repo@$branch: empty .github/workflows listing" >&2; exit 3; }
-  # .github/ itself, for the PR template — its own assignment, so a failure here cannot hide
-  # behind the workflows listing above (errexit is off inside an assignment's substitution).
-  dotgithub=$(api "repos/$ORG/$repo/contents/.github?ref=$branch" --jq '.[] | select(.type == "file") | .path') \
+  local changes=0 existing dotgithub workflows kit_paths
+  # Each listing is its own assignment so a failure cannot hide behind another (errexit is off inside
+  # an assignment's substitution). A standards-only target has no .github/workflows, so that listing
+  # runs only when .github says the directory exists.
+  dotgithub=$(api "repos/$ORG/$repo/contents/.github?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list .github" >&2; exit 3; }
-  existing="$existing"$'\n'"$dotgithub"
+  existing=$(sed -n 's/^file //p' <<<"$dotgithub")
+  if grep -qxF "dir .github/workflows" <<<"$dotgithub"; then
+    workflows=$(api "repos/$ORG/$repo/contents/.github/workflows?ref=$branch" --jq '.[].path') \
+      || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
+    existing="$existing"$'\n'"$workflows"
+  fi
+  # Discovery proved the target carries at least one kit file, so a listing with none is a lie — and
+  # would otherwise report "(no changes)", silently dropping the repo from the wave.
+  kit_paths=$(for f in "${FULL_FILES[@]}"; do dest "$f"; done)
+  grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
+    || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
   for f in "${FULL_FILES[@]}"; do
     grep -qxF "$(dest "$f")" <<<"$existing" || continue

@@ -1,6 +1,6 @@
 # Scope: convert `claude.yml` into a reusable workflow
 
-**Status:** TABLED. **Written:** 2026-07-31 against `main` @ `9b70acf` (v1.6.0); refreshed 2026-08-02
+**Status:** GO, spike first (Maria, 2026-09-30) — the update below supersedes the TABLED decision. **Written:** 2026-07-31 against `main` @ `9b70acf` (v1.6.0); refreshed 2026-08-02
 (v1.9.0, then v1.11.0). **Citations re-verified 2026-08-22 at v1.13.0, where
 `templates/github/claude.yml` is 500 lines.** They are path-qualified: several filenames exist in both
 `templates/github/` (short caller stubs) and `.github/workflows/` (long reusables) with entirely
@@ -10,14 +10,36 @@ different content.
 **retired outright at `v1.13.0`** — the dispatcher in `driver-agents` polls Bonsai status now. Its
 sections have been removed from this document; what remains is the `claude.yml` half.*
 
-> ## Decision — Maria, 2026-08-02: TABLED
->
-> **`claude.yml` — Phase 0 and Phases 4–8.** Whether Claude App token minting survives inside a
-> cross-repo reusable is a question for another day. `claude.yml` stays a full per-repo file, and remains
-> the kit's one drift surface. Do not start Phase 4 without re-opening this decision.
->
-> **DEFERRED — [`identity-unification-scope.md`](identity-unification-scope.md).** Not ready to drop the
-> Claude App, so the Phase 0 spike is *not* retired by that project shipping first.
+## Update — 2026-09-30: go, spike first, as the next `claude.yml` wave
+
+Re-costed at **~10–15h** (from 20–27h). Identity unification was dropped the same day — the
+`claude[bot]` / `driver-digital-agents` split is load-bearing for the driver-agents review loop — so
+the Claude App stays and the Phase 0 spike is the only unknown: whether its token mint survives inside
+a SHA-pinned cross-repo reusable (#443 still open; user reports of this exact stub shape working).
+What changed since the sections below were written:
+
+- **Nothing in the fleet is customized.** The audit reads 89 of 90 files matching; the 18 `claude.yml`
+  copies differ only in `SHOPIFY_STORE_NAME`, which is set on Avara@develop alone (`"avara"`).
+- **The Claude App is installed org-wide** (`claude` on `all`), which closes open decision 4.
+- **Stub:** the four triggers (`issue_comment`, `issues`, `pull_request_review`,
+  `pull_request_review_comment`) and `concurrency` stay in the stub; the five job-level permissions go
+  on the stub's calling job and must cover what the reusable asks for (a mismatch is the "Error calling
+  workflow" failure on #443); `secrets: inherit`.
+- **Store handle:** a repository variable instead of a per-file value, which lets the wave's
+  handle-restore logic and the audit's normalization go — but only if `shopify-tool-smoke.yml` stops
+  carrying `SHOPIFY_STORE_NAME` too. Set the variable on Avara first. A variable is per repo, not per
+  branch; Palmers' eight branches are all `""` today, so that is fine until a country branch needs its
+  own store.
+- **The silent green-skip guard, corrected.** `skipped_due_to_workflow_validation_mismatch` is not a
+  declared output of the action, so a step reading it never fires. On the skip path the action ends
+  without a token, so guard on `steps.claude.outcome == 'success' && steps.claude.outputs.github_token
+  == ''` → `exit 1`. The spike proves this red path as well as the green one.
+- **The spike's pin must differ in content, not just SHA.** The token exchange compares the workflow
+  file with the default branch's, so step 3's "one trivial commit" must change the spike reusable
+  itself, or the run proves nothing.
+- **Ride-alongs land once**, in the reusable — [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md).
+  The Figma wiring adds `FIGMA_MCP_SECRET` as an optional secret.
+- **The driver-agents dispatcher needs no change**: it checks only that `claude.yml` exists.
 
 ### Research update — 2026-08-22 (recommendation; the decision stays Maria's)
 
@@ -79,9 +101,6 @@ form at all, and it must be settled before **any work on `claude.yml`**.
 
 ### Phase 0 spike — now a confirmation, not a go/no-go
 
-> **Skip this entire section if [`identity-unification-scope.md`](identity-unification-scope.md) ships first.**
-> Without the Claude App there is no OIDC exchange to validate, and this spike has nothing to test.
-
 `claude-code-action` mints the Claude App installation token by POSTing its OIDC token to Anthropic's
 `github-app-token-exchange`. Since 2025-08-12 that endpoint validates that **the workflow file is
 content-identical to the version on the repository's default branch** (error:
@@ -135,16 +154,6 @@ also broke the rail split — both review rails gated on `claude[bot]` and a PAT
 by nobody, green. Those rails are retired, so what is left is an unannounced identity change made under
 pressure, which is reason enough not to do it here.
 
-**This is now a deliberate project, not a forbidden shortcut.** Dropping the Claude App and unifying on
-`driver-digital-agents` is scoped in [`identity-unification-scope.md`](identity-unification-scope.md), which
-fixes the rail gates as a requirement rather than discovering them as a failure. The distinction is entirely
-whether the gates move in the same change.
-
-**If that project ships first, the Phase 0 spike above ceases to exist** — no App token means no OIDC
-exchange, no default-branch validation, and no `job_workflow_ref` question. The `claude.yml` stub also stops
-needing `id-token: write`, which was what made it the most privileged stub in the kit. Sequencing
-identity-first is therefore the cheaper order.
-
 ---
 
 ## Design decisions (already made, with reasoning)
@@ -197,7 +206,7 @@ reusables.** Making the actor gate an input would let a caller widen it.
 **6. Context semantics confirmed against official docs** — all of these keep meaning exactly what they mean
 today, because in a called workflow "the `github` context is always associated with the caller workflow":
 - `github.event.*` — the caller's full payload, unchanged. Already proven in-repo:
-  `.github/workflows/pr-first-review.yml` is `workflow_call`-only and reads `github.event.pull_request.*` in
+  `.github/workflows/pr-first-review.yml` (deleted 2026-09-30; see tag `v1.16.0`) was `workflow_call`-only and read `github.event.pull_request.*` in
   production at `:55`, `:56`, `:61` (the fork guard), `:80`, and `:113` (the checkout ref). If a reusable
   could not see the caller's `github.event`, the fork guard would compare an empty string and the rail would
   be broken on every run.
@@ -260,7 +269,7 @@ sees the caller, so `inherit` cannot suppress the error. Reproduced against the 
 (`.github/workflows/lint.yml:40`, invoked at `:64-65`):
 `property "not_declared" is not defined in object type {…}` → `exit 1`. The repo already demonstrates the
 split: the retired `pr-first-review` stub was `secrets: inherit`, yet the reusable it called still declares
-both secrets at `.github/workflows/pr-first-review.yml:51-53`. The constraint does **not** apply to
+both secrets at `.github/workflows/pr-first-review.yml:51-53` (tag `v1.16.0`). The constraint does **not** apply to
 `templates/github/*.yml`, which are caller stubs with no `workflow_call` trigger and therefore an untyped
 `secrets` context.
 
@@ -295,14 +304,12 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 
 | Phase | Work | Est. | Status |
 |---|---|---|---|
-| 0 | Spike: confirm OIDC-in-reusable (see the research update) | 3–4h | **tabled** |
-| 4 | Convert `claude.yml` — move the 500 lines **faithfully** | 7–9h | **tabled** |
-| 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
-| 7 | Fleet wave for `claude.yml`, the full-kit pairs ([`fleet-operations.md`](fleet-operations.md#the-fleet)) | 4–5h | **tabled** |
-| 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | **tabled** |
-| | **Tabled subtotal** | **20–27h** | |
-
-**If identity unification ships first, Phase 0 disappears** and 17–23h of the tabled subtotal remains.
+| 0 | Spike: confirm OIDC-in-reusable (see the research update) | 3–4h | **go** |
+| 4 | Convert `claude.yml` — move the 500 lines **faithfully**; repoint `lint.yml`'s tokenization step | 7–9h | **go** |
+| 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **go** |
+| 7 | Fleet wave for `claude.yml`, the full-kit pairs ([`fleet-operations.md`](fleet-operations.md#the-fleet)) | 4–5h | **go** |
+| 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | optional |
+| | **Original estimate** (re-costed ~10–15h on 2026-09-30, update at the top) | **20–27h** | |
 
 Phase 4 note: **66%** of `claude.yml` is comments (329 of 500 lines), and they are the
 institutional memory — the 2026-06-19 actor-gate incident, the `persist-credentials` 403 on private repos, the
@@ -371,9 +378,10 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
    different things — the wave size and the repin-target list. `docs/fleet-operations.md`'s
    [fleet table](fleet-operations.md#the-fleet) is the single home for both; take them from there and put
    the definition next to the number.
-4. **Confirm the Claude GitHub App is installed on all kit repos**, not just the 4 with prior `claude[bot]`
+4. ~~**Confirm the Claude GitHub App is installed on all kit repos**, not just the 4 with prior `claude[bot]`
    PRs. If it is missing in `plugins` / `client-workspaces` / `studio-sulzer`, they fail on their first real
-   ticket after the wave and it gets blamed on the conversion.
+   ticket after the wave and it gets blamed on the conversion.~~ **CLOSED 2026-09-30 — `claude` is installed
+   on `all`.**
 5. ~~**Confirm no repo pins `claude` as a required status check.**~~ **CLOSED 2026-08-02 — none do, so the
    `claude` → `claude / claude` rename breaks nothing.** Verified rather than assumed: all 42 protected
    branches across the 15 kit-touching repos were checked. 36 have no `required_status_checks` block at all;

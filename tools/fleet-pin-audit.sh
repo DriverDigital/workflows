@@ -105,12 +105,14 @@ scan_ref() {  # repo ref
     [ -f "$KIT/$f" ] || continue
     content_row "$repo" "$ref" "$f"
   done
-  # The PR template is the one kit file outside .github/workflows/ (waved since v1.15.0).
-  f=pull_request_template.md
-  if gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
-       -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
-    content_row "$repo" "$ref" "$f"
-  fi
+  # The kit files outside .github/workflows/: the PR template (waved since v1.15.0) and the house
+  # standards.
+  for f in pull_request_template.md claude-standards.md; do
+    if gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
+         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
+      content_row "$repo" "$ref" "$f"
+    fi
+  done
 }
 
 # Enumerate the fleet OUTSIDE the report subshell — a failure here has to be able to kill the run.

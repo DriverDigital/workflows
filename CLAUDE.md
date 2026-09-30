@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+@templates/github/claude-standards.md
+
 ## Read first
 
 - `docs/HANDOFF.md` — state of play, open decisions, what the next session should do.
@@ -14,13 +16,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 The public home of Driver's Bonsai→GitHub pipeline workflows. Two products live here:
 
-- **Reusables** in `.github/workflows/` — `workflow_call`-only. Three live Dependabot rails
-  (`dependabot-validate` / `-report` / `-keep-current`); two review rails (`pr-first-review`,
-  `ticketed-review`) are retired-inert with banners, callers deleted fleet-wide at v1.12.0.
+- **Reusables** in `.github/workflows/` — `workflow_call`-only: the three Dependabot rails
+  (`dependabot-validate` / `-report` / `-keep-current`). The two review rails retired at v1.12.0 were
+  deleted 2026-09-30; any tag through `v1.16.0` still holds them.
 - **The onboarding kit** in `templates/github/` — what fleet repos copy into `.github/workflows/`:
   three caller stubs pinning a reusable by immutable SHA, plus three whole-file workflows
   (`claude.yml` the implementer, `shopify-tool-smoke.yml` store repos only, `lint.yml`) and
-  `pull_request_template.md` (lives at `.github/`; the wave carries it since v1.15.0) and
+  `pull_request_template.md` and `claude-standards.md` (both live at `.github/`; the wave carries them) and
   `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
   Kit install conventions: `templates/github/README.md`.
 
@@ -33,10 +35,13 @@ Two more files in `.github/workflows/` are this repo's own CI, not products: `li
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
 different files** with the same name and the same job id `actionlint` (the required-check context).
 
-`claude.yml` is a full per-repo copy, not a reusable — the kit's main drift surface. Its ticketed-loop
-machinery (round-marker prompt arm, actor carve-out, re-request step) looks dead with the review rails
-gone; it is the designed re-entry point for the Macroscope revise loop
-(`docs/macroscope-integration-scope.md` — live, not research). Do not strip it.
+`claude.yml` is a full per-repo copy, not a reusable — the kit's main drift surface; converting it
+to a reusable + stub is the plan for the next `claude.yml` wave, spike first
+(`docs/claude-yml-wave-plan.md`). Its round-marker prompt arm and
+re-request step are dead and go in that wave: the Macroscope revise loop lives in the driver-agents
+dispatcher, which summons the implementer with a plain tag-mode `@claude` (driver-agents spec
+2026-09-18 §3, §9). The actor carve-out that admits `driver-digital-agents` is what the loop runs
+through — keep it.
 
 Sibling repo: `driver-agents` (private; the dispatcher, plus the canonical Shopify instructions
 pinned by `DRIVER_AGENTS_REF`) — README, *How the repos fit together*. `driver-bonsai-mcp`, the
@@ -113,6 +118,11 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Two deliberate exceptions use
   the default token: `claude.yml`'s failed-run notice (posts as github-actions[bot] so it cannot
   re-trigger the workflow) and this repo's `dependabot-auto-merge.yml`.
+- `claude.yml`'s `issue_comment` and `pull_request_review_comment` triggers stay `types: [created]`.
+  The implementer's final answer edits its own comment; subscribing to `edited` re-runs it on itself.
+- Two identities, and the split is load-bearing: `claude[bot]` implements and authors PRs,
+  `driver-digital-agents` dispatches, summons and authors issues. The actor gate and driver-agents'
+  `dispatch.sh` guards both key on it.
 - Never write the skip-ci token in a commit message that isn't meant to skip CI — GitHub scans the
   whole message, and a PR with *no* check runs looks healthy.
 - Branch protection: `PATCH` the subresource; a `PUT` replaces the whole object and drops the
