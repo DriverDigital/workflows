@@ -213,9 +213,16 @@ jobs:
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
           # For SHOPIFY_AUDIT_CONTEXT below: the issue (issues/issue_comment rails) or PR number.
           ISSUE_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number || '' }}
+          PR_NUMBER: ${{ github.event.pull_request.number || (github.event.issue.pull_request && github.event.issue.number) || '' }}
         run: |
           if [ -z "$SHOPIFY_STORE_NAME" ] || [ -z "$DRIVER_ENGINEERING_APP_CLIENT_ID" ] || [ -z "$DRIVER_ENGINEERING_APP_CLIENT_SECRET" ] || [ -z "$SHOPIFY_SHOP" ] || [ -z "$GH_TOKEN" ]; then
             echo "Shopify store tooling not configured for this repo — skipping"; exit 0
+          fi
+          # A fork PR's head is code nobody here wrote, and the run checks it out with Bash on the
+          # allow-list — the actor gate vouches for who asked, not for what is on disk. Unknown counts
+          # as a fork.
+          if [ -n "$PR_NUMBER" ] && [ "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq .head.repo.fork 2>/dev/null)" != "false" ]; then
+            echo "Fork PR (or unreadable PR) — no store credentials on this run"; exit 0
           fi
           # SHOPIFY_STORE_NAME becomes a filename below. Reject anything that isn't a plain store
           # handle (no separators, no traversal, no control characters). This is a misconfiguration,
@@ -356,7 +363,9 @@ jobs:
           # Full transcript in the job log. The default prints a 7-field summary and drops the result
           # text, which is why the Avara #195 run could not be diagnosed. The log, not an artifact, on
           # purpose: the log path masks registered secrets; an uploaded execution file would not.
-          show_full_output: true
+          # Private repos only: a public repo's log is world-readable, and masking misses anything
+          # derived from a secret (a minted token, a transformed value).
+          show_full_output: ${{ github.event.repository.private }}
           # Subscription billing (Max plan). Verified input key for claude-code-action@v1.
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           # Maria's rule, enforced rather than requested: no Co-Authored-By trailer on commits, no

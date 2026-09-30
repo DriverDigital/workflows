@@ -126,7 +126,8 @@ HANDLE_RE='^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"[^"]*"'  # portable ERE 
 # cannot check — so refuse instead of guessing.
 handle_of() {
   local keys quoted
-  keys=$(grep -E '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" | grep -cvF 'vars.SHOPIFY_STORE_NAME' || true)
+  keys=$(grep -E '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" \
+    | grep -cvE '^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*\$\{\{ vars\.SHOPIFY_STORE_NAME \}\}[[:space:]]*$' || true)
   quoted=$(grep -cE "$HANDLE_RE" "$1" || true)
   [ "$keys" = "$quoted" ] || { echo "$1: SHOPIFY_STORE_NAME is not a double-quoted value" >&2; return 3; }
   sed -nE 's/^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"([^"]*)".*/\1/p' "$1" | head -1
@@ -294,7 +295,9 @@ BLOCKED=0
 # silently first, so a blocked repo stops it before anything is written rather than halfway.
 if [ "$DRY" -eq 0 ]; then
   DRY=1
-  while read -r repo branch; do [ -z "$repo" ] || plan_and_push "$repo" "$branch" >/dev/null; done <<<"$TARGETS"
+  # Called from an `if` body, never as the right side of `||`: that context disables errexit for
+  # the whole function, and a failed read would then plan on as if nothing happened.
+  while read -r repo branch; do if [ -n "$repo" ]; then plan_and_push "$repo" "$branch" >/dev/null; fi; done <<<"$TARGETS"
   DRY=0
   [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
 fi
