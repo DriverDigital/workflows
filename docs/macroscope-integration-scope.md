@@ -68,6 +68,12 @@ to "Approved at `cf32d5e`") — so the case the retired review leg would have mi
 (bot APPROVE ≠ "Ready for QA") is real, not hypothetical, and any status mapping must gate on
 actor.
 
+Third observation (workflows#60, 2026-09-30): the repo setting caps **automatic** correctness reviews
+at **three per PR** — later pushes get a skipped check reading "Maximum runs reached" and no findings,
+which looks like a clean pass. Posting `@macroscope-app review this PR` runs one on the current head
+(the approvability check re-runs with it). The PR assistant keeps replying in a thread until full
+output or the like is disabled; an accepted residual is answered once, with the decision, and left.
+
 What earns the approval is **risk, not docs-versus-code**: Palmers#116, a low-risk code change,
 also got a formal APPROVED review, while the behavior-changing #42/#43/#45 got "not approved —
 merits human review" with **no** formal APPROVED review. A status mapping therefore must not

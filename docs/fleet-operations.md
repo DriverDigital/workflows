@@ -5,21 +5,21 @@ release sequence is [`README.md`](../README.md) → *Release + repin order*** �
 restate it. What lives here is the operational knowledge around it: how a wave is executed, what a
 pilot can and cannot prove, and where the drift detector is blind.
 
-Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v1.13.0 wave.
+Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v1.17.0 wave.
 
 ---
 
 ## The fleet
 
-**20 repo@branch pairs** carry kit stubs after the v1.13.0 wave (2026-08-22; verified by a live
-audit run across the 23 pairs it enumerated then — the 20 targets plus the three that carried no
-pins — **51 pins at `f6d25d34`, 72 content matches, zero drift**; the drop from v1.12.0's 69/90 is exactly
-the 18 `bonsai-status-sync.yml` copies the wave deleted). The split matters because two different
-numbers are correct depending on the question:
+**21 repo@branch pairs** are wave targets after the v1.17.0 wave (2026-10-01; verified by the audit the
+same night — **69 pins at `359505a7`, 110 content matches, one comment-only drift** in driver-agents'
+hand-installed `lint.yml`, outside the wave). Since v1.17.0 the wave also discovers a branch by
+`.github/claude-standards.md`, which is how driver-engineering-app (no stubs, content only) became the
+21st. The split matters because two different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **20** | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 22) and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **20** (+1 content-only) | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 22) and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deleted — verified branch-by-branch across all 618 org branches beforehand: zero rows where one was present without the other.) |
 | **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 

@@ -25,10 +25,10 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.16.0`** (`ff3ff34`, 2026-09-10) — every third-party action floats on its major tag,
-in the kit and the reusables, and Dependabot proposes majors only; hours after `v1.15.0`, which made
-the issue path unable to end green without a PR. Both waved to all 20 targets the same day — see
-[`v1.16.0`](#v1160-ff3ff34-2026-09-10) below. The three Dependabot stubs are pinned to `ff3ff34`.
+Latest tag **`v1.17.0`** (`359505a`, 2026-10-01) — `claude.yml` is a reusable + thin stub carrying the
+wave's ride-alongs, a Trusted-authors gate refuses outsiders and fork PRs, and the store handle is a
+repository variable. Canaried, then waved to all 21 targets the same night — see
+[`v1.17.0`](#v1170-359505a-2026-10-01) below. The four caller stubs are pinned to `359505a`.
 
 **State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
 
@@ -50,6 +50,39 @@ resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
 `v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → `v1.15.0` → **`v1.16.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.17.0` (`359505a`, 2026-10-01)
+
+`claude.yml` is a reusable + thin stub (#60; the Phase 0 spike passed 2026-09-30). Canaried on
+`vite-plugin-shopify-clean`, then waved to all **21** targets the same night (20 pushed, the canary
+already current; driver-engineering-app joined the targets through its `.github/claude-standards.md`).
+Audit the same night: **69 pins at `359505a7`, 110 files matching `templates/`, 1 drifted** —
+driver-agents' hand-installed `lint.yml` (comment-only; the wave never reaches that repo; a to-do is
+filed there).
+
+- **The reusable** carries every ungated ride-along from `docs/claude-yml-wave-plan.md`: the
+  round-marker arm and re-request step are gone, no GitHub reviewer is requested, PR bodies carry
+  `Bonsai task:` and name store changes, the house comment and commit rules, Figma MCP, the blockquote
+  and `DRIVER_AGENTS_REF` at driver-agents `0397630`, and a guard that fails a silent validation skip.
+  Beyond the plan: a "Trusted authors" step refuses outsider-authored issues and PRs, and fork PRs,
+  before checkout; the store token is minted in its own step so the log masks it; the full transcript
+  is on for private repos only.
+- **Kit:** the `claude.yml` stub (triggers, concurrency, five permissions, `secrets: inherit`),
+  `pr-bonsai-link.yml` installed beside `claude.yml`, the PR template's `Bonsai task:` line,
+  `shopify-tool-smoke.yml` reading the `SHOPIFY_STORE_NAME` repository variable, and
+  `claude-standards.md` gains the `ponytail:` comment rule. The wave installs `pr-bonsai-link.yml`
+  and refuses a store repo until its variable holds the handle, checked fleet-wide before the first
+  push; the audit flags a missing `pr-bonsai-link.yml` and no longer normalizes the handle.
+- **Canary** (vite-plugin-shopify-clean #101 → PR #102, run 36786817542): App token obtained, no
+  `Skipping action due to workflow validation`, the Trusted-authors step listed collaborators with
+  the default token, the PR carried `Bonsai task: none` and passed `bonsai-link`; a review event and
+  a plain comment each skipped the job with no runner. Closed unmerged.
+- **Macroscope:** approvability stayed "not approved" on the release-order finding (the kit ships
+  the stub only at step 2); answered in-thread and merged past by decision. Its manual pass over the
+  commits after its third automatic run found nothing. The transcript-on-private-repos residual is
+  accepted in its thread.
+- **Not yet proven:** Avara's first store run (`Provisioned store 'avara'` and the mint step), one
+  real ticket end to end, and `bonsai-link` as a required check per repo — `docs/HANDOFF.md`.
 
 ### `v1.16.0` (`ff3ff34`, 2026-09-10)
 

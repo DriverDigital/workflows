@@ -13,7 +13,7 @@ reusable instead of in 18 copies. Design,
 risks and the corrected silent-skip guard: [`reusable-conversion-scope.md`](reusable-conversion-scope.md)
 (2026-09-30 update at the top).
 
-**Built on branch `claude-yml-reusable`:** the conversion and every ride-along below except the two
+**Shipped in v1.17.0 (#60, 2026-10-01):** the conversion and every ride-along below except the two
 gated ones (WebSearch / WebFetch, and the optional `repository_dispatch`).
 
 The model does not change: `--model fable --effort xhigh` stays (Maria, 2026-09-30 — quality is good,
@@ -50,12 +50,11 @@ PRs as it refuses outsiders. Cost: no `@claude` on a contributor's fork PR.
 3. ~~Merge and tag; at step 2 of the release order, replace `templates/github/claude.yml` with the
    stub, pinned to the tag~~ — done: `v1.17.0` (`359505a`, 2026-10-01); the stub is in the kit.
 4. ~~Set the repository variable `SHOPIFY_STORE_NAME=avara` on Avara~~ — set 2026-10-01.
-5. `tools/fleet-wave.sh --dry-run`, then canary with `--only vite-plugin-shopify-clean`: one
-   `@claude` issue must open a `claude[bot]` PR carrying a `Bonsai task:` line, with no
-   `Skipping action due to workflow validation` in the log; a plain comment must skip the job with no
-   runner, and the "Trusted authors" step must list collaborators with the default token (if it
-   cannot, switch that step to `AGENTS_GH_PAT`).
-6. Wave, then `tools/fleet-pin-audit.sh --stale` must read converged. On Avara, the first store run's
+5. ~~Dry-run, then canary with `--only vite-plugin-shopify-clean`~~ — passed 2026-10-01 (issue #101 →
+   PR #102, run 36786817542): every assertion held, the Trusted-authors step listed collaborators with
+   the default token.
+6. ~~Wave, then `tools/fleet-pin-audit.sh --stale` must read converged~~ — 21 targets, 2026-10-01; the
+   one drifted row is driver-agents' hand-installed `lint.yml`, outside the wave. Still open: on Avara, the first store run's
    log must read `Provisioned store 'avara'` — the proof that `vars` resolves against the caller —
    and the "Mint the store token as a log mask" step must pass. Never print the token cache to
    prove the mask: if the mask did not register, that writes the live token into the log.

@@ -1,21 +1,17 @@
-# Handoff — 2026-09-30
+# Handoff — 2026-10-01
 
 State of play for the next session. Conventions, how-tos and release history live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
 
 ## Where things stand
 
-2026-09-30: **the Phase 0 spike passed**, green and red: the Claude App token mints inside a
-SHA-pinned cross-repo reusable, and the corrected silent-skip guard turns a validation skip red. Runs
-and detail: [`reusable-conversion-scope.md`](reusable-conversion-scope.md), "Phase 0 result".
+2026-10-01: **v1.17.0 is released and waved.** `claude.yml` is a reusable + thin stub (#60), the canary
+on vite-plugin-shopify-clean passed every assertion in [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)
+"Running it", all 21 targets are on the tag, and the audit reads converged but for driver-agents'
+hand-installed `lint.yml` (comment-only; a to-do is filed there). Release record and what is not yet
+proven: [`README.md`](../README.md#v1170-359505a-2026-10-01).
 
-**The conversion is built** on branch `claude-yml-reusable` (PR open, awaiting Macroscope): the
-`claude.yml` reusable with every ungated ride-along, `pr-bonsai-link.yml`, the store handle as a
-repository variable, and the tools and lint that follow. The kit stub is parked in
-[`claude-yml-wave-plan.md`](claude-yml-wave-plan.md) until release step 2; that doc's "Running it"
-is the release checklist from merge to the real ticket.
-
-Earlier the same day (#59) the to-do list was re-validated and Maria settled the open decisions:
+2026-09-30 (#59) settled the decisions the release was built on:
 
 - **The two retired review rails are deleted** from `.github/workflows/` — this repo was their last
   home (fleet callers went at v1.12.0); any tag through `v1.16.0` still holds them.
@@ -35,9 +31,6 @@ Earlier the same day (#59) the to-do list was re-validated and Maria settled the
   `CLAUDE.md` here; fleet repos copy it once and the wave keeps it current (added to `FULL_FILES` and
   the audit).
 
-The last release is still [`v1.16.0`](../README.md#v1160-ff3ff34-2026-09-10) (2026-09-10). The audit
-reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-do is filed there).
-
 ## Open decisions
 
 - **`dependabot-report`'s future.** It runs Claude automatically on every Dependabot PR (verdict over
@@ -46,14 +39,14 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
 
 ## Watch-items
 
-- **The first real ticket through v1.15.0.** The guard step should stay quiet; if it fires, the
-  failure note lands on the issue and the transcript is in the run log (`show_full_output`).
+- **The first real ticket through v1.17.0.** The guard steps should stay quiet; if one fires, the
+  failure note lands on the issue and, on a private repo, the transcript is in the run log.
 - **Major bumps of the kit's floated actions.** `actions/checkout@v7`, `actions/upload-artifact@v7`
   and `anthropics/claude-code-action@v1` float in the kit; when a new major ships, a fleet repo's
   Dependabot moves ahead and the audit reads the kit as behind until the kit's major is bumped.
   Below a major boundary the foundrae-blackridge #174 drift-and-rollback cannot recur.
-- **The cooldown exemption** is unverified live until a tag lands and a repo carrying the kit block
-  bumps the same day; vite-plugin-shopify-clean is the one to watch at the next tag.
+- **The cooldown exemption** is still unverified live: at v1.17.0 the wave repinned within minutes of
+  the tag, so Dependabot had nothing to bump. vite-plugin-shopify-clean remains the one to watch.
 - **WebSearch/WebFetch** stay off until #690 ships a fix (still open at 2026-07-28); the action
   floats on `v1`, so the fix arrives on its own and the caveat comment in `claude.yml` is what gets
   removed.
@@ -64,17 +57,11 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
 
 ## Recommended next steps
 
-1. **Release the conversion — ready (Maria, 2026-10-01).** PR #60 is complete: CI green, every
-   Macroscope thread answered. Its verdict stays "not approved" on one finding, that the docs describe
-   a stub the kit only gets at release step 2; that is the release order, answered in-thread, and
-   merging past it is approved (`gh pr merge --admin`). driver-agents #43 is merged and pinned at
-   `0397630`; Avara's `SHOPIFY_STORE_NAME` variable is set (the secret of that name is gone);
-   driver-engineering-app does not block and is now a wave target through its
-   `.github/claude-standards.md`. The checklist is [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)
-   "Running it", with the stub parked there to land at step 2. Run the tools with
-   `GH_TOKEN=$(gh auth token --user mcarter-astronautdev)`; the default account cannot see the
-   private fleet.
-2. **One real ticket end to end** on the new rail, transcript read.
+1. **One real ticket end to end** on the new rail, transcript read (private repos log it). On Avara,
+   the first store run's log must read `Provisioned store 'avara'` and the "Mint the store token as
+   a log mask" step must pass — never print the token cache to prove the mask.
+2. **Make `bonsai-link` a required check per repo** — the wave has installed it everywhere `claude.yml`
+   is; the context is the job id `bonsai-link` (kit README).
 3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
    `dest()` helper is where a second root goes.
