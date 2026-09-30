@@ -12,3 +12,6 @@ current. Edit it in `DriverDigital/workflows` (`templates/github/claude-standard
   make junior-level comments (e.g. saying what a for loop does), and never put requirements, decisions,
   or history in a comment. In a theme repo, each Liquid file opens with a short `{% comment %}` saying
   what it is, where it's used, and any setup it needs.
+- **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
+  hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
+  need no comment.
