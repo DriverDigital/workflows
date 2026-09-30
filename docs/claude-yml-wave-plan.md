@@ -7,9 +7,9 @@ wave is run. Release mechanics live in [`README.md`](../README.md) ("Release + r
 
 ## Shape: the wave is the reusable conversion
 
-Maria, 2026-09-30: go on converting `claude.yml` to a reusable + thin stub, **spike first**. If the
-spike passes, the next wave ships the stub, and every ride-along below lands once in the reusable
-instead of in 18 copies. If it fails, the ride-alongs ship as an ordinary whole-file wave. Design,
+Maria, 2026-09-30: go on converting `claude.yml` to a reusable + thin stub, spike first. **The spike
+passed the same day**, so the next wave ships the stub, and every ride-along below lands once in the
+reusable instead of in 18 copies. Design,
 risks and the corrected silent-skip guard: [`reusable-conversion-scope.md`](reusable-conversion-scope.md)
 (2026-09-30 update at the top).
 
@@ -35,8 +35,8 @@ None is gated except where stated.
 
 ## Running it
 
-1. Spike (reusable-conversion-scope, Phase 0) on one repo, including the red-run path of the guard.
-2. Edit the kit; run the four local CI checks (`CLAUDE.md` → Commands), including the tokenization
+1. ~~Spike~~ — passed 2026-09-30, green and red (reusable-conversion-scope, Phase 0 result).
+2. Write the reusable and the stub, then edit the kit; run the four local CI checks (`CLAUDE.md` → Commands), including the tokenization
    step, which is the only automated check on the prompt.
 3. Merge, tag, repin, then `tools/fleet-wave.sh --dry-run` and canary with
    `--only vite-plugin-shopify-clean`. On the canary, assert the log does not contain

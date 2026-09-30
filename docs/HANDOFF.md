@@ -5,15 +5,19 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
-2026-09-30: the to-do list was re-validated against driver-agents, plugins and the fleet, and
-Maria settled the open decisions. This PR records them:
+2026-09-30: **the Phase 0 spike passed**, green and red: the Claude App token mints inside a
+SHA-pinned cross-repo reusable, and the corrected silent-skip guard turns a validation skip red. Runs
+and detail: [`reusable-conversion-scope.md`](reusable-conversion-scope.md), "Phase 0 result". The
+conversion is unblocked.
+
+Earlier the same day (#59) the to-do list was re-validated and Maria settled the open decisions:
 
 - **The two retired review rails are deleted** from `.github/workflows/` — this repo was their last
   home (fleet callers went at v1.12.0); any tag through `v1.16.0` still holds them.
 - **Identity unification is dropped**, its scope doc deleted: the `claude[bot]` /
   `driver-digital-agents` split is load-bearing for the driver-agents review loop. The two invariants
   worth keeping moved into `CLAUDE.md`.
-- **`claude.yml` becomes a reusable + stub — go, spike first**, and the next `claude.yml` wave is that
+- **`claude.yml` becomes a reusable + stub**, and the next `claude.yml` wave is that
   conversion carrying every ride-along: [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md),
   [`reusable-conversion-scope.md`](reusable-conversion-scope.md).
 - **The model stays `fable`**; Fable billing is no longer tracked. **Marcella-NYC-Main review
@@ -55,15 +59,14 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
 
 ## Recommended next steps
 
-1. **Reusable spike** on one repo (reusable-conversion-scope, Phase 0), including the red path of
-   the corrected silent-skip guard.
-2. **The next `claude.yml` wave** — as the conversion if the spike passes, a whole-file wave if not:
-   [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md).
-3. **One real ticket end to end** on the new rail, transcript read.
-4. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
+1. **The next `claude.yml` wave, as the reusable conversion**: write the reusable and stub with
+   every ride-along, canary on vite-plugin-shopify-clean (prove the actor gate's no-runner skip
+   there), wave — [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md).
+2. **One real ticket end to end** on the new rail, transcript read.
+3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
    `dest()` helper is where a second root goes.
-5. **Fleet `dependabot.yml` standard** (to-do): the kit block, cooldown included, is the candidate;
+4. **Fleet `dependabot.yml` standard** (to-do): the kit block, cooldown included, is the candidate;
    the gaps are in [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
 
 ## Pointers

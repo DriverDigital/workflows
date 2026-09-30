@@ -1,6 +1,6 @@
 # Scope: convert `claude.yml` into a reusable workflow
 
-**Status:** GO, spike first (Maria, 2026-09-30) — the update below supersedes the TABLED decision. **Written:** 2026-07-31 against `main` @ `9b70acf` (v1.6.0); refreshed 2026-08-02
+**Status:** GO (Maria, 2026-09-30); the Phase 0 spike passed the same day — result below. The update supersedes the TABLED decision. **Written:** 2026-07-31 against `main` @ `9b70acf` (v1.6.0); refreshed 2026-08-02
 (v1.9.0, then v1.11.0). **Citations re-verified 2026-08-22 at v1.13.0, where
 `templates/github/claude.yml` is 500 lines.** They are path-qualified: several filenames exist in both
 `templates/github/` (short caller stubs) and `.github/workflows/` (long reusables) with entirely
@@ -11,6 +11,19 @@ different content.
 sections have been removed from this document; what remains is the `claude.yml` half.*
 
 ## Update — 2026-09-30: go, spike first, as the next `claude.yml` wave
+
+**Phase 0 result — PASS, both paths.** The reusable was pinned at `97d40ff`; `main` was then moved to
+`578850d`, which changed the reusable's content, so the pin was behind and different.
+- **Green:** vite-plugin-shopify-clean issue #98 →
+  [run 36658685245](https://github.com/DriverDigital/vite-plugin-shopify-clean/actions/runs/36658685245):
+  `App token successfully obtained`, no skip warning, draft PR #99 authored by `app/claude`. The
+  exchange validates the caller stub only; SHA pins stay.
+- **Red:** `workflow_dispatch` from a branch whose caller differed from the default branch →
+  [run 36658774480](https://github.com/DriverDigital/vite-plugin-shopify-clean/actions/runs/36658774480):
+  the action warned `Skipping action due to workflow validation` and ended green; the guard below
+  (`outcome == 'success' && outputs.github_token == ''` → `exit 1`) turned the run red.
+- Everything was deleted afterwards (both files, PR, issue, branches). Not exercised: the
+  actor gate's skipped-with-no-runner negative (design decision 2), which is left for the canary.
 
 Re-costed at **~10–15h** (from 20–27h). Identity unification was dropped the same day — the
 `claude[bot]` / `driver-digital-agents` split is load-bearing for the driver-agents review loop — so

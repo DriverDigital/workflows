@@ -36,7 +36,7 @@ Two more files in `.github/workflows/` are this repo's own CI, not products: `li
 different files** with the same name and the same job id `actionlint` (the required-check context).
 
 `claude.yml` is a full per-repo copy, not a reusable — the kit's main drift surface; converting it
-to a reusable + stub is the plan for the next `claude.yml` wave, spike first
+to a reusable + stub is the plan for the next `claude.yml` wave; the spike passed 2026-09-30
 (`docs/claude-yml-wave-plan.md`). Its round-marker prompt arm and
 re-request step are dead and go in that wave: the Macroscope revise loop lives in the driver-agents
 dispatcher, which summons the implementer with a plain tag-mode `@claude` (driver-agents spec

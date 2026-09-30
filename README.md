@@ -435,7 +435,7 @@ against every stub in `templates/` and they must be repinned and re-copied every
 ride along with the next release that actually changes a reusable.
 
 **`claude.yml` is still a per-repo copy** — the kit's main drift surface and the reason re-copies need care.
-Converting it to a reusable is a go, spike first (2026-09-30), as the next `claude.yml` wave:
+Converting it to a reusable is a go (2026-09-30; the spike passed the same day), as the next `claude.yml` wave:
 [`docs/claude-yml-wave-plan.md`](docs/claude-yml-wave-plan.md),
 [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
 
