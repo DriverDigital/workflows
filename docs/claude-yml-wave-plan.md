@@ -49,7 +49,8 @@ None is gated except where stated.
 5. `tools/fleet-wave.sh --dry-run`, then canary with `--only vite-plugin-shopify-clean`: one
    `@claude` issue must open a `claude[bot]` PR carrying a `Bonsai task:` line, with no
    `Skipping action due to workflow validation` in the log; a plain comment must skip the job with no
-   runner.
+   runner, and the "Trusted authors" step must list collaborators with the default token (if it
+   cannot, switch that step to `AGENTS_GH_PAT`).
 6. Wave, then `tools/fleet-pin-audit.sh --stale` must read converged. On Avara, the first store run's
    log must read `Provisioned store 'avara'` — the proof that `vars` resolves against the caller.
 7. Run one real ticket through with the transcript on (`show_full_output`) and read it before calling

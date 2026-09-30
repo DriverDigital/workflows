@@ -120,6 +120,11 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   reusable's job-level `if:` is the actor gate; the stub's is a coarse `@claude` filter that keeps
   a fork PR's comments from loading the reusable (a call is validated before its gate runs) and
   keeps skipped runs out of the job-level concurrency group.
+- The reusable's "Trusted authors" step is the prompt-injection defense: only collaborators,
+  `driver-digital-agents` and `*[bot]` reach Claude through `include_comments_by_actor`, and a run on
+  an issue or PR written by anyone else is refused, since the action cannot filter a body. It fails
+  the run when the collaborator list cannot be read — never fall back to an empty filter, which
+  includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
   default token: `claude.yml`'s failed-run notice (posts as github-actions[bot] so it cannot re-trigger
   the workflow) and its no-PR check, and this repo's `dependabot-auto-merge.yml`.
