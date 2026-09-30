@@ -433,6 +433,13 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
    > true no-file mechanism and are Enterprise Cloud (DriverDigital is on Team); they fit only
    > `dependabot-validate`, whose move would break the `workflow_run` name-match to `-report`.
 
+   > **Revisit with the Admin API gate (raised 2026-10-01, driver-engineering-app PR #7).** If the
+   > gate refuses any `job_workflow_sha` outside an approved set, that set becomes the effective pin,
+   > and stubs calling the reusable by `@v1` would need no fleet wave for a reusable-only change.
+   > Until the gate exists, a moved tag reaches every store-secret repo with no canary, so SHA pins
+   > stay. Moving to `@v1` means reworking `fleet-wave.sh` guard 1, the audit's reference check and
+   > `lint.yml`'s placeholder guard in the same release.
+
 ---
 
 ## Provenance
