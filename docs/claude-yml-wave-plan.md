@@ -53,7 +53,8 @@ None is gated except where stated.
    cannot, switch that step to `AGENTS_GH_PAT`).
 6. Wave, then `tools/fleet-pin-audit.sh --stale` must read converged. On Avara, the first store run's
    log must read `Provisioned store 'avara'` — the proof that `vars` resolves against the caller —
-   and the "Mint the store token as a log mask" step must pass, so the token prints as `***`.
+   and the "Mint the store token as a log mask" step must pass. Never print the token cache to
+   prove the mask: if the mask did not register, that writes the live token into the log.
 7. Run one real ticket through with the transcript on (`show_full_output`) and read it before calling
    the wave done. Then make `bonsai-link` a required check per repo.
 
