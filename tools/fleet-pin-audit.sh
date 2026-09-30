@@ -12,9 +12,8 @@
 #   3. CONTENT — the whole waved file vs its templates/github/ source. The pin is one line of it:
 #      `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, the implementer's system prompt is just
 #      text, and a full-workflow copy of what should be a thin stub has no `uses:` line at all
-#      — so a pin grep sees none of them. Exactly two things are normalized
-#      away — the per-repo store handle and trailing blank lines (see `kit_normalize` for why);
-#      anything else that differs is drift.
+#      — so a pin grep sees none of them. Only trailing blank lines are normalized away (see
+#      `kit_normalize` for why); anything else that differs is drift.
 #
 # Scans every non-archived DriverDigital repo's .github/workflows/ (default branch, plus every
 # main* branch of Palmers — the kit is installed per country branch there).
@@ -43,21 +42,18 @@ LATEST="$(set -o pipefail; gh api "repos/$ORG/workflows/tags" --paginate --jq '.
 [ -n "$LATEST" ] || { echo "FATAL: no vX.Y.Z tag on $ORG/workflows — nothing to measure against." >&2; exit 2; }
 LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA:0:8}"
 
-# EXACTLY TWO normalizations, both deliberate. Everything else that differs is reported — third-party
+# EXACTLY ONE normalization, deliberate. Everything else that differs is reported — third-party
 # action refs included: a consumer repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of
-# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong.
+# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong. (The
+# store handle needed a second one until v1.17.0 moved it into a repository variable.)
 #
-#   1. SHOPIFY_STORE_NAME — the one difference a correctly-waved repo is SUPPOSED to have. The kit
-#      ships it empty; Avara carries "avara". Anchored to a line that STARTS with the key, so the ten
-#      other mentions per file (comments, shell) still compare normally.
-#   2. Trailing blank lines and the final newline. Two stub-rails-only pairs (Team-Laird@develop,
+#   Trailing blank lines and the final newline. Two stub-rails-only pairs (Team-Laird@develop,
 #      The-Gathery@develop) were waved without a final newline and are
 #      otherwise byte-identical. That is not drift anyone can act on, and a detector that reports
 #      permanent red rows is a detector nobody reads. Internal blank lines ARE still compared —
 #      awk buffers blanks and only emits them once a non-blank line follows.
 kit_normalize() {
-  sed 's/^\( *SHOPIFY_STORE_NAME:\).*/\1 <per-repo>/' \
-    | awk '/^[[:space:]]*$/ { blank++; next } { while (blank-- > 0) print ""; blank = 0; print }'
+  awk '/^[[:space:]]*$/ { blank++; next } { while (blank-- > 0) print ""; blank = 0; print }'
 }
 
 # 1. REFERENCE — templates/ against the latest tag.
@@ -105,6 +101,10 @@ scan_ref() {  # repo ref
     [ -f "$KIT/$f" ] || continue
     content_row "$repo" "$ref" "$f"
   done
+  # The wave installs pr-bonsai-link.yml wherever claude.yml is, so its absence there is drift.
+  if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
+    echo "CONTENT $repo@$ref pr-bonsai-link.yml DRIFT missing"
+  fi
   # The kit files outside .github/workflows/: the PR template (waved since v1.15.0) and the house
   # standards.
   for f in pull_request_template.md claude-standards.md; do

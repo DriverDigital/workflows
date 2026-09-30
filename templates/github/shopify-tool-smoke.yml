@@ -1,6 +1,7 @@
 name: Shopify tool smoke test
 
-# OPTIONAL — copy this into STORE repos only (the ones that set the Shopify secrets for claude.yml).
+# OPTIONAL — copy this into STORE repos only (the ones that set the Shopify secrets and the
+# SHOPIFY_STORE_NAME repository variable for claude.yml).
 # A repo without a store has no use for it: every run would fail on the missing-secret check below,
 # which is correct for a manual diagnostic but pointless noise to install.
 #
@@ -25,10 +26,10 @@ jobs:
     # min, plus the two Admin API calls below.
     timeout-minutes: 15
     env:
-      # SET THIS to the same store handle as claude.yml's SHOPIFY_STORE_NAME in this repo. Literal
-      # only — the `runner` context is NOT available at job-level env; the tool paths are derived
-      # from $RUNNER_TEMP inside the steps and exported via $GITHUB_ENV.
-      SHOPIFY_STORE_NAME: ""
+      # The repo's SHOPIFY_STORE_NAME repository variable — the same one the implementer reads. The
+      # `runner` context is NOT available at job-level env; the tool paths are derived from
+      # $RUNNER_TEMP inside the steps and exported via $GITHUB_ENV.
+      SHOPIFY_STORE_NAME: ${{ vars.SHOPIFY_STORE_NAME }}
     steps:
       # Same provisioning as claude.yml — including the pinned DRIVER_AGENTS_REF and the per-attempt
       # `timeout` — except that missing secrets, a dead clone, or a checkout that isn't at the pin
@@ -41,14 +42,15 @@ jobs:
           DRIVER_ENGINEERING_APP_CLIENT_SECRET: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_SECRET }}
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
-          # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
-          # different revision than the implementer actually runs would defeat the purpose.
-          DRIVER_AGENTS_REF: b4ea94e4c8a261a22601ff25e93d09323a8eb6c8 # main @ 2026-09-10 (value-clearing report; three exit-3 refusal kinds; two new blockquote paragraphs)
+          # Keep in lockstep with the claude.yml reusable's DRIVER_AGENTS_REF (DriverDigital/workflows
+          # lint.yml checks it) — smoke-testing a different revision than the implementer actually
+          # runs would defeat the purpose.
+          DRIVER_AGENTS_REF: 21a357cbfaa1d64190e60134b2f79240bcd6bb6b # main @ 2026-09-30 (field-description sentence; no box credential path)
           # Optional, same as claude.yml's: org-level secret; absent = alerts off, smoke still runs.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
           for v in SHOPIFY_STORE_NAME DRIVER_ENGINEERING_APP_CLIENT_ID DRIVER_ENGINEERING_APP_CLIENT_SECRET SHOPIFY_SHOP GH_TOKEN; do
-            [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or SHOPIFY_STORE_NAME not filled in above?)"; exit 1; }
+            [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or the SHOPIFY_STORE_NAME repository variable unset?)"; exit 1; }
           done
           case "$SHOPIFY_STORE_NAME" in
             *[!a-zA-Z0-9._-]*|.*)
