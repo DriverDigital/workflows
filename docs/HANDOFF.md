@@ -64,9 +64,13 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
 
 ## Recommended next steps
 
-1. **Release the conversion**: Macroscope, merge, tag `v1.17.0`, land the stub, set Avara's
-   variable, canary, wave, real ticket — [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md),
-   "Running it".
+1. **Release the conversion** once driver-engineering-app is ready (Maria, 2026-09-30): its
+   hand-installed `lint.yml` is the audit's one drifted row, and any hardening that touches the
+   app's secret names or driver-agents `tools/shopify` must land before the tag (a `tools/shopify`
+   change moves `DRIVER_AGENTS_REF` again). driver-agents #43 (token mask, `pr-view` Bonsai filter,
+   no `Reviewer:` line) is merged and pinned at `0397630`; Avara's `SHOPIFY_STORE_NAME` variable is
+   set. Then Macroscope, merge, tag `v1.17.0`, land the stub, canary, wave, real ticket —
+   [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md), "Running it".
 2. **One real ticket end to end** on the new rail, transcript read.
 3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The

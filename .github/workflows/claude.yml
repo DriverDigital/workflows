@@ -223,9 +223,10 @@ jobs:
           # b4ea94e (2026-09-10) reports value-clearing writes on the allow path (stdout line, not a
           # gate), names three exit-3 refusal kinds, and adds two blockquote paragraphs below;
           # 21a357c (2026-09-30) adds the field-description sentence to the blockquote and drops the
-          # box credential path from it — the tools change only in comments. Keep in lockstep with
+          # box credential path from it — the tools change only in comments; 0397630 (2026-09-30)
+          # registers a minted or cached token as a log mask from a run: step. Keep in lockstep with
           # templates/github/shopify-tool-smoke.yml, which lint.yml checks.
-          DRIVER_AGENTS_REF: 21a357cbfaa1d64190e60134b2f79240bcd6bb6b # main @ 2026-09-30 (field-description sentence; no box credential path)
+          DRIVER_AGENTS_REF: 0397630e19fd3ff3170beae35dbbe3367ce60784 # main @ 2026-09-30 (masks the minted token from a run: step)
           # Optional: the #driver-agents-status Slack incoming-webhook URL (org-level secret, set
           # org-wide — nothing per repo). When present, the tool's destructive/failed-call alerts
           # fire from CI runs (same wiring the retired box used); absent = alerts off, nothing else

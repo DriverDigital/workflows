@@ -27,7 +27,7 @@ jobs:
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           # Must equal the claude.yml reusable's; DriverDigital/workflows lint.yml checks it.
-          DRIVER_AGENTS_REF: 21a357cbfaa1d64190e60134b2f79240bcd6bb6b # main @ 2026-09-30 (field-description sentence; no box credential path)
+          DRIVER_AGENTS_REF: 0397630e19fd3ff3170beae35dbbe3367ce60784 # main @ 2026-09-30 (masks the minted token from a run: step)
           # Optional org secret; unset turns alerts off.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
