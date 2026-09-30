@@ -60,8 +60,9 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
 2. **The next `claude.yml` wave** — as the conversion if the spike passes, a whole-file wave if not:
    [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md).
 3. **One real ticket end to end** on the new rail, transcript read.
-4. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — unblocked: driver-agents #32 holds the
-   first prompt and the Avara pilot merged 2026-09-29. The `dest()` helper is where a second root goes.
+4. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
+   ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
+   `dest()` helper is where a second root goes.
 5. **Fleet `dependabot.yml` standard** (to-do): the kit block, cooldown included, is the candidate;
    the gaps are in [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
 

@@ -68,7 +68,7 @@ to-do is filed in each and the rows clear when they land.
   fixed after the fact rather than every patch shepherded across 20 branches.
 - **Refs:** `actions/checkout@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8` and
   `anthropics/claude-code-action@v1` — in `claude.yml`, `lint.yml` and `shopify-tool-smoke.yml`, the
-  three Dependabot reusables, the two retired review rails, and this repo's own `lint.yml`. A run
+  three Dependabot reusables, and this repo's own `lint.yml`. A run
   resolves the tag fresh, so every minor and patch arrives on its own; Dependabot opens a PR only
   for a new major, and Anthropic re-points `v1` within seconds of each release.
 - **Dependabot, here and in the kit:** minor and patch bumps of `actions/*` and `anthropics/*` are
@@ -236,7 +236,8 @@ repin-target count lands at **20** (see `docs/fleet-operations.md`).
 - **`claude.yml` deliberately untouched**, including the ticketed-loop machinery (round-marker
   prompt branch, actor carve-out, re-request step). It looks dead with `ticketed-review` gone; it
   is the designed re-entry point for the Macroscope-driven revise loop — do not strip it in a
-  future wave.
+  future wave. *(Superseded 2026-09-30: the driver-agents loop summons with a tag-mode `@claude`;
+  the arm and step go in the next `claude.yml` wave — `docs/claude-yml-wave-plan.md`.)*
 - **`DRIVER_AGENTS_REF` did not move.** The queued canonical-blockquote re-copy stays pending for
   the next `claude.yml`-touching release — deliberately not folded in here, so this wave changes
   review behavior and nothing else.
@@ -415,7 +416,8 @@ all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
 carries the three caller stubs above plus `claude.yml` (the implementer, still a full per-repo workflow),
 `shopify-tool-smoke.yml` (store repos only), `lint.yml` (actionlint over the installing repo's own
-workflows), `pull_request_template.md` (waved since v1.15.0) and `dependabot.yml` (the `github-actions` updater that bumps
+workflows), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
+standard, imported by each repo's `CLAUDE.md`, waved at `.github/`) and `dependabot.yml` (the `github-actions` updater that bumps
 the stub pins between waves — installed by hand, merged into an existing file).
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
@@ -432,10 +434,10 @@ creates the wave**, because the moment the latest tag moves the audit's referenc
 against every stub in `templates/` and they must be repinned and re-copied everywhere. Let a kit-only file
 ride along with the next release that actually changes a reusable.
 
-**`claude.yml` stays a per-repo copy** — converting it to a reusable is tabled pending the OIDC spike (whether
-Claude App token minting survives inside a cross-repo reusable; scope in
-[`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md)), so it remains the kit's main drift
-surface and the reason re-copies still need care.
+**`claude.yml` is still a per-repo copy** — the kit's main drift surface and the reason re-copies need care.
+Converting it to a reusable is a go, spike first (2026-09-30), as the next `claude.yml` wave:
+[`docs/claude-yml-wave-plan.md`](docs/claude-yml-wave-plan.md),
+[`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
 
 Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
 and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a

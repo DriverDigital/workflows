@@ -52,9 +52,8 @@ driver-agents `docs/superpowers/specs/2026-09-18-macroscope-review-loop-design.m
 ## Watch item — first Macroscope reviews
 
 Observe on the first few PRs: the bot's login/id, whether it submits **formal** reviews
-(approve / request changes) or comments only, and what its webhooks can carry. The webhook payload
-is the integration's input contract; the login/id matters if any deterministic rail ever needs to
-gate on it.
+(approve / request changes) or comments only. The login/id matters wherever a deterministic rail
+gates on it — the dispatcher's loop does.
 
 First observation (workflows#34, the retirement PR itself, 2026-08-08): login **`macroscopeapp`**;
 two check runs ("Macroscope - Approvability Check" / "Macroscope - Correctness Check", conclusion
@@ -62,8 +61,7 @@ two check runs ("Macroscope - Approvability Check" / "Macroscope - Correctness C
 one review submitted with state **`COMMENTED`** — no formal approve/request-changes on that PR.
 
 Second observation (workflows#41–45, 2026-08-22/24): the Approvability comment is **edited in
-place** as the PR changes (same comment id, verdict text replaced — a webhook consumer must handle
-`issue_comment.edited`, not just `created`); inline findings arrive as one review with inline
+place** as the PR changes (same comment id, verdict text replaced — a reader must take the current body, not the first); inline findings arrive as one review with inline
 comments, and the bot **resolves its own threads** when a push addresses them. On #44 it issued
 **a formal review, state `APPROVED`** (2026-08-24T13:36Z, after the Approvability verdict flipped
 to "Approved at `cf32d5e`") — so the case the retired review leg would have mis-mapped

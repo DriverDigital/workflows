@@ -304,12 +304,12 @@ so in the PR body. Merge on review of the diff alone; validate after merge.
 
 | Phase | Work | Est. | Status |
 |---|---|---|---|
-| 0 | Spike: confirm OIDC-in-reusable (see the research update) | 3–4h | **tabled** |
-| 4 | Convert `claude.yml` — move the 500 lines **faithfully** | 7–9h | **tabled** |
-| 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **tabled** |
-| 7 | Fleet wave for `claude.yml`, the full-kit pairs ([`fleet-operations.md`](fleet-operations.md#the-fleet)) | 4–5h | **tabled** |
-| 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | **tabled** |
-| | **Tabled subtotal** | **20–27h** | |
+| 0 | Spike: confirm OIDC-in-reusable (see the research update) | 3–4h | **go** |
+| 4 | Convert `claude.yml` — move the 500 lines **faithfully**; repoint `lint.yml`'s tokenization step | 7–9h | **go** |
+| 6 | Pilot `claude.yml` with the four assertions incl. pin-vs-HEAD | 4–6h | **go** |
+| 7 | Fleet wave for `claude.yml`, the full-kit pairs ([`fleet-operations.md`](fleet-operations.md#the-fleet)) | 4–5h | **go** |
+| 8 | Optional: convert `shopify-tool-smoke.yml` | 2–3h | optional |
+| | **Original estimate** (re-costed ~10–15h on 2026-09-30, update at the top) | **20–27h** | |
 
 Phase 4 note: **66%** of `claude.yml` is comments (329 of 500 lines), and they are the
 institutional memory — the 2026-06-19 actor-gate incident, the `persist-credentials` 403 on private repos, the
@@ -378,9 +378,10 @@ entirely self-contained and depends on nothing in this repo, so revert is comple
    different things — the wave size and the repin-target list. `docs/fleet-operations.md`'s
    [fleet table](fleet-operations.md#the-fleet) is the single home for both; take them from there and put
    the definition next to the number.
-4. **Confirm the Claude GitHub App is installed on all kit repos**, not just the 4 with prior `claude[bot]`
+4. ~~**Confirm the Claude GitHub App is installed on all kit repos**, not just the 4 with prior `claude[bot]`
    PRs. If it is missing in `plugins` / `client-workspaces` / `studio-sulzer`, they fail on their first real
-   ticket after the wave and it gets blamed on the conversion.
+   ticket after the wave and it gets blamed on the conversion.~~ **CLOSED 2026-09-30 — `claude` is installed
+   on `all`.**
 5. ~~**Confirm no repo pins `claude` as a required status check.**~~ **CLOSED 2026-08-02 — none do, so the
    `claude` → `claude / claude` rename breaks nothing.** Verified rather than assumed: all 42 protected
    branches across the 15 kit-touching repos were checked. 36 have no `required_status_checks` block at all;
