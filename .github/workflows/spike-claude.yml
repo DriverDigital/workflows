@@ -2,6 +2,7 @@ name: Spike claude (reusable)
 
 # Throwaway Phase 0 spike (docs/reusable-conversion-scope.md): does the Claude App token mint
 # survive inside a SHA-pinned cross-repo reusable? Deleted once the result is recorded.
+# main carries this line and the pinned SHA does not, so the pin differs from main in content.
 
 on:
   workflow_call:
