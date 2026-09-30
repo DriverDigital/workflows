@@ -84,5 +84,4 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
   Macroscope owns automatic review, and the driver-agents loop that replaced the review rails. Observed 2026-09-10: it re-reviews every push,
   resolves its own threads once a push addresses them, and its verdict reads `Approved at <sha>`
   once nothing is left; a fleet-changing kit release gets "not approved" on risk with zero findings.
-- `driver-agents` — the dispatcher (since 2026-09-10), the box-retirement spec, and
-  `config/reviewers.json`, the live reviewer map.
+- `driver-agents` — the dispatcher (since 2026-09-10) and the box-retirement spec.

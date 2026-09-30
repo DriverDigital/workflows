@@ -518,9 +518,7 @@ The bridge server that carried `/tasks/reviewer-handoff` is retired too; what re
 build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
 field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 `dependabot-report` still requests a human reviewer on Dependabot PRs (default `mcarter-astronautdev`,
-per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**). The live reviewer map is
-`driver-agents/config/reviewers.json`, read by the dispatcher to write the issue's
-`**Reviewer:**` line; this repo no longer carries a copy.
+per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**).
 
 ## First-run / required-check
 

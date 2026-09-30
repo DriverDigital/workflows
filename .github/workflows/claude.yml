@@ -321,6 +321,17 @@ jobs:
             '{ticket:$ticket, issue:$issue, run:$run, host:"github-actions"} | with_entries(select(.value != ""))')"
           echo "SHOPIFY_AUDIT_CONTEXT=$CTX" >> "$GITHUB_ENV"
           echo "Provisioned store '$SHOPIFY_STORE_NAME' for the Shopify admin tool"
+      # The wrapper registers its access token as a log mask only from a run: step; inside Claude its
+      # output is transcript text, not a workflow command. So mint the token here, before the
+      # transcript starts. If that fails, drop the credentials: a token the implementer minted itself
+      # would reach the log unmasked.
+      - name: Mint the store token as a log mask
+        if: ${{ env.DRIVER_AGENTS_DIR != '' }}
+        run: |
+          if ! "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" -q '{ shop { name } }' >/dev/null; then
+            rm -f "$SHOPIFY_STORE_DIR/$SHOPIFY_STORE_NAME.env"
+            echo "::warning::Could not mint the store token ahead of the run, so store credentials were removed — this run proceeds WITHOUT store access"
+          fi
       # Install Claude Code ourselves (latest STABLE channel), then hand it to the action below via
       # path_to_claude_code_executable (which makes the action SKIP its own install). Two reasons:
       #   1. UNPINNED CLI: each action release bakes in a PINNED Claude Code version. We'd rather
