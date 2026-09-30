@@ -47,11 +47,9 @@ PRs as it refuses outsiders. Cost: no `@claude` on a contributor's fork PR.
 1. ~~Spike~~ — passed 2026-09-30, green and red (reusable-conversion-scope, Phase 0 result).
 2. ~~Write the reusable and the stub, then edit the kit; run the local CI checks~~ — done on
    `claude-yml-reusable`.
-3. Merge and tag. At step 2 of the release order, replace `templates/github/claude.yml` with the stub
-   below, pinned to the tag (it cannot land earlier: the pin does not exist, and `lint.yml` refuses
-   the placeholder), then delete the stub from this doc.
-4. Set the repository variable `SHOPIFY_STORE_NAME=avara` on Avara — the wave refuses Avara until it
-   is set.
+3. ~~Merge and tag; at step 2 of the release order, replace `templates/github/claude.yml` with the
+   stub, pinned to the tag~~ — done: `v1.17.0` (`359505a`, 2026-10-01); the stub is in the kit.
+4. ~~Set the repository variable `SHOPIFY_STORE_NAME=avara` on Avara~~ — set 2026-10-01.
 5. `tools/fleet-wave.sh --dry-run`, then canary with `--only vite-plugin-shopify-clean`: one
    `@claude` issue must open a `claude[bot]` PR carrying a `Bonsai task:` line, with no
    `Skipping action due to workflow validation` in the log; a plain comment must skip the job with no
@@ -63,45 +61,3 @@ PRs as it refuses outsiders. Cost: no `@claude` on a contributor's fork PR.
    prove the mask: if the mask did not register, that writes the live token into the log.
 7. Run one real ticket through with the transcript on (`show_full_output`) and read it before calling
    the wave done. Then make `bonsai-link` a required check per repo.
-
-The stub (`templates/github/claude.yml` from the release):
-
-```yaml
-name: Claude Code
-
-# Caller stub for the implementer: triggers, concurrency and permissions live here, and everything
-# else in the reusable it pins, including the actor gate. The store handle is the
-# SHOPIFY_STORE_NAME repository variable.
-
-# [created] only: the implementer edits its own comment, and `edited` would re-run it on itself.
-on:
-  issue_comment:
-    types: [created]
-  issues:
-    types: [opened]
-  pull_request_review:
-    types: [submitted]
-  pull_request_review_comment:
-    types: [created]
-
-jobs:
-  claude:
-    # A coarse @claude filter. The reusable is validated before its own gate runs, so without this a
-    # fork PR's comments fail red; skipped runs also stay out of the concurrency group.
-    if: >-
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
-      (github.event_name != 'issues' && contains(github.event.comment.body || github.event.review.body, '@claude'))
-    concurrency:
-      group: claude-${{ github.event.pull_request.number || github.event.issue.number }}
-      cancel-in-progress: false
-    # All five are needed: the reusable can only narrow them, and id-token mints the App token.
-    # inherit, not a map: an explicit map that missed SHOPIFY_ALERT_WEBHOOK would mute alerts.
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-      id-token: write
-      actions: read
-    uses: DriverDigital/workflows/.github/workflows/claude.yml@0000000000000000000000000000000000000000 # vX.Y.Z
-    secrets: inherit
-```
