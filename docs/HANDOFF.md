@@ -7,8 +7,13 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 2026-09-30: **the Phase 0 spike passed**, green and red: the Claude App token mints inside a
 SHA-pinned cross-repo reusable, and the corrected silent-skip guard turns a validation skip red. Runs
-and detail: [`reusable-conversion-scope.md`](reusable-conversion-scope.md), "Phase 0 result". The
-conversion is unblocked.
+and detail: [`reusable-conversion-scope.md`](reusable-conversion-scope.md), "Phase 0 result".
+
+**The conversion is built** on branch `claude-yml-reusable` (PR open, awaiting Macroscope): the
+`claude.yml` reusable with every ungated ride-along, `pr-bonsai-link.yml`, the store handle as a
+repository variable, and the tools and lint that follow. The kit stub is parked in
+[`claude-yml-wave-plan.md`](claude-yml-wave-plan.md) until release step 2; that doc's "Running it"
+is the release checklist from merge to the real ticket.
 
 Earlier the same day (#59) the to-do list was re-validated and Maria settled the open decisions:
 
@@ -59,9 +64,16 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
 
 ## Recommended next steps
 
-1. **The next `claude.yml` wave, as the reusable conversion**: write the reusable and stub with
-   every ride-along, canary on vite-plugin-shopify-clean (prove the actor gate's no-runner skip
-   there), wave — [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md).
+1. **Release the conversion — ready (Maria, 2026-10-01).** PR #60 is complete: CI green, every
+   Macroscope thread answered. Its verdict stays "not approved" on one finding, that the docs describe
+   a stub the kit only gets at release step 2; that is the release order, answered in-thread, and
+   merging past it is approved (`gh pr merge --admin`). driver-agents #43 is merged and pinned at
+   `0397630`; Avara's `SHOPIFY_STORE_NAME` variable is set (the secret of that name is gone);
+   driver-engineering-app does not block and is now a wave target through its
+   `.github/claude-standards.md`. The checklist is [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)
+   "Running it", with the stub parked there to land at step 2. Run the tools with
+   `GH_TOKEN=$(gh auth token --user mcarter-astronautdev)`; the default account cannot see the
+   private fleet.
 2. **One real ticket end to end** on the new rail, transcript read.
 3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
@@ -79,5 +91,4 @@ reads one drifted row, driver-engineering-app's hand-installed `lint.yml` (a to-
   Macroscope owns automatic review, and the driver-agents loop that replaced the review rails. Observed 2026-09-10: it re-reviews every push,
   resolves its own threads once a push addresses them, and its verdict reads `Approved at <sha>`
   once nothing is left; a fleet-changing kit release gets "not approved" on risk with zero findings.
-- `driver-agents` — the dispatcher (since 2026-09-10), the box-retirement spec, and
-  `config/reviewers.json`, the live reviewer map.
+- `driver-agents` — the dispatcher (since 2026-09-10) and the box-retirement spec.

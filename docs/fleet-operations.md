@@ -34,7 +34,7 @@ Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca
 `-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
 
 **Avara is the only provisioned store repo** — the only pair carrying `shopify-tool-smoke.yml`, and
-the only one whose `claude.yml` has a non-empty `SHOPIFY_STORE_NAME`.
+the only repo that sets the `SHOPIFY_STORE_NAME` repository variable.
 
 ---
 
@@ -73,14 +73,15 @@ seeing one of those fire after a wave is expected and benign.
 One atomic commit per branch via the Git Data API (blobs → tree → commit → ref patch), not one
 commit per file. Per target:
 
-1. `claude.yml` ← kit version, with the repo's own `SHOPIFY_STORE_NAME` restored.
-2. The three Dependabot stubs, `lint.yml` and `pull_request_template.md` ← kit version verbatim
-   (since v1.15.0 the stubs too: a pin-line sed let per-repo stub edits survive, but the audit reports
-   any such edit as drift). The template is the one file written under `.github/` rather than
+1. Every kit file the branch carries ← kit version verbatim (since v1.15.0 the stubs too: a pin-line
+   sed let per-repo stub edits survive, but the audit reports any such edit as drift). No kit file
+   carries a per-repo value — the store handle is the `SHOPIFY_STORE_NAME` repository variable — and
+   the wave aborts a target whose deployed file still carries a handle the variable does not hold.
+   The PR template and `claude-standards.md` are written under `.github/`, the rest under
    `.github/workflows/`.
-3. `shopify-tool-smoke.yml` (Avara only) ← kit version, store handle restored.
-4. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
-5. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
+2. `pr-bonsai-link.yml` ← written wherever `claude.yml` is, present or not.
+3. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
+4. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
    message) and patch the ref.
 
 This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. It discovers targets by the
@@ -95,9 +96,9 @@ wave removed `pr-first-review.yml` + `ticketed-review.yml` from every pair carry
 same atomic commit as the repin; delete by presence (enumerate the repo's files first), not by an
 assumed install list — the partial-install pairs never had both.
 
-Guards worth keeping in any wave script: assert no destination path is written twice, assert the
-store handle survived, assert no stale pin remains, and dry-run the whole fleet before writing
-anything.
+Guards worth keeping in any wave script: assert no destination path is written twice, refuse to
+overwrite per-repo state nothing else holds, assert no stale pin remains, and dry-run the whole
+fleet before writing anything.
 
 ---
 
@@ -145,8 +146,8 @@ wave after Dependabot" can actually buy:
   fetchable — `gh run list --workflow "Dependabot Updates"`, then `gh run view <id> --log` — no UI
   digging needed.
 
-So the wave stays the primary path — when `claude.yml` changed (most releases) it is pushing anyway
-and the repin rides in the same atomic commit at no cost. Dependabot earns its keep as the backstop:
+So the wave stays the primary path — it repins every target within minutes of the tag, one atomic
+commit per branch. Dependabot earns its keep as the backstop:
 the five repos that had no updater, drift between waves, and a reusable-only tag where no whole-file
 copy is needed. Palmers' block covers `main` alone; its seven country branches stay on the wave
 unless `target-branch` entries are added. The proof is still worth running once, at the next tag:
@@ -170,12 +171,11 @@ without a kit repin commit even though the wave repinned the fleet. No kit revis
 carried `a54c91e` in a pin line, so no diff base produced a matching `-` line and `git apply` would
 have rejected all five files on target #1. **Sed the pin; don't patch it.**
 
-**3. Per-repo state that must survive.** `SHOPIFY_STORE_NAME` in `claude.yml` and
-`shopify-tool-smoke.yml` — nothing else: the kit's third-party actions float on major tags, and a
-repo's Dependabot moving one to a new major is drift for the wave to roll back, not state to keep.
-Surveyed at v1.11.0: the fleet's
-`claude.yml` copies were byte-identical to the kit except Avara's store handle, and there was no
-Dependabot drift — but survey, don't assume.
+**3. Per-repo state that must survive.** None lives in a kit file any more: the store handle moved to
+the `SHOPIFY_STORE_NAME` repository variable, and the kit's third-party actions float on major tags,
+so a repo's Dependabot moving one to a new major is drift for the wave to roll back, not state to
+keep. The wave still refuses a target whose deployed file carries a handle the variable does not
+hold.
 
 ---
 
@@ -198,24 +198,25 @@ checked; the script runs them in this order and exits non-zero if any fires:
    what should be a thin stub) is no longer invisible, and `DRIVER_AGENTS_REF` — a raw SHA in an
    `env:` block that no bot can bump — is now compared like any other line.
 
-Two things worth knowing about check 3:
+Three things worth knowing about check 3:
 
-- **Exactly two things are normalized away.** First, `SHOPIFY_STORE_NAME` — the one difference a
-  correctly-waved repo is *supposed* to have. Second, trailing blank lines and the final newline:
-  the two pairs waved without a final newline are otherwise identical, and permanently-red rows
-  for a byte nobody can act on is how a detector stops being read. Internal blank lines *are*
-  compared. Everything else that differs is reported, third-party action refs
-  included: a repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of the kit is drift
-  worth seeing, and it means the kit is behind, not that the repo is wrong.
+- **Exactly one thing is normalized away:** trailing blank lines and the final newline. The two
+  pairs waved without a final newline are otherwise identical, and permanently-red rows for a byte
+  nobody can act on is how a detector stops being read. Internal blank lines *are* compared.
+  Everything else that differs is reported, third-party action refs included: a repo whose
+  Dependabot moved `actions/checkout@v7` to `@v8` ahead of the kit is drift worth seeing, and it
+  means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
   which share basenames with the stubs that call them — so comparing it against `templates/` would
-  report four phantom drifts — the three Dependabot stubs plus `lint.yml`, whose kit copy is a
-  trimmed version of this repo's own CI file of the same name.
+  report five phantom drifts — the four stubs plus `lint.yml`, whose kit copy is a trimmed version
+  of this repo's own CI file of the same name.
+- **A pair carrying `claude.yml` without `pr-bonsai-link.yml` is drift** (`missing`) — the wave
+  installs the one beside the other.
 
-**Still unchecked: the tripwire parity between `templates/` and canonical.** The audit proves the
-fleet matches `templates/github/claude.yml`; it cannot prove that file's `--append-system-prompt`
-blockquote still matches driver-agents `docs/agent-instructions-shopify.md` at the pinned
-`DRIVER_AGENTS_REF`. That comparison is by hand, at release time — step 1 of the release order.
+**Still unchecked: the tripwire parity between the reusable and canonical.** Nothing proves
+`.github/workflows/claude.yml`'s `--append-system-prompt` blockquote still matches driver-agents
+`docs/agent-instructions-shopify.md` at the pinned `DRIVER_AGENTS_REF`. That comparison is by hand, at
+release time — step 1 of the release order.
 
 ---
 

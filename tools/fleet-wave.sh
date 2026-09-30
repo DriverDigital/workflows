@@ -12,17 +12,19 @@
 # .github/workflows/claude.yml OR .github/workflows/dependabot-validate.yml — the stub-only pairs
 # never took the full kit but still carry pins to move (Palmers: every branch named main*).
 # Per target, in one commit:
-#   every kit file the branch already carries  <- kit version (claude.yml's store handle restored);
-#                                                 the PR template lives at .github/, the rest at
+#   every kit file the branch already carries  <- kit version; the PR template and the house
+#                                                 standards live at .github/, the rest at
 #                                                 .github/workflows/
+#   pr-bonsai-link.yml                         <- also written wherever claude.yml is
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 #
 # Guards, in order:
 #   0. a real (non-dry) wave only runs from a clean `main` that contains the tag — dry runs anywhere;
 #   1. the kit's own stubs must all pin the latest tag's SHA (and there must BE pins to check);
 #   2. the kit repo itself is never a target — its .github/workflows/ holds the reusables;
-#   3. a SHOPIFY_STORE_NAME we cannot parse aborts rather than being replaced with the kit's "";
-#   4. the store handle is asserted to survive the substitution;
+#   3. a SHOPIFY_STORE_NAME we cannot parse aborts rather than being dropped unread;
+#   4. a deployed store handle blocks the wave unless the repo's SHOPIFY_STORE_NAME variable holds
+#      it, checked fleet-wide before the first push; the kit may carry no literal handle at all;
 #   5. every file is actionlinted before it is written;
 #   6. no path is written twice in one commit;
 #   7. discovery failures are fatal — a short target list is never reported as a clean fleet;
@@ -74,12 +76,17 @@ KIT_PINS=$(grep -hoE "$ORG/workflows/[^@]+@[0-9a-f]{40}" "$KIT"/*.yml || true)
 if printf '%s\n' "$KIT_PINS" | grep -v "@$TAG_SHA" >/dev/null; then
   echo "kit stubs are not all pinned to $TAG ($TAG_SHA) — repin templates/github first" >&2; exit 2
 fi
+# A kit file with a literal handle would overwrite a store repo's handle with "" once guard 4 is
+# satisfied — the pre-v1.17.0 whole-file claude.yml carries no pin, so guard 1 cannot see it.
+if grep -lE '^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"' "$KIT"/*.yml; then
+  echo "the kit files above carry a literal SHOPIFY_STORE_NAME — it belongs in the repo variable" >&2; exit 2
+fi
 
 # Every kit file a target carries is replaced with the kit's copy — the stubs too, since v1.15.0.
 # A pin-line sed used to let per-repo stub edits survive, but fleet-pin-audit.sh reports any such
-# edit as drift, so nothing the kit does not ship should outlive a wave. The store handle in
-# claude.yml / shopify-tool-smoke.yml is the one per-repo value, restored below.
-FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml
+# edit as drift, so nothing the kit does not ship should outlive a wave. No kit file carries a
+# per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable (guard 4).
+FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml pr-bonsai-link.yml
             dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml
             pull_request_template.md claude-standards.md)
 DELETE_FILES=(bonsai-status-sync.yml)
@@ -114,14 +121,13 @@ b64() { base64 | tr -d '\n'; }                                   # macOS base64 
 sha40() { case "$1" in *[!0-9a-f]*|"") return 1;; esac; [ ${#1} -eq 40 ]; }
 HANDLE_RE='^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"[^"]*"'  # portable ERE (BSD + GNU)
 
-# The per-repo store handle, or empty when the key is absent (non-store repos — and the kit ships it
-# empty, so empty-in/empty-out is the correct no-op there). Only the double-quoted form is parseable,
-# and a handle we cannot read is a handle we would silently overwrite with the kit's "" — which the
-# survival assertion below could not catch, because "" == "" passes. So refuse instead of guessing.
-# All 18 full-kit targets are double-quoted today; this fires only after someone hand-edits one.
+# The store handle a pre-v1.17.0 file carries, or empty when the key is absent, empty, or reads
+# `vars`. Only the double-quoted form is parseable, and a handle we cannot read is a handle guard 4
+# cannot check — so refuse instead of guessing.
 handle_of() {
   local keys quoted
-  keys=$(grep -cE '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" || true)
+  keys=$(grep -E '^[[:space:]]*SHOPIFY_STORE_NAME:' "$1" \
+    | grep -cvE '^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*\$\{\{ vars\.SHOPIFY_STORE_NAME \}\}[[:space:]]*$' || true)
   quoted=$(grep -cE "$HANDLE_RE" "$1" || true)
   [ "$keys" = "$quoted" ] || { echo "$1: SHOPIFY_STORE_NAME is not a double-quoted value" >&2; return 3; }
   sed -nE 's/^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"([^"]*)".*/\1/p' "$1" | head -1
@@ -208,20 +214,26 @@ plan_and_push() {
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
   for f in "${FULL_FILES[@]}"; do
-    grep -qxF "$(dest "$f")" <<<"$existing" || continue
-    # errexit would abort on the sed's missing source anyway; this fails with a clear message and
+    grep -qxF "$(dest "$f")" <<<"$existing" \
+      || { [ "$f" = pr-bonsai-link.yml ] && grep -qxF .github/workflows/claude.yml <<<"$existing"; } \
+      || continue
+    # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
     [ -f "$KIT/$f" ] \
       || { echo "  $repo@$branch $f: not in the kit any more — move it to DELETE_FILES?" >&2; exit 3; }
-    cur="$tmp/deployed-$f"; raw "$repo" "$branch" "$f" > "$cur"
+    cur="$tmp/deployed-$f"; : > "$cur"
+    grep -qxF "$(dest "$f")" <<<"$existing" && raw "$repo" "$branch" "$f" > "$cur"
     local handle; handle=$(handle_of "$cur")
-    # SHOPIFY_STORE_NAME appears once as a real key (job-level env) — the other mentions in the file
-    # are comments and shell, and the ^-anchored pattern skips those — so a global substitution is
-    # exact. A handle carrying sed metacharacters cannot slip through silently: `/` breaks the
-    # s/// parse outright, and `&` is caught by the survival assertion on the next line.
-    sed -E "s/^([[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*)\"[^\"]*\"/\1\"$handle\"/" "$KIT/$f" > "$tmp/$f"
-    [ "$(handle_of "$tmp/$f")" = "$handle" ] \
-      || { echo "  $repo@$branch $f: store handle did not survive" >&2; exit 3; }
+    # Replacing a file that still carries its handle would switch store tooling off without a
+    # sound — the provisioning step self-skips on an empty handle.
+    if [ -n "$handle" ]; then
+      local var; var=$(api "repos/$ORG/$repo/actions/variables/SHOPIFY_STORE_NAME" --jq .value 2>/dev/null) || var="(unset or unreadable)"
+      if [ "$var" != "$handle" ]; then
+        echo "  $repo@$branch $f: repository variable SHOPIFY_STORE_NAME must be '$handle', reads $var" >&2
+        BLOCKED=1; return 0
+      fi
+    fi
+    cp "$KIT/$f" "$tmp/$f"
     if ! cmp -s "$cur" "$tmp/$f"; then
       case "$f" in *.yml) actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; } ;; esac
       tree+=("$f"); changes=1; echo "  write  $f"
@@ -277,10 +289,22 @@ echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"
 # wave would report `targets: 12` and exit 0. Capturing it makes the status observable — see the
 # errexit note on targets() for why the calls in there still need their own `|| exit`.
 TARGETS=$(targets)
+BLOCKED=0
 [ -n "$TARGETS" ] || { echo "no targets discovered — refusing to call that a clean fleet" >&2; exit 2; }
+# Guard 4 is checked across the whole fleet before the first push: a real wave plans every target
+# silently first, so a blocked repo stops it before anything is written rather than halfway.
+if [ "$DRY" -eq 0 ]; then
+  DRY=1
+  # Called from an `if` body, never as the right side of `||`: that context disables errexit for
+  # the whole function, and a failed read would then plan on as if nothing happened.
+  while read -r repo branch; do if [ -n "$repo" ]; then plan_and_push "$repo" "$branch" >/dev/null; fi; done <<<"$TARGETS"
+  DRY=0
+  [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
+fi
 n=0
 while read -r repo branch; do
   [ -n "$repo" ] || continue
   echo "== $repo@$branch"; plan_and_push "$repo" "$branch"; n=$((n+1))
 done <<<"$TARGETS"
 echo "targets: $n"
+[ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }

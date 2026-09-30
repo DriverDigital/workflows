@@ -84,19 +84,23 @@ jobs:
         # by SINGLE QUOTES for claude_args' shell-quote tokenizer. shell-quote does NOT throw on an
         # unterminated quote — it silently truncates, dropping the tail of the prompt. Every flag
         # still parses, the YAML stays valid, actionlint exits 0, and the wave copies the truncated
-        # prompt to 18 branches green. One apostrophe typed into the canonical blockquote upstream
-        # is enough. So assert the quote count directly: 4 is the correct total (allowedTools pair
-        # + append-system-prompt pair). Any odd count means something ate a delimiter.
+        # prompt fleet-wide green. One apostrophe typed into the canonical blockquote upstream is
+        # enough. So assert the quote count directly: 6 is the correct total (allowedTools,
+        # mcp-config and append-system-prompt pairs). Any other count means a delimiter was eaten
+        # or added. The prompt lives in the reusable; the kit's claude.yml is a stub with no steps.
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import sys, yaml, re
-          d = yaml.safe_load(open("templates/github/claude.yml"))
-          steps = d["jobs"]["claude"]["steps"]
-          args = [s for s in steps if "claude_args" in (s.get("with") or {})][0]["with"]["claude_args"]
+          d = yaml.safe_load(open(".github/workflows/claude.yml"))
+          steps = d["jobs"]["claude"].get("steps") or []
+          found = [s["with"]["claude_args"] for s in steps if "claude_args" in (s.get("with") or {})]
+          if len(found) != 1:
+              sys.exit(f"::error::expected one claude_args in .github/workflows/claude.yml, found {len(found)} — this check proves nothing")
+          args = found[0]
           q = args.count("'")
-          if q != 4:
-              print(f"::error::claude_args holds {q} single quotes, expected 4. An apostrophe in the "
+          if q != 6:
+              print(f"::error::claude_args holds {q} single quotes, expected 6. An apostrophe in the "
                     f"system prompt truncates it silently — shell-quote does not error. Remove it.")
               sys.exit(1)
           m = re.search(r"--append-system-prompt '(.*?)'(?:\s|$)", args, re.S)
@@ -119,6 +123,18 @@ jobs:
           inner = re.sub(r"\$\{\{|\}\}", "", prompt)
           if re.findall(r"\{(?!0\})|(?<!\{0)\}", inner):
               sys.exit("::error::stray brace in claude.yml prompt scalar — format() accepts only {0}")
-          print(f"claude_args tokenizes cleanly: 4 quotes, {len(p)}-char system prompt")
+          print(f"claude_args tokenizes cleanly: 6 quotes, {len(p)}-char system prompt")
           PY
 
+
+      - name: DRIVER_AGENTS_REF matches in the reusable and the smoke test
+        # The smoke test is a copied kit file and the implementer is a reusable, so nothing else keeps
+        # their driver-agents pins together — and a smoke test at a different revision verifies code
+        # the implementer never runs.
+        run: |
+          set -euo pipefail
+          ref() { grep -oE 'DRIVER_AGENTS_REF: [0-9a-f]{40}' "$1" | sort -u || true; }
+          a=$(ref .github/workflows/claude.yml); b=$(ref templates/github/shopify-tool-smoke.yml)
+          [ "$(wc -l <<<"$a")" -eq 1 ] && [ -n "$a" ] || { echo "::error::expected one DRIVER_AGENTS_REF in .github/workflows/claude.yml, got: $a"; exit 1; }
+          [ "$a" = "$b" ] || { echo "::error::DRIVER_AGENTS_REF differs: claude.yml has '${a#* }', shopify-tool-smoke.yml has '${b#* }'"; exit 1; }
+          echo "both pin ${a#* }"

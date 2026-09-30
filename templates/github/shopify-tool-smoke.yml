@@ -1,54 +1,38 @@
 name: Shopify tool smoke test
 
-# OPTIONAL — copy this into STORE repos only (the ones that set the Shopify secrets for claude.yml).
-# A repo without a store has no use for it: every run would fail on the missing-secret check below,
-# which is correct for a manual diagnostic but pointless noise to install.
-#
-# Manual diagnostic: verifies a repo's Shopify admin-tool wiring end to end — secrets → private
-# driver-agents clone → client-credentials token mint → Admin API — WITHOUT touching store data
-# (read-only queries). Run it after rotating store credentials, changing the kit's provisioning
-# step, or wiring a new store. A red run here means the @claude implementer would hit the same wall
-# mid-ticket. Unlike claude.yml's degrade-and-continue provisioning, failures here are LOUD on
-# purpose — that IS the diagnostic.
+# Store repos only. A manual, read-only check of the Shopify admin tool's wiring: secrets, the pinned
+# driver-agents clone, the token mint and the Admin API. It fails loudly where the implementer's
+# provisioning degrades quietly.
 
 on: workflow_dispatch
 
-# Needs no github.token at all (the clone authenticates with AGENTS_GH_PAT).
+# The clone authenticates with AGENTS_GH_PAT.
 permissions: {}
 
 jobs:
   smoke:
     runs-on: ubuntu-latest
-    # Must exceed the provisioning step's own worst case, or GitHub cancels the job mid-retry and the
-    # operator gets an opaque "exceeded maximum execution time" instead of the loud ::error:: this
-    # workflow exists to produce. That worst case is 5 clone attempts x 120s + 30s of backoff ~= 11
-    # min, plus the two Admin API calls below.
+    # Above the clone's worst case (5 attempts x 120s plus backoff), so a cancel never hides the error.
     timeout-minutes: 15
     env:
-      # SET THIS to the same store handle as claude.yml's SHOPIFY_STORE_NAME in this repo. Literal
-      # only — the `runner` context is NOT available at job-level env; the tool paths are derived
-      # from $RUNNER_TEMP inside the steps and exported via $GITHUB_ENV.
-      SHOPIFY_STORE_NAME: ""
+      # The runner context is unavailable in job-level env, so the tool paths come from the step.
+      SHOPIFY_STORE_NAME: ${{ vars.SHOPIFY_STORE_NAME }}
     steps:
-      # Same provisioning as claude.yml — including the pinned DRIVER_AGENTS_REF and the per-attempt
-      # `timeout` — except that missing secrets, a dead clone, or a checkout that isn't at the pin
-      # FAIL here rather than degrading. Keep this step in lockstep with claude.yml's: the point of
-      # the smoke test is that it exercises the SAME wiring, so a divergence here would test
-      # something that isn't what actually runs.
+      # The implementer's provisioning, but failing where that degrades. Keep the two in step, or the
+      # smoke test checks wiring the implementer does not use.
       - name: Provision Shopify admin tool
         env:
           DRIVER_ENGINEERING_APP_CLIENT_ID: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_ID }}
           DRIVER_ENGINEERING_APP_CLIENT_SECRET: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_SECRET }}
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
-          # Keep in lockstep with claude.yml's DRIVER_AGENTS_REF in this same repo — smoke-testing a
-          # different revision than the implementer actually runs would defeat the purpose.
-          DRIVER_AGENTS_REF: b4ea94e4c8a261a22601ff25e93d09323a8eb6c8 # main @ 2026-09-10 (value-clearing report; three exit-3 refusal kinds; two new blockquote paragraphs)
-          # Optional, same as claude.yml's: org-level secret; absent = alerts off, smoke still runs.
+          # Must equal the claude.yml reusable's; DriverDigital/workflows lint.yml checks it.
+          DRIVER_AGENTS_REF: 0397630e19fd3ff3170beae35dbbe3367ce60784 # main @ 2026-09-30 (masks the minted token from a run: step)
+          # Optional org secret; unset turns alerts off.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
           for v in SHOPIFY_STORE_NAME DRIVER_ENGINEERING_APP_CLIENT_ID DRIVER_ENGINEERING_APP_CLIENT_SECRET SHOPIFY_SHOP GH_TOKEN; do
-            [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or SHOPIFY_STORE_NAME not filled in above?)"; exit 1; }
+            [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or the SHOPIFY_STORE_NAME repository variable unset?)"; exit 1; }
           done
           case "$SHOPIFY_STORE_NAME" in
             *[!a-zA-Z0-9._-]*|.*)
@@ -57,9 +41,7 @@ jobs:
           esac
           set +e
           for i in 1 2 3 4 5; do
-            # `timeout` is load-bearing: a hung clone would otherwise sit in a single attempt until
-            # the job timeout above and the retry/backoff below would never advance. Full clone (no
-            # --depth 1) so the pinned SHA is always reachable.
+            # timeout lets the retries advance past a hung clone; a full clone keeps the pin reachable.
             timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet &&
               git -C "$RUNNER_TEMP/driver-agents" checkout -q "$DRIVER_AGENTS_REF" && break
             echo "driver-agents clone attempt $i failed; retrying in $((i * 3))s"
@@ -88,7 +70,7 @@ jobs:
               echo "SHOPIFY_ALERT_HOST_LABEL=GitHub Actions run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             } >> "$GITHUB_ENV"
           fi
-          # Same audit-context wiring as claude.yml's (no issue — this is a manual diagnostic).
+          # No issue context: this is a manual run.
           CTX="$(jq -cn --arg run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             '{run:$run, host:"github-actions"}')"
           echo "SHOPIFY_AUDIT_CONTEXT=$CTX" >> "$GITHUB_ENV"
@@ -101,8 +83,7 @@ jobs:
             -q '{ metaobjectDefinitions(first: 3) { nodes { type name } } }'
           echo "Shopify admin tool wiring verified for '$SHOPIFY_STORE_NAME'"
 
-      # Same as claude.yml's: the runner's audit log is throwaway — ship it to the box's nightly
-      # collector. run_attempt in the name avoids the immutable-artifact collision on re-runs.
+      # The audit log dies with the runner; run_attempt keeps a re-run's artifact name unique.
       - name: Upload Shopify audit artifact
         if: ${{ always() && env.SHOPIFY_AUDIT_DIR != '' }}
         uses: actions/upload-artifact@v7
