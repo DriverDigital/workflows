@@ -5,6 +5,12 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
+2026-10-01, later: **v1.18.0 is released and waved** (22 targets, converged): the validator fix (#73 —
+every clean Dependabot PR had carried a red required check since v1.15.0), the implementer prompt's
+comments item (#74), the subagents rule (#72), plus the kit-only changes since v1.17.0. Canary and
+audit: [`README.md`](../README.md#v1180-85f1578-2026-10-01). driver-onboarding is a wave target for
+`claude-standards.md` only.
+
 2026-10-01: **v1.17.0 is released and waved.** `claude.yml` is a reusable + thin stub (#60), the canary
 on vite-plugin-shopify-clean passed every assertion in [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)
 "Running it", all 21 targets are on the tag, and the audit reads converged (driver-agents' hand-installed `lint.yml`,
@@ -42,7 +48,9 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Watch-items
 
-- **The first real ticket through v1.17.0.** The guard steps should stay quiet; if one fires, the
+- **Dependabot PRs opened before v1.18.0** still show the old red validate on their current head; a
+  `@dependabot rebase` or any push gets a fresh run. Nothing to do fleet-wide; they clear as they move.
+- **The first real ticket through v1.18.0.** The guard steps should stay quiet; if one fires, the
   failure note lands on the issue and, on a private repo, the transcript is in the run log.
 - **Major bumps of the kit's floated actions.** `actions/checkout@v7`, `actions/upload-artifact@v7`
   and `anthropics/claude-code-action@v1` float in the kit; when a new major ships, a fleet repo's
@@ -76,16 +84,10 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
    not run tickets through the app before it). On Avara, the first store run's log must read
    `Provisioned store 'avara'` and the "Mint the store token as a log mask" step must pass — never
    print the token cache to prove the mask.
-3. **Ride-alongs for the next reusable change.** The kit's `claude-standards.md` on main carries the
-   subagents-and-replies bullet (#72) that the fleet does not have yet — Maria held the wave for the
-   next release, so until then `fleet-pin-audit.sh --stale` reads that file as drifted on every
-   carrying repo by design. And #70, part 2: reword `claude.yml`'s
-   `--append-system-prompt` item (7) to the revised comments standard — a tight summary, no apostrophes,
-   no newline — then release, repin and wave as usual. Not urgent (Maria, 2026-10-01).
-4. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
+3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
    `dest()` helper is where a second root goes.
-5. **Fleet `dependabot.yml` standard** (#62): the kit block, cooldown included, is the candidate;
+4. **Fleet `dependabot.yml` standard** (#62): the kit block, cooldown included, is the candidate;
    the gaps are in [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
 
 ## Pointers

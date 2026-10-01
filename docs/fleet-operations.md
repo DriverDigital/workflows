@@ -5,17 +5,16 @@ release sequence is [`README.md`](../README.md) → *Release + repin order*** �
 restate it. What lives here is the operational knowledge around it: how a wave is executed, what a
 pilot can and cannot prove, and where the drift detector is blind.
 
-Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v1.17.0 wave.
+Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v1.18.0 wave.
 
 ---
 
 ## The fleet
 
-**21 repo@branch pairs** are wave targets after the v1.17.0 wave (2026-10-01; verified by the audit the
-same night — **69 pins at `359505a7`, 110 content matches, one comment-only drift** in driver-agents'
-hand-installed `lint.yml`, outside the wave, re-copied by hand the same night). Since v1.17.0 the wave also discovers a branch by
-`.github/claude-standards.md`, which is how driver-engineering-app (no stubs, content only) became the
-21st. The split matters because two different numbers are correct depending on the question:
+**22 repo@branch pairs** are wave targets after the v1.18.0 wave (2026-10-01; verified by the audit the
+same night — **69 pins at `85f15787`, 127 content matches, zero drift**). Since v1.17.0 the wave also
+discovers a branch by `.github/claude-standards.md`, which is how driver-engineering-app (lint + standards)
+and driver-onboarding (standards only) became the 21st and 22nd. The split matters because two different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
