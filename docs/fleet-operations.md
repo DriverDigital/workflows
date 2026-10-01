@@ -79,7 +79,9 @@ commit per file. Per target:
    the wave aborts a target whose deployed file still carries a handle the variable does not hold.
    The PR template and `claude-standards.md` are written under `.github/`, the rest under
    `.github/workflows/`.
-2. `pr-bonsai-link.yml` ← written wherever `claude.yml` is, present or not.
+2. `pr-bonsai-link.yml` and `claude-standards.md` ← written wherever `claude.yml` is, present or not.
+   The `@.github/claude-standards.md` import in `CLAUDE.md` stays a per-repo edit: the wave never
+   writes outside `.github/`.
 3. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
 4. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
    message) and patch the ref.

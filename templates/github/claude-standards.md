@@ -1,8 +1,9 @@
 # House standards
 
-Shared across every Driver repo. A repo copies this file to `.github/claude-standards.md` once and
-imports it from its `CLAUDE.md` with `@.github/claude-standards.md`; the fleet wave keeps the copy
-current. Edit it in `DriverDigital/workflows` (`templates/github/claude-standards.md`), never in place.
+Shared across every Driver repo. The fleet wave installs this file at `.github/claude-standards.md`
+beside the implementer and keeps it current (a repo without the implementer copies it by hand); the
+repo's `CLAUDE.md` imports it with `@.github/claude-standards.md`. Edit it in `DriverDigital/workflows`
+(`templates/github/claude-standards.md`), never in place.
 
 - **Commit messages** — Natural language, not strict conventional-commit formatting. Succinct: what
   changed, plus any rationale a senior developer would need later. No history, narratives, or

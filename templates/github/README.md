@@ -11,7 +11,7 @@ workflow here touches it.
 |---|---|---|
 | `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Fails a PR whose body names no Bonsai task: an `app.hellobonsai.com/tasks/<uuid>` URL, or a `Bonsai task: none` line. Dependabot PRs are exempt. Check-run context is the job id, **`bonsai-link`**; make it required per repo only once the wave has installed it. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
-| `claude-standards.md` | `.github/claude-standards.md` | The house commit-message and code-comment standard. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy), so local sessions load it (CI loading is unconfirmed — `../../docs/HANDOFF.md`). Lint-only repos are wave targets through it. |
+| `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house commit-message and code-comment standard. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy), so local sessions load it (CI loading is unconfirmed — `../../docs/HANDOFF.md`). Lint-only repos are wave targets through it. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
@@ -122,8 +122,8 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    Then add `@.github/claude-standards.md` to the repo's `CLAUDE.md` (a new repo: start `CLAUDE.md`
    as that line and let `/init` write the rest around it).
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
-   it replaces what a branch already carries, and installs only `pr-bonsai-link.yml`, beside
-   `claude.yml`).
+   it replaces what a branch already carries, and installs `pr-bonsai-link.yml` and
+   `claude-standards.md` beside `claude.yml`; the `CLAUDE.md` import line is the one step it cannot do).
    **Then `dependabot.yml`, by hand** — it is the updater for the stub pins (without it nothing
    bumps the `uses: DriverDigital/workflows/...@<sha>` lines between waves), and most repos already
    have one, so never blind-copy it. No `.github/dependabot.yml` → copy the kit's. One without a

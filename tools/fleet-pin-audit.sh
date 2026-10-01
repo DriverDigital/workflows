@@ -101,16 +101,23 @@ scan_ref() {  # repo ref
     [ -f "$KIT/$f" ] || continue
     content_row "$repo" "$ref" "$f"
   done
-  # The wave installs pr-bonsai-link.yml wherever claude.yml is, so its absence there is drift.
+  # The wave installs pr-bonsai-link.yml and claude-standards.md wherever claude.yml is, so their
+  # absence there is drift (the standards file is probed at .github/ below).
   if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
     echo "CONTENT $repo@$ref pr-bonsai-link.yml DRIFT missing"
   fi
   # The kit files outside .github/workflows/: the PR template (waved since v1.15.0) and the house
-  # standards.
+  # standards. Presence comes from the directory listing, as above, so a failed API call skips the
+  # file rather than reading as "missing".
+  local dotgithub
+  dotgithub="$(gh api "repos/$ORG/$repo/contents/.github?ref=$ref" --jq '.[].name' 2>/dev/null)" || dotgithub=""
   for f in pull_request_template.md claude-standards.md; do
-    if gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
-         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
+    if grep -qx "$f" <<<"$dotgithub"; then
+      gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
+        -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null || continue
       content_row "$repo" "$ref" "$f"
+    elif [ -n "$dotgithub" ] && [ "$f" = claude-standards.md ] && grep -qx claude.yml <<<"$files"; then
+      echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
 }

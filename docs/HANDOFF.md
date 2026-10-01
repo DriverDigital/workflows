@@ -62,6 +62,8 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 1. **Make `bonsai-link` a required check per repo** — the wave has installed it everywhere `claude.yml`
    is; the context is the job id `bonsai-link` (kit README). First, because step 2 waits.
+   The wave also installs `claude-standards.md` beside `claude.yml` since 2026-10-01; the
+   `@.github/claude-standards.md` import is a `todo` issue in each repo that lacks it.
 2. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
    driver-engineering-app's security hardening pass (Maria, 2026-10-01: a couple of weeks; she will
    not run tickets through the app before it). On Avara, the first store run's log must read
