@@ -12,6 +12,10 @@ current. Edit it in `DriverDigital/workflows` (`templates/github/claude-standard
   make junior-level comments (e.g. saying what a for loop does), and never put requirements, decisions,
   or history in a comment. In a theme repo, each Liquid file opens with a short `{% comment %}` saying
   what it is, where it's used, and any setup it needs.
+- **To-dos** — One-off to-dos are GitHub issues labelled `todo` on the repo they belong to. The
+  driver-skills plugin lists a repo's open ones at session start, and its todo-capture skill files new
+  ones, including cross-repo handoffs with a `from:` line. Close the issue when done. `CLAUDE.local.md`
+  is not used in Driver repos.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.

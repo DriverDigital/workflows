@@ -57,8 +57,8 @@ npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.
 `vite-plugin-shopify-clean`, then waved to all **21** targets the same night (20 pushed, the canary
 already current; driver-engineering-app joined the targets through its `.github/claude-standards.md`).
 Audit the same night: **69 pins at `359505a7`, 110 files matching `templates/`, 1 drifted** —
-driver-agents' hand-installed `lint.yml` (comment-only; the wave never reaches that repo; a to-do is
-filed there).
+driver-agents' hand-installed `lint.yml` (comment-only; the wave never reaches that repo), re-copied by
+hand the same night (`ed2ad6a`).
 
 - **The reusable** carries every ungated ride-along from `docs/claude-yml-wave-plan.md`: the
   round-marker arm and re-request step are gone, no GitHub reviewer is requested, PR bodies carry

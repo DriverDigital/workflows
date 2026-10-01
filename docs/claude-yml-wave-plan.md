@@ -54,7 +54,7 @@ PRs as it refuses outsiders. Cost: no `@claude` on a contributor's fork PR.
    PR #102, run 36786817542): every assertion held, the Trusted-authors step listed collaborators with
    the default token.
 6. ~~Wave, then `tools/fleet-pin-audit.sh --stale` must read converged~~ — 21 targets, 2026-10-01; the
-   one drifted row is driver-agents' hand-installed `lint.yml`, outside the wave. Still open: on Avara, the first store run's
+   one drifted row, driver-agents' hand-installed `lint.yml`, was re-copied by hand. Still open: on Avara, the first store run's
    log must read `Provisioned store 'avara'` — the proof that `vars` resolves against the caller —
    and the "Mint the store token as a log mask" step must pass. Never print the token cache to
    prove the mask: if the mask did not register, that writes the live token into the log.

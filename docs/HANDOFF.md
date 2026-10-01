@@ -7,9 +7,12 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 2026-10-01: **v1.17.0 is released and waved.** `claude.yml` is a reusable + thin stub (#60), the canary
 on vite-plugin-shopify-clean passed every assertion in [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)
-"Running it", all 21 targets are on the tag, and the audit reads converged but for driver-agents'
-hand-installed `lint.yml` (comment-only; a to-do is filed there). Release record and what is not yet
+"Running it", all 21 targets are on the tag, and the audit reads converged (driver-agents' hand-installed `lint.yml`,
+outside the wave, was re-copied by hand the same night, `ed2ad6a`). Release record and what is not yet
 proven: [`README.md`](../README.md#v1170-359505a-2026-10-01).
+
+To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry the former
+`CLAUDE.local.md` items); that file is retired across Driver repos.
 
 2026-09-30 (#59) settled the decisions the release was built on:
 
@@ -57,15 +60,17 @@ proven: [`README.md`](../README.md#v1170-359505a-2026-10-01).
 
 ## Recommended next steps
 
-1. **One real ticket end to end** on the new rail, transcript read (private repos log it). On Avara,
-   the first store run's log must read `Provisioned store 'avara'` and the "Mint the store token as
-   a log mask" step must pass — never print the token cache to prove the mask.
-2. **Make `bonsai-link` a required check per repo** — the wave has installed it everywhere `claude.yml`
-   is; the context is the job id `bonsai-link` (kit README).
-3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** — after the first real Avara design
+1. **Make `bonsai-link` a required check per repo** — the wave has installed it everywhere `claude.yml`
+   is; the context is the job id `bonsai-link` (kit README). First, because step 2 waits.
+2. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
+   driver-engineering-app's security hardening pass (Maria, 2026-10-01: a couple of weeks; she will
+   not run tickets through the app before it). On Avara, the first store run's log must read
+   `Provisioned store 'avara'` and the "Mint the store token as a log mask" step must pass — never
+   print the token cache to prove the mask.
+3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
    `dest()` helper is where a second root goes.
-4. **Fleet `dependabot.yml` standard** (to-do): the kit block, cooldown included, is the candidate;
+4. **Fleet `dependabot.yml` standard** (#62): the kit block, cooldown included, is the candidate;
    the gaps are in [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
 
 ## Pointers

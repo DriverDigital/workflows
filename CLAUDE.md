@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Read first
 
 - `docs/HANDOFF.md` — state of play, open decisions, what the next session should do.
-- `CLAUDE.local.md` — to-dos (gitignored). Re-read before a wave; another repo's session may have
-  appended since.
+- The open `todo` issues on this repo — the to-dos (the driver-skills hook lists them at session
+  start; `gh issue list --label todo`). Re-list before a wave; another session may have filed since.
 - `README.md` — the full conventions and the dated release history. This file is the subset an
   agent breaks by accident; README is the authority where they overlap.
 

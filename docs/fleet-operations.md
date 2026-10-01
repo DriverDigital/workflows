@@ -13,7 +13,7 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v
 
 **21 repo@branch pairs** are wave targets after the v1.17.0 wave (2026-10-01; verified by the audit the
 same night — **69 pins at `359505a7`, 110 content matches, one comment-only drift** in driver-agents'
-hand-installed `lint.yml`, outside the wave). Since v1.17.0 the wave also discovers a branch by
+hand-installed `lint.yml`, outside the wave, re-copied by hand the same night). Since v1.17.0 the wave also discovers a branch by
 `.github/claude-standards.md`, which is how driver-engineering-app (no stubs, content only) became the
 21st. The split matters because two different numbers are correct depending on the question:
 
