@@ -59,4 +59,5 @@ PRs as it refuses outsiders. Cost: no `@claude` on a contributor's fork PR.
    and the "Mint the store token as a log mask" step must pass. Never print the token cache to
    prove the mask: if the mask did not register, that writes the live token into the log.
 7. Run one real ticket through with the transcript on (`show_full_output`) and read it before calling
-   the wave done. Then make `bonsai-link` a required check per repo.
+   the wave done. ~~Then make `bonsai-link` a required check per repo~~ — dropped 2026-10-01; the check
+   now skips PRs with no Bonsai mention (grey, not red).

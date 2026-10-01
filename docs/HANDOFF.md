@@ -60,8 +60,9 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Recommended next steps
 
-1. **Make `bonsai-link` a required check per repo** — the wave has installed it everywhere `claude.yml`
-   is; the context is the job id `bonsai-link` (kit README). First, because step 2 waits.
+1. ~~Make `bonsai-link` a required check per repo~~ — dropped (Maria, 2026-10-01): the check skips
+   PRs with no Bonsai mention, since most human PRs have no ticket and a red X read as a failing
+   build; a required check that passes when skipped would enforce nothing.
    The wave also installs `claude-standards.md` beside `claude.yml` since 2026-10-01; the
    `@.github/claude-standards.md` import is a `todo` issue in each repo that lacks it.
    driver-agents joins the fleet as an implementer target (driver-agents #50, Maria 2026-10-01); the

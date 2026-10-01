@@ -9,7 +9,7 @@ workflow here touches it.
 
 | File | Goes to | Does |
 |---|---|---|
-| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Fails a PR whose body names no Bonsai task: an `app.hellobonsai.com/tasks/<uuid>` URL, or a `Bonsai task: none` line. Dependabot PRs are exempt. Check-run context is the job id, **`bonsai-link`**; make it required per repo only once the wave has installed it. |
+| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body: a PR with no Bonsai mention is skipped (grey, never red — most human PRs have no ticket), one that mentions a link must carry an `app.hellobonsai.com/tasks/<uuid>` URL. Check-run context is the job id, **`bonsai-link`**. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house commit-message and code-comment standard. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy), so local sessions load it (CI loading is unconfirmed — `../../docs/HANDOFF.md`). Lint-only repos are wave targets through it. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
