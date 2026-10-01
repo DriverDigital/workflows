@@ -25,10 +25,11 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.17.0`** (`359505a`, 2026-10-01) — `claude.yml` is a reusable + thin stub carrying the
-wave's ride-alongs, a Trusted-authors gate refuses outsiders and fork PRs, and the store handle is a
-repository variable. Canaried, then waved to all 21 targets the same night — see
-[`v1.17.0`](#v1170-359505a-2026-10-01) below. The four caller stubs are pinned to `359505a`.
+Latest tag **`v1.18.0`** (`85f1578`, 2026-10-01) — `dependabot-validate` no longer fails every clean
+Dependabot PR, the implementer prompt carries the revised comments standard, and the house standards
+gain the subagents-and-replies rule; hours after `v1.17.0`, which made `claude.yml` a reusable + stub.
+Both canaried, then waved the same night — see [`v1.18.0`](#v1180-85f1578-2026-10-01) below. The four
+caller stubs are pinned to `85f1578`.
 
 **State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
 
@@ -50,6 +51,32 @@ resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
 `v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → `v1.15.0` → **`v1.16.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.18.0` (`85f1578`, 2026-10-01)
+
+`dependabot-validate` no longer fails every clean Dependabot PR (#73), the implementer prompt carries
+the revised comments standard (#74, closing #70), and the house standards gain the
+subagents-and-replies rule (#72). Hours after v1.17.0. Canaried on `vite-plugin-shopify-clean`
+(implementer: issue #107 → PR #108; validator: a `@dependabot rebase` of #97), then waved to all
+**22** targets (20 pushed; driver-onboarding joined the targets through a hand-installed
+`claude-standards.md`). Audit the same night: **69 pins at `85f15787`, 127 files matching
+`templates/`, 0 drifted**.
+
+- **The validator bug.** Since v1.15.0 (#45) the registry-names pipeline in `dependabot-validate.yml`
+  returned 1 under `bash -e` + `pipefail` whenever `build.log` carried no `npm error <pkg>@` line —
+  every clean run — and the step died silently before `result.json` was written. So every clean
+  Dependabot PR carried a red `validate / validate` (a required check on most repos) for three weeks,
+  while PRs with a real peer-dependency failure were reported properly. The fix is one `|| true`.
+  Found through foundrae-blackridge #206/#207 (#69, whose dev-smoke diagnosis was wrong: that repo has
+  no `agent-validate.json`, so dev-smoke never ran).
+- **Canary:** implementer run green, App token obtained, no validation-skip warning, PR with
+  `Bonsai task: none`; validate on the rebased Dependabot PR green with `registry facts` and
+  `overall=0`, four artifact files, the report job ran; `bonsai-link` skipped (grey) on both.
+- **Reached the fleet with this wave,** having landed kit-only since v1.17.0: the wave installs
+  `claude-standards.md` beside `claude.yml` (#67), `pr-bonsai-link.yml` skips PRs with no Bonsai
+  mention (#68), the revised comments standard and the style-only header (#71).
+- Dependabot PRs opened before this release still show the old red validate on their current head;
+  a `@dependabot rebase` (or any push) gets a fresh, green run.
 
 ### `v1.17.0` (`359505a`, 2026-10-01)
 
