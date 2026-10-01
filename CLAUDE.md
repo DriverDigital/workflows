@@ -108,6 +108,10 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   reusables float the same way; majors are the only action bumps that get a PR anywhere.
 - `dependabot-validate` stub `name:` stays byte-identical (`Dependabot validate`) — `-report`'s
   `workflow_run` name-matches it. The job always runs and branches internally; never `if:`-skip it.
+- `templates/github/claude-standards.md` is style only — never permissions, tool rules or hooks. On a PR
+  run claude-code-action restores `CLAUDE.md` and `.claude/` from the base branch but not `.github/`, so
+  the `@` import resolves to the PR head's copy and a collaborator's branch can change what the protected
+  file loads (Avara #226, 2026-10-01; accepted by decision). Load-bearing rules go in `CLAUDE.md` or `.claude/`.
 - Never `pull_request_target`. Never set `anthropic_api_key` (overrides OAuth, bills at API rates).
 - The `claude.yml` reusable's `actions/checkout` keeps `persist-credentials` at default —
   claude-code-action's early fetch 403s on a private repo without it. The Dependabot reusables' checkouts
