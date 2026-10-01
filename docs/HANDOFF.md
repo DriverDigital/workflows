@@ -76,7 +76,10 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
    not run tickets through the app before it). On Avara, the first store run's log must read
    `Provisioned store 'avara'` and the "Mint the store token as a log mask" step must pass — never
    print the token cache to prove the mask.
-3. **Ride-along for the next reusable change** (#70, part 2): reword `claude.yml`'s
+3. **Ride-alongs for the next reusable change.** The kit's `claude-standards.md` on main carries the
+   subagents-and-replies bullet (#72) that the fleet does not have yet — Maria held the wave for the
+   next release, so until then `fleet-pin-audit.sh --stale` reads that file as drifted on every
+   carrying repo by design. And #70, part 2: reword `claude.yml`'s
    `--append-system-prompt` item (7) to the revised comments standard — a tight summary, no apostrophes,
    no newline — then release, repin and wave as usual. Not urgent (Maria, 2026-10-01).
 4. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
