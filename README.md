@@ -451,7 +451,7 @@ all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration
 carries a caller stub for each reusable above, plus `shopify-tool-smoke.yml` (store repos only),
 `lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
 that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
-standard, imported by each repo's `CLAUDE.md`, waved at `.github/`) and `dependabot.yml` (the `github-actions` updater that bumps
+standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it) and `dependabot.yml` (the `github-actions` updater that bumps
 the stub pins between waves — installed by hand, merged into an existing file).
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install

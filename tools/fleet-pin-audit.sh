@@ -101,7 +101,8 @@ scan_ref() {  # repo ref
     [ -f "$KIT/$f" ] || continue
     content_row "$repo" "$ref" "$f"
   done
-  # The wave installs pr-bonsai-link.yml wherever claude.yml is, so its absence there is drift.
+  # The wave installs pr-bonsai-link.yml and claude-standards.md wherever claude.yml is, so their
+  # absence there is drift (the standards file is probed at .github/ below).
   if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
     echo "CONTENT $repo@$ref pr-bonsai-link.yml DRIFT missing"
   fi
@@ -111,6 +112,8 @@ scan_ref() {  # repo ref
     if gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
          -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
       content_row "$repo" "$ref" "$f"
+    elif [ "$f" = claude-standards.md ] && grep -qx claude.yml <<<"$files"; then
+      echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
 }

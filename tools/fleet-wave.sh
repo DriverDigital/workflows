@@ -15,7 +15,7 @@
 #   every kit file the branch already carries  <- kit version; the PR template and the house
 #                                                 standards live at .github/, the rest at
 #                                                 .github/workflows/
-#   pr-bonsai-link.yml                         <- also written wherever claude.yml is
+#   pr-bonsai-link.yml, claude-standards.md    <- also written wherever claude.yml is
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 #
 # Guards, in order:
@@ -213,9 +213,12 @@ plan_and_push() {
   grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
+  # Two files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
+  # check and the house standards (whose CLAUDE.md import stays a per-repo edit — nothing outside
+  # .github/ is ever written).
   for f in "${FULL_FILES[@]}"; do
     grep -qxF "$(dest "$f")" <<<"$existing" \
-      || { [ "$f" = pr-bonsai-link.yml ] && grep -qxF .github/workflows/claude.yml <<<"$existing"; } \
+      || { case "$f" in pr-bonsai-link.yml|claude-standards.md) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
       || continue
     # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.

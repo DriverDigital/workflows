@@ -23,7 +23,7 @@ The public home of Driver's Bonsai→GitHub pipeline workflows. Two products liv
   four caller stubs pinning a reusable by immutable SHA (`claude.yml` and the Dependabot three), plus
   three whole-file workflows (`shopify-tool-smoke.yml` store repos only, `lint.yml`,
   `pr-bonsai-link.yml` beside `claude.yml`) and `pull_request_template.md` and `claude-standards.md`
-  (both live at `.github/`; the wave carries them) and `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
+  (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand) and `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
   Kit install conventions: `templates/github/README.md`.
 
 PR review is Macroscope's, org-wide (Maria, 2026-09-12): Claude reviews a PR only when a person `@claude`s it
