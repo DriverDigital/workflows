@@ -36,6 +36,18 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Open decisions
 
+- **Where the standards file lives, given PR runs.** claude-code-action restores a fixed list from the
+  PR base before Claude starts (`.claude/`, `.mcp.json`, `.claude.json`, `.gitmodules`, `.ripgreprc`,
+  `CLAUDE.md`, `CLAUDE.local.md`, `.husky/` — `SENSITIVE_PATHS` in its `restore-config.ts`, documented in
+  its `docs/security.md`). `.github/claude-standards.md` is not on it, so on a PR run the base's
+  `CLAUDE.md` imports the PR head's copy: a collaborator's branch can change what the protected file
+  loads (forks and outsiders are already refused by the Trusted-authors step). Found by Avara #226,
+  2026-10-01. Options: accept it and keep the file style-only — nothing load-bearing (permissions,
+  tool rules, hooks) ever goes in it, those live in `CLAUDE.md` or `.claude/`, which the action
+  restores — or move it under `.claude/` so it rides the restore list (changes `dest()` in the wave,
+  the audit probe, the docs and every repo's import line; some repos gitignore `.claude/`). A restore
+  step in the reusable cannot work on the comment path, where the action checks out the PR branch
+  itself after our steps. Recommended: accept with the style-only rule, recorded as an invariant.
 - **`dependabot-report`'s future.** It runs Claude automatically on every Dependabot PR (verdict over
   the inert artifact, never the diff). Macroscope reviews Dependabot PRs too since 2026-09-10, so it is
   the one place two bots still review automatically. Keep, or retire like the review rails.
@@ -53,8 +65,11 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 - **WebSearch/WebFetch** stay off until #690 ships a fix (still open at 2026-07-28); the action
   floats on `v1`, so the fix arrives on its own and the caveat comment in `claude.yml` is what gets
   removed.
-- **`claude-standards.md` loading in CI.** claude-code-action loads project settings by default, so
-  the `@` import should reach the implementer; confirm on the first fleet repo that adopts it.
+- **`claude-standards.md` loading in CI** — confirmed on the issues path (Avara run 36789868486 carried
+  both `CLAUDE.md` and `.github/claude-standards.md` as attachments; Avara #226, 2026-10-01). The
+  comment path is still unverified: the `@claude` must come from a collaborator or the dispatcher (bot
+  comments are `author_association` NONE), and the transcript never prints loaded instructions, so
+  have the implementer quote the attachment header. See the open decision on where the file lives.
 - A human `@claude` (tag mode) still gets the action's own co-author text; the nine-item quality
   standard is global to `--append-system-prompt` — both unchanged.
 
