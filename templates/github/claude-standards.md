@@ -44,6 +44,9 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   then opens one PR at the end, when the work is ready for review. A PR needed sooner is a draft
   (Macroscope does not review drafts). Once a PR is open, collect fixes locally and push them
   together. PRs land with a merge commit, never a squash, so each commit survives on `main`.
+  Deleting a head branch once its PR merges is preferred, but GitHub is not set to do it, since an
+  author may still want theirs: delete a branch you created for your own PR once it merges, and
+  propose cleanup of other stale branches rather than deleting them.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.
