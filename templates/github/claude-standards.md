@@ -36,8 +36,9 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
     the code that implements it, never replaced by a pointer; a rationale repeated within a file goes.
 - **To-dos** — One-off to-dos are GitHub issues labelled `todo` on the repo they belong to. The
   driver-skills plugin lists a repo's open ones at session start, and its todo-capture skill files new
-  ones, including cross-repo handoffs with a `from:` line. Close the issue when done. `CLAUDE.local.md`
-  is not used in Driver repos.
+  ones, including cross-repo handoffs with a `from:` line. Close the issue when done. A gitignored
+  `CLAUDE.local.md` is for private to-dos and personal capture only, never for work the team should
+  see.
 - **Branches and pull requests** — Macroscope reviews a pull request at most three times, and every
   push to an open PR spends one. A session works on one feature branch, commits each piece of work
   separately (even when they touch unrelated things) and pushes to the branch as often as it likes,
