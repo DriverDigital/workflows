@@ -4,7 +4,7 @@ name: Shopify theme (reusable)
 #   pull_request, draft        build (or theme check, with no build script); nothing is pushed
 #   pull_request, ready        build, then push the preview theme DRIVER/<head branch>
 #   pull_request, closed       delete DRIVER/<head branch>
-#   push to main / main-*      build, then push DRIVER/<branch>; Shopify's own sync commits skip
+#   push to main / main-*      build, then push DRIVER/<branch> (the stub skips Shopify's sync commits)
 # A theme is looked up by name and never a live one: a live theme that happens to carry the name is
 # left alone and an unpublished copy is created beside it. Nothing here ever publishes.
 #
@@ -14,8 +14,8 @@ name: Shopify theme (reusable)
 # run in the environment named after the target branch.
 #
 # The build runs in its own job with no secrets and a read-only token, since `npm ci` and the build
-# execute every dependency's scripts. The push job downloads what the build left and runs no npm
-# script, only the CLI.
+# execute every dependency's scripts. The push job downloads what the build left, and the store
+# credentials reach only the steps that call the CLI, never the CLI's own install.
 
 on:
   workflow_call:
@@ -23,14 +23,14 @@ on:
 permissions:
   contents: read
 
+# ponytail: cut to Shopify's 50-character theme-name limit in each run step, so two branches sharing
+# their first 43 characters share one preview theme.
 env:
   THEME_NAME: DRIVER/${{ github.head_ref || github.ref_name }}
 
 jobs:
   build:
-    if: >-
-      github.event.action != 'closed' &&
-      !(github.event_name == 'push' && contains(github.event.head_commit.message, 'Update from Shopify'))
+    if: github.event.action != 'closed'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -88,10 +88,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ vars.SHOPIFY_ENVIRONMENT_PER_BRANCH == 'true' && (github.base_ref || github.ref_name) || '' }}
-    env:
-      SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
-      SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
-      SHOPIFY_CLI_TTY: 0
     steps:
       - uses: actions/download-artifact@v7
         with:
@@ -99,14 +95,19 @@ jobs:
       - name: Install Shopify CLI
         run: npm install -g @shopify/cli@latest
       - name: Push ${{ env.THEME_NAME }}
+        env:
+          SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
+          SHOPIFY_CLI_TTY: 0
         run: |
           set -euo pipefail
+          name=${THEME_NAME:0:50}
           themes=$(shopify theme list --json)
-          id=$(jq -r --arg n "$THEME_NAME" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
+          id=$(jq -r --arg n "$name" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
           if [ -n "$id" ]; then
             shopify theme push --theme "$id"
           else
-            shopify theme push --unpublished --theme "$THEME_NAME"
+            shopify theme push --unpublished --theme "$name"
           fi
 
   cleanup:
@@ -115,18 +116,23 @@ jobs:
     timeout-minutes: 10
     environment: ${{ vars.SHOPIFY_ENVIRONMENT_PER_BRANCH == 'true' && github.base_ref || '' }}
     env:
-      SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
-      SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
       SHOPIFY_CLI_TTY: 0
     steps:
       - name: Install Shopify CLI
         run: npm install -g @shopify/cli@latest
       # The list is its own step so a CLI failure fails the job instead of reading as "no theme".
       - name: List themes
+        env:
+          SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
         run: shopify theme list --json > themes.json
       - name: Delete ${{ env.THEME_NAME }}
+        env:
+          SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
+          SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
         run: |
           set -euo pipefail
-          ids=$(jq -r --arg n "$THEME_NAME" '.[] | select(.name == $n and .role != "live") | .id' themes.json)
-          [ -n "$ids" ] || { echo "No theme named $THEME_NAME"; exit 0; }
+          name=${THEME_NAME:0:50}
+          ids=$(jq -r --arg n "$name" '.[] | select(.name == $n and .role != "live") | .id' themes.json)
+          [ -n "$ids" ] || { echo "No theme named $name"; exit 0; }
           for id in $ids; do shopify theme delete --theme "$id" --force; done
