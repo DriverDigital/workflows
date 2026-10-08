@@ -17,8 +17,8 @@
 #                                                 standards live at .github/, claude-settings.json
 #                                                 at .claude/settings.json, the rest at
 #                                                 .github/workflows/
-#   pr-bonsai-link.yml, claude-standards.md,   <- also written wherever claude.yml is
-#   claude-settings.json
+#   pr-bonsai-link.yml, claude-standards.md,   <- also written wherever claude.yml is; the settings
+#   claude-settings.json                          file's keys are merged into an existing one
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
@@ -278,7 +278,13 @@ plan_and_push() {
         BLOCKED=1; return 0
       fi
     fi
-    cp "$KIT/$f" "$tmp/$f"
+    # The repo owns the rest of its .claude/settings.json; the kit owns only the keys it ships.
+    if [ "$f" = claude-settings.json ] && [ -s "$cur" ]; then
+      jq -s '.[0] * .[1]' "$cur" "$KIT/$f" > "$tmp/$f" \
+        || { echo "  $repo@$branch .claude/settings.json: not valid JSON, so the kit keys cannot be merged in" >&2; exit 3; }
+    else
+      cp "$KIT/$f" "$tmp/$f"
+    fi
     if ! cmp -s "$cur" "$tmp/$f"; then
       case "$f" in *.yml) actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; } ;; esac
       tree+=("$f"); changes=1; echo "  write  $f"

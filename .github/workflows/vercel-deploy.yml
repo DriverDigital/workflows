@@ -5,9 +5,11 @@ name: Vercel deploy (reusable)
 # by members of the Vercel team and blocks everyone else's, so this job fires the branch's deploy
 # hook for everyone else and skips team members, whose push Vercel has already picked up.
 #
-# The team's GitHub logins come from the variable VERCEL_TEAM_LOGINS (space-separated, set at the
-# org), falling back to the one member there is today. Hooks: VERCEL_DEPLOY_HOOK_MAIN (production)
-# and VERCEL_DEPLOY_HOOK_DEVELOP (preview), each bound to its branch in the Vercel project.
+# The team's GitHub logins come from the variable VERCEL_TEAM_LOGINS, space-separated and set per
+# repo to the logins with a seat on that project's Vercel team; unset, it falls back to
+# mcarter-astronautdev alone. A login missing from it deploys twice, once from each side. Hooks:
+# VERCEL_DEPLOY_HOOK_MAIN (production) and VERCEL_DEPLOY_HOOK_DEVELOP (preview), each bound to its
+# branch in the Vercel project.
 
 on:
   workflow_call:

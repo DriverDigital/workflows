@@ -21,7 +21,7 @@
 # Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
 # the wave (Palmers #93 / vite-plugin-shopify-clean #72, 2026-07-02) — in practice the wave repins
 # within minutes of every tag, so it rarely gets the chance; see docs/fleet-operations.md. This
-# script is how drift gets seen between waves. Needs: gh (authenticated), org read access.
+# script is how drift gets seen between waves. Needs: gh (authenticated), org read access, jq.
 #
 # Usage: tools/fleet-pin-audit.sh            # full report
 #        tools/fleet-pin-audit.sh --stale    # only what has drifted
@@ -74,8 +74,14 @@ trap 'rm -rf "$TMP"' EXIT
 
 content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
   local repo="$1" ref="$2" f="$3"
-  kit_normalize < "$TMP/raw"  > "$TMP/deployed"
-  kit_normalize < "$KIT/$f"   > "$TMP/kit"
+  if [ "$f" = claude-settings.json ]; then
+    # The repo owns the rest of .claude/settings.json; the wave merges in only the kit keys.
+    jq -S .attribution < "$TMP/raw" > "$TMP/deployed" 2>/dev/null || echo "invalid JSON" > "$TMP/deployed"
+    jq -S .attribution < "$KIT/$f"  > "$TMP/kit"
+  else
+    kit_normalize < "$TMP/raw"  > "$TMP/deployed"
+    kit_normalize < "$KIT/$f"   > "$TMP/kit"
+  fi
   if command diff -q "$TMP/deployed" "$TMP/kit" >/dev/null 2>&1; then
     echo "CONTENT $repo@$ref $f ok"
   else
@@ -94,8 +100,8 @@ scan_ref() {  # repo ref platform
     gh api "repos/$ORG/$repo/contents/.github/workflows/$f?ref=$ref" \
       -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null || continue
 
-    # 2. PINS
-    grep -o "$ORG/workflows/.github/workflows/[^@]*@[0-9a-f]*" "$TMP/raw" \
+    # 2. PINS (an unenrolled repo's are listed with its files below, not counted as stale)
+    [ "$plat" = unenrolled ] || grep -o "$ORG/workflows/.github/workflows/[^@]*@[0-9a-f]*" "$TMP/raw" \
       | sed "s|$ORG/workflows/.github/workflows/||; s|@\([0-9a-f]\{8\}\)[0-9a-f]*|@\1|" \
       | while read -r line; do echo "PIN $repo@$ref $f $line"; done
 
@@ -103,7 +109,7 @@ scan_ref() {  # repo ref platform
     # names another platform (or none) is drift whatever its bytes say; the wave refuses to touch it.
     [ -f "$KIT/$f" ] || continue
     if [ "$plat" = unenrolled ]; then
-      echo "CONTENT $repo@$ref $f DRIFT unenrolled: no $KIT_TOPIC topic, so the wave skips this repo"
+      echo "UNENROLLED $repo@$ref $f"
       continue
     fi
     fp="$(file_platform "$f")"
@@ -135,15 +141,18 @@ scan_ref() {  # repo ref platform
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
-  # The shared Claude Code project settings, installed beside claude.yml at .claude/settings.json.
-  grep -qx claude.yml <<<"$files" || return 0
-  local rootdirs
+  # The shared Claude Code project settings at .claude/settings.json, installed beside claude.yml.
+  # Missing is reported only when both listings succeeded; a failed call skips the check.
+  local rootdirs dotclaude=""
   rootdirs="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | select(.type == "dir") | .name' 2>/dev/null)" || return 0
-  if grep -qx .claude <<<"$rootdirs" \
-     && gh api "repos/$ORG/$repo/contents/.claude/settings.json?ref=$ref" \
-          -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
+  if grep -qx .claude <<<"$rootdirs"; then
+    dotclaude="$(gh api "repos/$ORG/$repo/contents/.claude?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
+  fi
+  if grep -qx settings.json <<<"$dotclaude"; then
+    gh api "repos/$ORG/$repo/contents/.claude/settings.json?ref=$ref" \
+      -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null || return 0
     content_row "$repo" "$ref" claude-settings.json
-  else
+  elif grep -qx claude.yml <<<"$files"; then
     echo "CONTENT $repo@$ref claude-settings.json DRIFT missing"
   fi
 }
@@ -168,8 +177,9 @@ report="$(
     # one even in a comment, and the parse error it produces points at EOF, not at the line.
     [ "$repo" = "workflows" ] && continue
     plat="$(topics_platform "${topics//,/ }")"
-    # A repo without the driver-kit topic is still scanned: kit files there are drift, since the
-    # wave no longer keeps them current. Its rows are tagged so the report says why.
+    # A repo without the driver-kit topic is still scanned, and its kit workflow files are listed
+    # apart: the wave keeps them current no longer, but a dormant repo may keep them until it is
+    # archived, so they never count as drift.
     topics_enrolled "${topics//,/ }" || plat="unenrolled"
     scan_ref "$repo" "$def" "$plat"
     if [ "$repo" = "Palmers" ]; then
@@ -182,6 +192,7 @@ report="$(
 pins="$(printf '%s\n' "$report" | grep '^PIN ' | sed 's/^PIN //')"
 stale="$(printf '%s\n' "$pins" | grep -v "@$LATEST_SHA8")"
 content="$(printf '%s\n' "$report" | grep '^CONTENT ' | sed 's/^CONTENT //')"
+unenrolled="$(printf '%s\n' "$report" | grep '^UNENROLLED ' | sed 's/^UNENROLLED //')"
 drift="$(printf '%s\n' "$content" | grep ' DRIFT ')"
 
 # Every kit repo@branch pair carries at least one caller stub, so zero pins fleet-wide means the
@@ -190,7 +201,8 @@ drift="$(printf '%s\n' "$content" | grep ' DRIFT ')"
 # to stop: a clean report that proves nothing.
 if [ -z "$pins" ]; then
   echo "FATAL: zero caller-stub pins found across $(printf '%s\n' "$repos" | grep -c .) repos." >&2
-  echo "The fleet always carries some, so the scan failed to read — this is not a clean fleet." >&2
+  echo "The fleet always carries some, so the scan failed to read, or no repo carries the $KIT_TOPIC" >&2
+  echo "topic yet — this is not a clean fleet." >&2
   exit 2
 fi
 
@@ -216,5 +228,10 @@ fi
 echo "latest: $LATEST_TAG ($LATEST_SHA8) — pins by SHA:"
 printf '%s\n' "$pins" | sed 's/.*@//' | sort | uniq -c | sort -rn
 echo "content: $(printf '%s\n' "$content" | grep -c ' ok$') match templates/, $(printf '%s\n' "$content" | grep -c ' DRIFT ') drifted"
+if [ -n "$unenrolled" ]; then
+  echo
+  echo "unenrolled (kit workflow files on repos without the $KIT_TOPIC topic; not waved, not drift):"
+  printf '  %s\n' "$unenrolled"
+fi
 
 [ -z "$reference$stale$drift" ]
