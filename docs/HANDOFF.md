@@ -11,8 +11,8 @@ and take the `shopify-theme.yml` reusable (#80, #82). Vercel sites keep `develop
 `vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site`
 pick the platform files. The wave and the audit enforce both. In the same release: the Dependabot
 house standard (#62), each repo's pinned Node in CI (#75, #77), Closes lines (#76), the
-`CLAUDE.local.md` rule (#78) and `.claude/settings.json` (#83). The two new stubs are drafted but
-land only at the repin, because they pin the tag. **Decided: `dependabot-report` stays**
+`CLAUDE.local.md` rule (#78) and `.claude/settings.json` (#83). The two new stubs are drafted on branch
+`ci-standards-stubs` (placeholder pin, never a PR) and land in the repin commit, because they pin the tag. **Decided: `dependabot-report` stays**
 (Maria, 2026-10-09). It, validate and Macroscope together are what make a clear Dependabot PR safe to
 merge unread; auto-merge on all three is #85.
 
@@ -59,6 +59,11 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 - **foundrae's `dev-staging` and `testparty/06-2026`:** retire at its cutover or keep.
 
 ## Watch-items
+
+- **`shopify-theme.yml`'s first canary** (savannahfriedkin): every repo but Palmers takes the
+  `environment: ''` arm of the push and cleanup jobs. Read the push job log first: it must run with no
+  environment, and `vars.` must resolve in `jobs.<id>.environment`. If either fails, split the job
+  into two variants rather than documenting around it.
 
 - **Dependabot PRs opened before v1.18.0** still show the old red validate on their current head; a
   `@dependabot rebase` or any push gets a fresh run. Nothing to do fleet-wide; they clear as they move.
