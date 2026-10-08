@@ -1,17 +1,18 @@
 # GitHub pipeline kit (Phase 2)
 
-Drop-in workflows that connect a DriverDigital repo to the Bonsai → PR pipeline. The pipeline
+Drop-in workflows that connect a DriverDigital repo to the Bonsai → PR pipeline, plus each
+platform's CI/CD stub and the Dependabot house standard. The pipeline
 dispatcher (in `driver-agents`) opens a GitHub **issue** from a ready Bonsai task and
 `@claude`s it; these workflows take it from there. Bonsai status is polled by the dispatcher — no
 workflow here touches it.
 
-### Full workflows (installed verbatim, per-repo)
+### Whole files (installed verbatim per repo, except `claude-settings.json`, whose keys are merged)
 
 | File | Goes to | Does |
 |---|---|---|
 | `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body: a PR with no Bonsai mention is skipped (grey, never red — most human PRs have no ticket), one that mentions a link must carry an `app.hellobonsai.com/tasks/<uuid>` URL. Check-run context is the job id, **`bonsai-link`**. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
-| `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house commit-message and code-comment standard. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy), so local sessions load it (CI loading is unconfirmed — `../../docs/HANDOFF.md`). Lint-only repos are wave targets through it. |
+| `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, branches and PRs. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI already sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
@@ -30,15 +31,18 @@ trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is
 
 ### Platform stubs (one platform each)
 
-A repo's GitHub topic, `shopify-theme` or `vercel-site`, decides which of these it may carry; the
-wave never writes one to a repo of the other platform or of none (`tools/kit-platforms.sh`). The
-standards, the cutover and the install steps: [`../../docs/branch-model.md`](../../docs/branch-model.md).
+A repo takes the kit only with the `driver-kit` topic. Its platform topic, `shopify-theme`,
+`vercel-site` or `wordpress-site` (no platform files yet), decides which of these it may carry; the
+wave never writes one to a repo of another platform or of none (`tools/kit-platforms.sh`).
+`shopify-theme.yml` and `vercel-deploy.yml` land here in the next release's repin commit (they pin
+the tag); until then they wait on branch `ci-standards-stubs`. The standards, the cutover and the
+install steps: [`../../docs/branch-model.md`](../../docs/branch-model.md).
 
 | File | Platform | Rail |
 |---|---|---|
 | `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (checked while draft, pushed when ready, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | The full workflow described above. |
-| `vercel-deploy.yml` | Vercel | Fires the deploy hook on push to `main` (production) or `develop` (preview) for pushers outside the Vercel team. |
+| `vercel-deploy.yml` | Vercel | Fires the branch's deploy hook on push to `main` (production) or `develop` (preview) when the pusher is not in `VERCEL_TEAM_LOGINS`. The wave and the audit cover `develop` only; `main` takes kit changes at its next promotion. |
 
 **PR review is Macroscope's job, not the kit's** (decided 2026-08-08, reaffirmed 2026-09-12). The old
 review rails — `pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted
@@ -120,7 +124,8 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    repositories**, permissions **Issues: R/W + Pull requests: R/W + Metadata: R** (no
    Contents/Admin, so no code-push) — and that minimal permission set, not the repo list, is the
    security boundary.
-4. **Copy the kit** (from a checkout of `DriverDigital/workflows`):
+4. **Set the topics, then copy the kit** (from a checkout of `DriverDigital/workflows`). The topics
+   are `driver-kit` plus the repo's platform; the wave touches nothing on a repo without `driver-kit`.
    ```bash
    mkdir -p .github/workflows
    cp templates/github/claude.yml               .github/workflows/
@@ -131,12 +136,14 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    cp templates/github/pr-bonsai-link.yml       .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    cp templates/github/claude-standards.md      .github/claude-standards.md
+   mkdir -p .claude && cp templates/github/claude-settings.json .claude/settings.json  # existing file: merge its attribution keys
    ```
    Then add `@.github/claude-standards.md` to the repo's `CLAUDE.md` (a new repo: start `CLAUDE.md`
    as that line and let `/init` write the rest around it).
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
-   it replaces what a branch already carries, and installs `pr-bonsai-link.yml` and
-   `claude-standards.md` beside `claude.yml`; the `CLAUDE.md` import line is the one step it cannot do).
+   it replaces what a branch already carries, and installs `pr-bonsai-link.yml`, `claude-standards.md`
+   and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
+   it cannot do). A platform's stubs come from its cutover or install commit (`../../docs/branch-model.md`).
    **Then `dependabot.yml`, by hand** — the house standard: write the kit's file over the repo's,
    keeping only the blocks the repo needs (npm only where a `package.json` exists, one block per
    `package.json` directory) and any commented per-repo exception. It is also the updater for the
@@ -144,16 +151,18 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    in which blocks they keep; the cutover and install commits in `docs/branch-model.md` write it.
    Palmers' country branches get no Dependabot updates (it reads the default branch only).
    **Re-copying into a repo that already has the kit?** Let the wave do it
-   (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value. It
+   (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
+   `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It
    refuses a repo whose deployed file still carries a store handle the `SHOPIFY_STORE_NAME` variable
    does not hold — set the variable first.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
 
-   **Partial install (`lint.yml` only).** For a repo that is *not* on the Bonsai → PR pipeline —
-   no dispatcher issues — `lint.yml` is the useful subset and the rest is inert weight. This is
-   what `driver-agents` and `driver-engineering-app` run (their `pr-first-review.yml` was removed with
-   the v1.12.0 retirement; Macroscope reviews their PRs like everyone else's). Add the Dependabot
+   **Partial install (`lint.yml`, plus the standards).** For a repo that is *not* on the Bonsai → PR
+   pipeline — no dispatcher issues — `lint.yml` and `claude-standards.md` are the useful subset and
+   the rest is inert weight. `driver-engineering-app` runs both. The wave finds a branch by its
+   standards file, so a repo holding `lint.yml` alone (`driver-agents` today) is not waved even with
+   `driver-kit`. Add the Dependabot
    trio if and when such a repo turns Dependabot on.
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
@@ -192,14 +201,12 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   repo's default branch — that's a hard GitHub rule for `issues` events; installing it on every
   branch means no one has to reason about which event resolves from where.)
 - **Which branch a task targets is decided by the map, not the task.** Branch routing lives in
-  `config/project-repo-map.json`: each pipeline project carries an explicit `branch` (e.g. the Palmers
-  India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The dispatcher
-  reads that `branch`, writes a `**Target branch:**` directive into the issue body, and the implementer
-  bases its dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. The
-  task's *Github Repo* custom field is **not** consulted for routing of map-routed repos, so a task
-  with a blank/stale field still routes correctly — **except** for cross-cutting repos on the map's
-  `fieldRoutableRepos` allow-list, which ARE routed by the *Github Repo* field (overriding the project
-  map); the branch is still taken from config, never the field.
+  driver-agents `pipeline/project-repo-map.json`: each pipeline project carries an explicit `branch`
+  (e.g. the Palmers India project → `main-in`, the Palmers USA / Managed-Services project → `main`).
+  The dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
+  dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. A Repo
+  directive in the ticket can override the map's repo, but only for a repo that has `claude.yml`; the
+  branch still comes from the map (`main` for a repo with no entry).
 - **Don't flag a project whose branch doesn't exist yet.** A `branch` must be a real branch in the
   repo before the project is `"pipeline": "github"` — otherwise the implementer can't branch from it.
 

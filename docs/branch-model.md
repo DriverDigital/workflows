@@ -1,25 +1,41 @@
 # Branch model and the two platform standards
 
-Every Driver site is hosted on Shopify or on Vercel, and each platform has its own CI/CD standard.
-The shared kit (implementer, Dependabot rails, lint, Bonsai link, PR template, house standards,
-`.claude/settings.json`, `dependabot.yml`) goes to every enrolled repo. A platform's files go only
+Driver sites are hosted on Shopify, Vercel or WordPress. Shopify and Vercel each have their own CI/CD
+standard; WordPress has none yet, so its repos take the shared kit only. The shared kit (implementer,
+Dependabot rails, lint, Bonsai link, PR template, house standards, `.claude/settings.json`) is waved
+to enrolled repos, and `dependabot.yml` is written by hand in each one. A platform's files go only
 to repos of that platform. The fleet survey behind this was taken 2026-10-08.
 
 ## Which repos get what
 
-Three GitHub topics on each repo decide it. The lists live in `tools/kit-platforms.sh`.
+Four GitHub topics on each repo decide it. Which files each platform adds is listed in `tools/kit-platforms.sh`.
 
 | Topic | Means |
 |---|---|
 | `driver-kit` | The repo takes the kit. `tools/fleet-wave.sh` targets nothing without it, so a stale repo receives nothing further without being archived. |
 | `shopify-theme` | A Shopify site: adds the Shopify files. |
 | `vercel-site` | A Vercel site: adds the Vercel files. |
+| `wordpress-site` | A WordPress site: no platform files yet, so the shared kit only. |
+
+A repo carries at most one platform topic; the wave stops on a repo with two.
 
 The platform topics describe the repo, and `driver-kit` opts it in, so a dormant theme can carry
 `shopify-theme` and still receive nothing. The audit scans every repo regardless. Kit workflow files
 on a repo without `driver-kit` are listed in their own `unenrolled` section, which never fails the
 audit, so a dormant repo can keep its old files until it is archived. A platform file on a repo of
 another platform or of none is drift, and the wave refuses to write one there.
+
+Set 2026-10-09:
+
+| Topics | Repos |
+|---|---|
+| `driver-kit` + `shopify-theme` | Avara, foundrae-blackridge, LaPointe, Kissy-Kissy, LittleMe, Palmers, R-Finds, savannahfriedkin, Driver-Horizon, Anduril-Gear |
+| `driver-kit` + `vercel-site` | Team-Laird, Driver-Digital-Website, studio-sulzer |
+| `driver-kit` + `wordpress-site` | The-Gathery |
+| `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
+
+driver-agents is enrolled but is not a wave target until it carries a file the wave discovers by.
+Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 
 ## The standards
 
@@ -34,8 +50,8 @@ another platform or of none is drift, and the wave refuses to write one there.
 
 An enrolled repo with no platform topic gets the shared kit only, the way the tool repos
 (`plugins`, `client-workspaces`, `vite-plugin-shopify-clean`, `driver-onboarding`,
-`driver-engineering-app`) do. The-Gathery is a WordPress theme with `develop` + `main`, outside
-both standards.
+`driver-engineering-app`, `driver-agents`) do. The-Gathery is a WordPress theme with `develop` +
+`main`; `wordpress-site` adds no files yet, so it too gets the shared kit only.
 
 No repo branch is ever connected to a store's live theme. Repos back unpublished preview themes
 only, so a branch rename never touches a live storefront.
@@ -54,7 +70,7 @@ Elsewhere:
 | Where | What names a branch |
 |---|---|
 | driver-agents `pipeline/project-repo-map.json` | 11 entries: 9 `develop` (studio-sulzer, Avara ×4, Driver-Digital-Website, LaPointe, LittleMe, Kissy-Kissy), 2 `staging` (foundrae). The dispatcher writes the entry's branch on line 1 of every issue, and the implementer bases its branch and PR on it. Open issues filed before a cutover still carry the old name. |
-| Theme deploy workflows | Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds: `Feature-*` on PRs to `develop`, `Develop-Deploy` on push to `develop` → `DRIVER/develop` (Kissy-Kissy: `Kissy-2.0/develop`), and `Production-Deploy` on push to `main` (Avara, LaPointe, R-Finds; never run). foundrae: `Feature-*` and `Staging-Deploy` on `staging`/`dev-staging` → `DRIVER/<branch>`. Eurus and Prestige: triggers on a `develop` branch that doesn't exist, so they never fire. |
+| Theme deploy workflows | Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds: `Feature-*` on PRs to `develop`, `Develop-Deploy` on push to `develop` → `DRIVER/develop` (Kissy-Kissy: `Kissy-2.0/develop`), and `Production-Deploy` on push to `main` (Avara, LaPointe, R-Finds; never run). foundrae: `Feature-*` and `Staging-Deploy` on `staging`/`dev-staging` → `DRIVER/<branch>`. |
 | Vercel `deploy.yml` | Team-Laird, Driver-Digital-Website: `refs/heads/main` → production hook, `refs/heads/develop` → preview hook, skipped for the Vercel team's logins (`mcarter-astronautdev`; Driver-Digital-Website also `jadewang425`). studio-sulzer has none. |
 | Vercel project settings | Production branch and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
 | `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. |
@@ -68,9 +84,7 @@ foundrae-blackridge (from `staging`).
 
 **Already on `main`:** Palmers, savannahfriedkin, Driver-Horizon and Anduril-Gear. They take steps 1,
 5 and 6 only: step 5's commit deletes their `Feature-*` and `Staging-Deploy` files, and on Palmers it
-lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first. Eurus and
-Prestige are dormant (last pushed 2025-05 and 2024-06), so retire their dead workflows rather than
-migrate them.
+lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first.
 
 **Before the first cutover:**
 - The release carrying `shopify-theme.yml` is tagged, and its stub is repinned into the kit (README
@@ -109,7 +123,7 @@ migrate them.
      any lowercase variants)
    - adds the `shopify-theme.yml` stub
    - writes `dependabot.yml` from the kit (keeping the blocks the repo needs)
-   - adds `.claude/settings.json`
+   - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing (#83)
 6. **Check that it worked.**
    - The push run created or updated `DRIVER/main`.
@@ -134,7 +148,7 @@ migrate them.
 
 No branch changes:
 
-1. Add the `vercel-site` topic.
+1. Confirm the repo carries `driver-kit` and `vercel-site` (set 2026-10-09).
 2. Confirm both hook secrets exist. studio-sulzer has no `deploy.yml` today, so create its two hooks
    in Vercel first.
 3. Set `VERCEL_TEAM_LOGINS` on the repo to the logins its current `deploy.yml` skips. That's
@@ -144,7 +158,8 @@ No branch changes:
    - add the `vercel-deploy.yml` stub
    - delete `deploy.yml`
    - write `dependabot.yml` from the kit (its `target-branch: develop` goes)
-   - add `.claude/settings.json`
+   - add `.claude/settings.json` where the wave has not (repos without `claude.yml`)
+   - add the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing (#83)
 
    `main` picks the commit up at the next promotion. Until then, `main`'s own `deploy.yml` keeps
    working.
@@ -155,10 +170,12 @@ outside this standard until it needs one.
 ## Order
 
 1. Merge, tag, and repin with the two new stubs added (README release order).
-2. Set the topics: `driver-kit` on every repo that takes the kit, plus its platform topic.
+2. The topics are set (2026-10-09, [Which repos get what](#which-repos-get-what)).
 3. Wave the shared kit. That carries `.claude/settings.json` and the updated house standards to
    every implementer repo.
-4. Pilot the Shopify cutover on LittleMe: `main` is a strict ancestor of `develop`, it has one open
-   PR and two deploy files, and there is no production workflow. Then the rest, one at a time.
+4. Canary the `shopify-theme.yml` stub on savannahfriedkin, already on `main` (steps 1, 5 and 6),
+   and read its push job log (HANDOFF watch-items). Then pilot the Shopify cutover on LittleMe: `main`
+   is a strict ancestor of `develop`, it has one open PR and two deploy files, and there is no
+   production workflow. Then the rest, one at a time.
 5. Vercel installs.
 6. `tools/fleet-pin-audit.sh --stale` reads converged.

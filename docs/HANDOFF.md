@@ -8,13 +8,17 @@ State of play for the next session. Conventions, how-tos and release history liv
 2026-10-09: **two platform standards, built on branch `ci-standards` and not released yet**
 ([`branch-model.md`](branch-model.md)). Shopify sites go to `main` only (Palmers: `main` + `main-*`)
 and take the `shopify-theme.yml` reusable (#80, #82). Vercel sites keep `develop` + `main` and take
-`vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site`
-pick the platform files. The wave and the audit enforce both. In the same release: the Dependabot
+`vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site` /
+`wordpress-site` pick the platform files (WordPress has none yet). The topics are set on all 20 kit
+repos (2026-10-09; the list is in [`branch-model.md`](branch-model.md#which-repos-get-what)), and a
+dry-run wave with the branch's tools finds 22 targets and no blocks. The wave writes only to enrolled
+repos and only their own platform's files; the audit reports a platform file on the wrong repo as
+drift and lists unenrolled repos' kit files apart, never failing on them. In the same release: the Dependabot
 house standard (#62), each repo's pinned Node in CI (#75, #77), Closes lines (#76), the
 `CLAUDE.local.md` rule (#78) and `.claude/settings.json` (#83). The two new stubs are drafted on branch
 `ci-standards-stubs` (placeholder pin, never a PR) and land in the repin commit, because they pin the tag. **Decided: `dependabot-report` stays**
 (Maria, 2026-10-09). It, validate and Macroscope together are what make a clear Dependabot PR safe to
-merge unread; auto-merge on all three is #85.
+merge unread; auto-merge on all three is #85. One Node version per platform (a kit `.nvmrc`) is #86.
 
 2026-10-01, later: **v1.18.0 is released and waved** (22 targets, converged): the validator fix (#73 —
 every clean Dependabot PR had carried a red required check since v1.15.0), the implementer prompt's
@@ -53,9 +57,6 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Open decisions
 
-- **Which repos carry `driver-kit`.** Nothing is enrolled yet, so the wave targets nothing until the
-  topics are set. The candidate list is today's 20 kit repos less the stale ones; The-Gathery is
-  the open case.
 - **foundrae's `dev-staging` and `testparty/06-2026`:** retire at its cutover or keep.
 
 ## Watch-items
@@ -90,32 +91,30 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 ## Recommended next steps
 
 0. **Release the platform standards** (`branch-model.md` → "Order"): merge, tag, repin with the two
-   new stubs, set the topics, wave. Then pilot the Shopify cutover on LittleMe, then the Vercel installs.
+   new stubs, wave (the topics are already set). Then canary the `shopify-theme.yml` stub on
+   savannahfriedkin (watch-items), pilot the Shopify cutover on LittleMe, then the Vercel installs.
 
-1. ~~Make `bonsai-link` a required check per repo~~ — dropped (Maria, 2026-10-01): the check skips
-   PRs with no Bonsai mention, since most human PRs have no ticket and a red X read as a failing
-   build; a required check that passes when skipped would enforce nothing.
-   The wave also installs `claude-standards.md` beside `claude.yml` since 2026-10-01; the
-   `@.github/claude-standards.md` import is a `todo` issue in each repo that lacks it.
-   driver-agents joins the fleet as an implementer target (driver-agents #50, Maria 2026-10-01); the
-   next wave after its kit install reaches 22 targets.
-2. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
+1. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
    driver-engineering-app's security hardening pass (Maria, 2026-10-01: a couple of weeks; she will
    not run tickets through the app before it). On Avara, the first store run's log must read
    `Provisioned store 'avara'` and the "Mint the store token as a log mask" step must pass — never
    print the token cache to prove the mask.
-3. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
+2. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
-   `dest()` helper is where a second root goes.
-4. **Fleet `dependabot.yml` standard** (#62): the kit block, cooldown included, is the candidate;
-   the gaps are in [`fleet-operations.md`](fleet-operations.md#dependabot-and-the-wave).
+   `dest()` helper is where another root goes (it already maps `.claude/settings.json`).
+3. **Hand-write the `dependabot.yml` house standard** (#62) into each enrolled repo. The cutover and
+   Vercel install commits do it for the sites; the tool repos and The-Gathery need their own pass.
+   Close #62 when the last one lands.
 
 ## Pointers
 
 - [`README.md`](../README.md) — release + repin order, what's in the kit, dated release history.
 - [`fleet-operations.md`](fleet-operations.md) — wave mechanics, the fleet counts, what the pin audit
   cannot see, branch protection.
-- [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md) — the next implementer wave and its gates.
+- [`branch-model.md`](branch-model.md) — the two platform standards, the topics, and the Shopify
+  cutover and Vercel install runbooks.
+- [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md) — the v1.17.0 implementer wave (shipped); its
+  two gated items (WebSearch/WebFetch, `repository_dispatch`) are still open.
 - [`macroscope-integration-scope.md`](macroscope-integration-scope.md) — the 2026-09-12 decision that
   Macroscope owns automatic review, and the driver-agents loop that replaced the review rails. Observed 2026-09-10: it re-reviews every push,
   resolves its own threads once a push addresses them, and its verdict reads `Approved at <sha>`

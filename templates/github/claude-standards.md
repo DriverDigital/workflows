@@ -1,9 +1,9 @@
 # House standards
 
-Shared across every Driver repo. The fleet wave installs this file at `.github/claude-standards.md`
-beside the implementer and keeps it current (a repo without the implementer copies it by hand); the
-repo's `CLAUDE.md` imports it with `@.github/claude-standards.md`. Edit it in `DriverDigital/workflows`
-(`templates/github/claude-standards.md`), never in place. It carries style only — never permissions,
+Shared across every Driver repo. In each repo with the `driver-kit` topic, the fleet wave installs
+this file at `.github/claude-standards.md` beside the implementer and keeps it current (any other
+repo copies it by hand); the repo's `CLAUDE.md` imports it with `@.github/claude-standards.md`. Edit
+it in `DriverDigital/workflows` (`templates/github/claude-standards.md`), never in place. It carries style only — never permissions,
 tool rules or hooks: on a pull request the implementer loads `CLAUDE.md` from the base branch but this
 file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.claude/`.
 

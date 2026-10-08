@@ -13,10 +13,13 @@
 #      `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, the implementer's system prompt is just
 #      text, and a full-workflow copy of what should be a thin stub has no `uses:` line at all
 #      — so a pin grep sees none of them. Only trailing blank lines are normalized away (see
-#      `kit_normalize` for why); anything else that differs is drift.
+#      `kit_normalize` for why), and claude-settings.json is compared on its attribution keys
+#      alone; anything else that differs is drift.
 #
-# Scans every non-archived DriverDigital repo's .github/workflows/ (default branch, plus every
-# main* branch of Palmers — the kit is installed per country branch there).
+# Scans every non-archived DriverDigital repo's .github/ and .claude/settings.json (default branch,
+# plus every main* branch of Palmers — the kit is installed per country branch there). Kit files on
+# a repo without the driver-kit topic are listed apart as unenrolled and never count as drift; a
+# platform file on a repo whose topic names another platform, or none, is drift (tools/kit-platforms.sh).
 #
 # Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
 # the wave (Palmers #93 / vite-plugin-shopify-clean #72, 2026-07-02) — in practice the wave repins
@@ -26,7 +29,7 @@
 # Usage: tools/fleet-pin-audit.sh            # full report
 #        tools/fleet-pin-audit.sh --stale    # only what has drifted
 #
-# Exits non-zero when anything has drifted, so a wave can gate on it.
+# Exits non-zero when anything enrolled has drifted, so a wave can gate on it.
 set -u
 
 ORG="${ORG:-DriverDigital}"
@@ -44,7 +47,8 @@ LATEST="$(set -o pipefail; gh api "repos/$ORG/workflows/tags" --paginate --jq '.
 [ -n "$LATEST" ] || { echo "FATAL: no vX.Y.Z tag on $ORG/workflows — nothing to measure against." >&2; exit 2; }
 LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA:0:8}"
 
-# EXACTLY ONE normalization, deliberate. Everything else that differs is reported — third-party
+# One normalization for every file, deliberate (claude-settings.json is compared on its attribution
+# keys alone, in content_row). Everything else that differs is reported — third-party
 # action refs included: a consumer repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of
 # the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong. (The
 # store handle needed a second one until v1.17.0 moved it into a repository variable.)
@@ -171,8 +175,8 @@ report="$(
   printf '%s\n' "$repos" | while read -r repo def topics; do
     # Skip the kit repo itself: its .github/workflows/ holds the REUSABLES, which share basenames
     # with the stubs that call them (dependabot-validate.yml is a reusable here and a thin stub in
-    # the kit), so a content compare against templates/ would report four phantom drifts: the three
-    # dependabot-*.yml stubs, plus lint.yml, whose kit copy is a trimmed version of the CI file of
+    # the kit), so a content compare against templates/ would report a phantom drift for every
+    # caller stub, plus lint.yml, whose kit copy is a trimmed version of the CI file of
     # the same name here. NB: no apostrophes in comments inside this $( ) — bash opens a quote on
     # one even in a comment, and the parse error it produces points at EOF, not at the line.
     [ "$repo" = "workflows" ] && continue
