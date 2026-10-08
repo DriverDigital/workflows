@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tools/fleet-wave.sh — push the kit to every fleet branch as ONE atomic commit per branch.
+# tools/fleet-wave.sh — push the kit to every fleet target branch as ONE atomic commit per branch.
 #
 #   tools/fleet-wave.sh --dry-run            # plan only, no writes
 #   tools/fleet-wave.sh --only <repo>        # a single repo (canary), all its kit branches
@@ -8,15 +8,22 @@
 #   tools/fleet-wave.sh                      # the whole fleet
 #   tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commit message
 #
-# Targets are discovered by presence: every non-archived DriverDigital repo whose branch carries
-# .github/workflows/claude.yml OR .github/workflows/dependabot-validate.yml — the stub-only pairs
-# never took the full kit but still carry pins to move (Palmers: every branch named main*).
+# Only repos carrying the driver-kit topic are targets (tools/kit-platforms.sh); within them, targets
+# are discovered by presence: every enrolled non-archived DriverDigital repo whose branch carries
+# claude.yml, dependabot-validate.yml, the house standards or a platform stub — the stub-only pairs
+# never took the full kit but still carry pins to move. Branches: each repo's default branch, plus
+# every main* branch of Palmers. A Vercel site's main is never a target; it takes kit changes from
+# develop at its next promotion.
 # Per target, in one commit:
 #   every kit file the branch already carries  <- kit version; the PR template and the house
-#                                                 standards live at .github/, the rest at
+#                                                 standards live at .github/, claude-settings.json
+#                                                 at .claude/settings.json, the rest at
 #                                                 .github/workflows/
-#   pr-bonsai-link.yml, claude-standards.md    <- also written wherever claude.yml is
+#   pr-bonsai-link.yml, claude-standards.md,   <- also written wherever claude.yml is; the settings
+#   claude-settings.json                          file's keys are merged into an existing one
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
+# A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
+# platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
 # Guards, in order:
 #   0. a real (non-dry) wave only runs from a clean `main` that contains the tag — dry runs anywhere;
@@ -28,12 +35,16 @@
 #   5. every file is actionlinted before it is written;
 #   6. no path is written twice in one commit;
 #   7. discovery failures are fatal — a short target list is never reported as a clean fleet;
-#   8. --dry-run prints the plan for the whole fleet and touches nothing.
+#   8. --dry-run prints the plan for the whole fleet and touches nothing;
+#   9. a platform file on a repo of another platform (or none), or a repo tagged with more than one
+#      platform topic, blocks the wave before anything is written.
 #
 # Companion: tools/fleet-pin-audit.sh sees the drift; this closes it. Run the audit after a wave.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# shellcheck source=tools/kit-platforms.sh
+. tools/kit-platforms.sh
 
 ORG="DriverDigital"
 KIT="templates/github"
@@ -86,12 +97,19 @@ fi
 # A pin-line sed used to let per-repo stub edits survive, but fleet-pin-audit.sh reports any such
 # edit as drift, so nothing the kit does not ship should outlive a wave. No kit file carries a
 # per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable (guard 4).
-FULL_FILES=(claude.yml shopify-tool-smoke.yml lint.yml pr-bonsai-link.yml
-            dependabot-keep-current.yml dependabot-report.yml dependabot-validate.yml
-            pull_request_template.md claude-standards.md)
+FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.yml lint.yml
+            pr-bonsai-link.yml dependabot-keep-current.yml dependabot-report.yml
+            dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json)
 DELETE_FILES=(bonsai-status-sync.yml)
-# Where a kit file lives in a target repo: the PR template and the house standards sit in .github/.
-dest() { case "$1" in pull_request_template.md|claude-standards.md) echo ".github/$1" ;; *) echo ".github/workflows/$1" ;; esac; }
+# Where a kit file lives in a target repo: the PR template and the house standards sit in .github/,
+# and the shared Claude Code project settings are the repo's .claude/settings.json.
+dest() {
+  case "$1" in
+    pull_request_template.md|claude-standards.md) echo ".github/$1" ;;
+    claude-settings.json) echo ".claude/settings.json" ;;
+    *) echo ".github/workflows/$1" ;;
+  esac
+}
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
@@ -144,24 +162,24 @@ handle_of() {
 # `targets: 12  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
-  local repos r def branches b
+  local repos r def topics plat branches b
   if [ -n "$ONLY" ]; then
     # Its own statement, not interpolated into the string: a substitution embedded in a larger word
     # cannot fail the assignment, so a typo'd --only would fall through to the "no targets" message
     # and read as an empty fleet instead of a bad argument. The resolved name is used, not the
     # typed one: `--only palmers` resolves, but the literal Palmers branch check below would not.
-    repos=$(api "repos/$ORG/$ONLY" --jq '"\(.name) \(.default_branch)"') \
+    repos=$(api "repos/$ORG/$ONLY" --jq '"\(.name) \(.default_branch) \(.topics | join(","))"') \
       || { echo "--only $ONLY: no such repo in $ORG" >&2; exit 2; }
   else
-    repos=$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef \
-              --jq '.[] | "\(.name) \(.defaultBranchRef.name)"') \
+    repos=$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,repositoryTopics \
+              --jq '.[] | "\(.name) \(.defaultBranchRef.name) \([(.repositoryTopics // [])[].name] | join(","))"') \
       || { echo "could not enumerate $ORG repos — this run proves nothing" >&2; exit 2; }
     # A fleet that grew past --limit would come back silently truncated, and the missing repos would
     # read as "not a target" rather than "not looked at".
     [ "$(printf '%s\n' "$repos" | wc -l)" -lt 200 ] \
       || { echo "repo list hit the --limit; raise it" >&2; exit 2; }
   fi
-  while read -r r def; do
+  while read -r r def topics; do
     [ -n "$r" ] || continue
     # Guard 2. The kit repo's .github/workflows/ holds the REUSABLES the whole fleet calls, and they
     # share basenames with the stubs that call them — waving into it would overwrite the rails with
@@ -170,6 +188,12 @@ targets() {
     # keeping the wave out of the kit — and the mistake is fleet-wide, not one commit to undo.
     if [ "$r" = "$SELF_REPO" ]; then continue; fi
     case " $SKIP " in *" $r "*) echo "skip   $r (--skip)" >&2; continue ;; esac
+    if ! topics_enrolled "${topics//,/ }"; then
+      [ -z "$ONLY" ] || { echo "--only $r: the repo has no $KIT_TOPIC topic, so it takes no kit" >&2; exit 2; }
+      continue
+    fi
+    plat=$(topics_platform "${topics//,/ }")
+    [ "$plat" != several ] || { echo "$r carries more than one platform topic — pick one" >&2; exit 2; }
     if [ "$r" = "Palmers" ]; then
       branches=$(api "repos/$ORG/$r/branches?per_page=100" --paginate --jq '.[].name') \
         || { echo "could not list $r branches — refusing to wave a partial fleet" >&2; exit 2; }
@@ -177,25 +201,28 @@ targets() {
     else
       branches=$def
     fi
-    # A branch is a target when it carries claude.yml, dependabot-validate.yml or claude-standards.md:
-    # the stub-only pairs hold nothing but the three Dependabot stubs, and a lint-only repo may hold
-    # just the standards; skipping either would leave drift fleet-pin-audit.sh --stale reports for ever.
+    # A branch is a target when it carries claude.yml, dependabot-validate.yml, claude-standards.md or
+    # a platform stub: the stub-only pairs hold nothing but the three Dependabot stubs, a lint-only repo
+    # may hold just the standards, and a theme repo may hold only its platform stub; skipping any would
+    # leave drift fleet-pin-audit.sh --stale reports for ever.
     # Each probe runs only when the one before 404s; plan_and_push skips files a target does not have.
     for b in $branches; do
       if api "repos/$ORG/$r/contents/.github/workflows/claude.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
          || api "repos/$ORG/$r/contents/.github/workflows/dependabot-validate.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
-         || api "repos/$ORG/$r/contents/.github/claude-standards.md?ref=$b" --jq .sha >/dev/null 2>&1; then
-        echo "$r $b"
+         || api "repos/$ORG/$r/contents/.github/claude-standards.md?ref=$b" --jq .sha >/dev/null 2>&1 \
+         || api "repos/$ORG/$r/contents/.github/workflows/shopify-theme.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
+         || api "repos/$ORG/$r/contents/.github/workflows/vercel-deploy.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
+        echo "$r $b $plat"
       fi
     done
   done <<<"$repos"
 }
 
 plan_and_push() {
-  local repo=$1 branch=$2 tmp f cur
+  local repo=$1 branch=$2 plat=$3 tmp f fp cur
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
-  local changes=0 existing dotgithub workflows kit_paths
+  local changes=0 existing rootdirs dotgithub workflows dotclaude kit_paths
   # Each listing is its own assignment so a failure cannot hide behind another (errexit is off inside
   # an assignment's substitution). A standards-only target has no .github/workflows, so that listing
   # runs only when .github says the directory exists.
@@ -207,18 +234,35 @@ plan_and_push() {
       || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
     existing="$existing"$'\n'"$workflows"
   fi
+  rootdirs=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | select(.type == "dir") | .path') \
+    || { echo "  $repo@$branch: cannot list the repo root" >&2; exit 3; }
+  if grep -qxF .claude <<<"$rootdirs"; then
+    dotclaude=$(api "repos/$ORG/$repo/contents/.claude?ref=$branch" --jq '.[].path') \
+      || { echo "  $repo@$branch: cannot list .claude" >&2; exit 3; }
+    existing="$existing"$'\n'"$dotclaude"
+  fi
   # Discovery proved the target carries at least one kit file, so a listing with none is a lie — and
   # would otherwise report "(no changes)", silently dropping the repo from the wave.
   kit_paths=$(for f in "${FULL_FILES[@]}"; do dest "$f"; done)
   grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
-  # Two files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
-  # check and the house standards (whose CLAUDE.md import stays a per-repo edit — nothing outside
-  # .github/ is ever written).
+  # Three files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
+  # check, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
+  # Code project settings. Nothing outside .github/ and .claude/ is ever written.
   for f in "${FULL_FILES[@]}"; do
+    # Guard 9, per file: a platform file is never written to a repo of another platform, and one
+    # already there blocks the wave instead of being refreshed into place.
+    fp=$(file_platform "$f")
+    if [ -n "$fp" ] && [ "$fp" != "$plat" ]; then
+      if grep -qxF "$(dest "$f")" <<<"$existing"; then
+        echo "  $repo@$branch $f: a $fp file, but the repo's platform topic says $plat" >&2
+        BLOCKED=1
+      fi
+      continue
+    fi
     grep -qxF "$(dest "$f")" <<<"$existing" \
-      || { case "$f" in pr-bonsai-link.yml|claude-standards.md) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
+      || { case "$f" in pr-bonsai-link.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
       || continue
     # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
@@ -236,7 +280,13 @@ plan_and_push() {
         BLOCKED=1; return 0
       fi
     fi
-    cp "$KIT/$f" "$tmp/$f"
+    # The repo owns the rest of its .claude/settings.json; the kit owns only the keys it ships.
+    if [ "$f" = claude-settings.json ] && [ -s "$cur" ]; then
+      jq -s '.[0] * .[1]' "$cur" "$KIT/$f" > "$tmp/$f" \
+        || { echo "  $repo@$branch .claude/settings.json: not valid JSON, so the kit keys cannot be merged in" >&2; exit 3; }
+    else
+      cp "$KIT/$f" "$tmp/$f"
+    fi
     if ! cmp -s "$cur" "$tmp/$f"; then
       case "$f" in *.yml) actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; } ;; esac
       tree+=("$f"); changes=1; echo "  write  $f"
@@ -300,14 +350,14 @@ if [ "$DRY" -eq 0 ]; then
   DRY=1
   # Called from an `if` body, never as the right side of `||`: that context disables errexit for
   # the whole function, and a failed read would then plan on as if nothing happened.
-  while read -r repo branch; do if [ -n "$repo" ]; then plan_and_push "$repo" "$branch" >/dev/null; fi; done <<<"$TARGETS"
+  while read -r repo branch plat; do if [ -n "$repo" ]; then plan_and_push "$repo" "$branch" "$plat" >/dev/null; fi; done <<<"$TARGETS"
   DRY=0
   [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
 fi
 n=0
-while read -r repo branch; do
+while read -r repo branch plat; do
   [ -n "$repo" ] || continue
-  echo "== $repo@$branch"; plan_and_push "$repo" "$branch"; n=$((n+1))
+  echo "== $repo@$branch ($plat)"; plan_and_push "$repo" "$branch" "$plat"; n=$((n+1))
 done <<<"$TARGETS"
 echo "targets: $n"
 [ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }

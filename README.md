@@ -1,16 +1,19 @@
 # DriverDigital/workflows — central reusable workflows
 
-Single source for Driver's Bonsai→GitHub pipeline reusable workflows **and the onboarding kit**
+Single source for Driver's Bonsai→GitHub pipeline reusable workflows, the Shopify and Vercel CI/CD
+standards, **and the onboarding kit**
 (`templates/github/` in this repo). Each consuming repo installs a thin caller stub per workflow that pins
-an **immutable commit SHA**; a bot (Dependabot/Renovate) bumps the SHAs as new tags ship. This repo is
+an **immutable commit SHA**; `tools/fleet-wave.sh` repins them after each tag, with Dependabot as the
+backstop. This repo is
 **public** so cross-repo reusable calls resolve from any consuming repo (the org enforces a
 selected-actions allowlist at the org/enterprise tier).
 
 ## How the repos fit together
 
 - **workflows** (this repo, public) — the reusable GitHub workflows + this onboarding kit. Fleet
-  repos carry thin SHA-pinned caller stubs; these run the GitHub side (the implementer and the
-  Dependabot rails) once an issue exists.
+  repos carry thin SHA-pinned caller stubs; these run the GitHub side: the implementer once an
+  issue exists, the Dependabot rails, and each platform's deploy rail (Shopify preview themes,
+  Vercel deploy hooks).
 - **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the Shopify
   admin-tool wrapper and the canonical operator instructions, cloned at the pinned
   `DRIVER_AGENTS_REF`; also the **pipeline dispatcher** (`pipeline-dispatch.yml`, scheduled) that
@@ -415,16 +418,17 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
      `dependabot-keep-current`'s reusable and its stub landed in different commits, and how
      `bonsai-status-sync.yml`'s stub landed at `v1.11.0`. `lint.yml` fails the build on any stub left
      carrying a placeholder pin, so this step cannot be silently skipped.
-3. Only then re-copy `templates/github/` into consumer repos (`tools/fleet-pin-audit.sh --stale`
+3. Only then re-copy `templates/github/` into consumer repos — those with the `driver-kit` topic, the
+   only ones the wave targets (`tools/fleet-pin-audit.sh --stale`
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
    - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
-   - Dependabot also bumps the *stub pins* in any repo with a `github-actions` block (the kit now
-     ships one, `templates/github/dependabot.yml`, for the repos that had none) — on its schedule
-     and through a PR a human merges, so the wave stays the primary path and Dependabot the
-     backstop. `--skip <repo>` leaves every branch of a repo to it on purpose — only sound where
-     Dependabot covers each kit branch (it scans the default branch unless a `target-branch`
-     entry exists, so not Palmers as configured). See
+   - Dependabot also bumps the *stub pins*: every repo's `.github/dependabot.yml` follows the house
+     standard `templates/github/dependabot.yml`, whose `github-actions` block is always kept — on
+     its schedule and through a PR a human merges, so the wave stays the primary path and
+     Dependabot the backstop. `--skip <repo>` leaves every branch of a repo to it on purpose — only
+     sound where Dependabot covers each kit branch. The standard has no `target-branch`, so it
+     scans the default branch only, never Palmers' `main-*`. See
      [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
@@ -455,8 +459,10 @@ the same pin in both (`lint.yml` checks) or the smoke test verifies a revision t
 runs — and so does the `VERSION` + `SHA256` pair in `lint.yml`, which must be bumped together or the
 checksum check fails the job.
 
-**Onboarding a new repo:** copy the matching stubs from **this repo's `templates/github/`** into the
-repo's `.github/workflows/`, run a test PR (human + Dependabot), then pin the required check
+**Onboarding a new repo:** set its topics first — `driver-kit` plus its platform topic
+([`docs/branch-model.md`](docs/branch-model.md)); without `driver-kit` the wave never reaches it. Then
+copy the matching stubs from **this repo's `templates/github/`** into the repo's `.github/workflows/`,
+write its `.github/dependabot.yml` from the house standard, run a test PR (human + Dependabot), then pin the required check
 `validate / validate` + add a human-approver rule (see *First-run / required-check* below). Caller stubs
 MUST carry their own `permissions:` block (a repo whose default workflow token is read-only otherwise
 produces a silent `startup_failure` — no check run, no notification).
@@ -469,20 +475,34 @@ produces a silent `startup_failure` — no check run, no notification).
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
+| `shopify-theme.yml` | theme token, read-only GitHub token | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: PR preview themes and `DRIVER/<branch>`, the build in a secretless job |
+| `vercel-deploy.yml` | the two deploy hooks only | `push` on `main` / `develop` | Vercel sites: deploy hook for pushers outside the Vercel team |
 
 Two review reusables, `pr-first-review.yml` and `ticketed-review.yml`, were retired at v1.12.0
 (2026-08-08) and deleted 2026-09-30; any tag through `v1.16.0` still holds them. Macroscope reviews
 all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries a caller stub for each reusable above, plus `shopify-tool-smoke.yml` (store repos only),
+carries a caller stub for each reusable above (the two platform stubs join at the next release's
+repin; until then they wait on branch `ci-standards-stubs`), plus `shopify-tool-smoke.yml` (a Shopify
+platform file),
 `lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
 that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
-standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it) and `dependabot.yml` (the `github-actions` updater that bumps
-the stub pins between waves — installed by hand, merged into an existing file).
+standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it), `claude-settings.json` (the repo's
+`.claude/settings.json`, installed beside `claude.yml`) and `dependabot.yml` (the fleet house standard, written by hand per repo).
 
-**Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
-`lint.yml` alone and skip the rest as inert weight.
+**The kit has a shared part and one part per platform.** A repo opts in with the `driver-kit` topic;
+the wave targets nothing else. Shopify sites (topic `shopify-theme`) take `shopify-theme.yml` and
+standardise on `main` (Palmers: `main` plus `main-<country>`), each cut over from `develop`/`staging`
+repo by repo after the release; Vercel sites (topic `vercel-site`) keep `develop` and `main` and take
+`vercel-deploy.yml`; WordPress sites (topic `wordpress-site`) take the shared kit only. The wave and the
+audit keep each platform's files to its own repos: [`docs/branch-model.md`](docs/branch-model.md).
+
+**Not every repo takes the whole kit.** The wave refreshes only the kit files an enrolled repo already
+carries (plus the three installed beside `claude.yml`), so a repo that is not on the Bonsai → PR
+pipeline can install `lint.yml` alone and skip the rest as inert weight. A repo with none of the
+discovery files (`claude.yml`, `dependabot-validate.yml`, `claude-standards.md`, a platform stub) is
+not waved at all.
 [`driver-agents`](https://github.com/DriverDigital/driver-agents) and
 [`driver-engineering-app`](https://github.com/DriverDigital/driver-engineering-app) run that subset (they took
 `pr-first-review.yml` + `lint.yml` on 2026-08-02; the review stub was deleted in the v1.12.0
@@ -545,8 +565,8 @@ number, same-repo head). **Never use `pull_request_target`.**
 ## Consuming it (caller stubs)
 
 Install the matching stubs from **this repo's `templates/github/`** into a repo's `.github/workflows/`.
-Pin every `uses:` of this repo's reusables to an **immutable commit SHA** (decided 2026-06-17); a bot (Renovate/Dependabot) bumps the
-SHAs. The `dependabot-validate` stub's `name:` MUST stay byte-identical (`Dependabot validate`) across all
+Pin every `uses:` of this repo's reusables to an **immutable commit SHA** (decided 2026-06-17); the wave repins them after
+each tag, with Dependabot as the backstop. The `dependabot-validate` stub's `name:` MUST stay byte-identical (`Dependabot validate`) across all
 repos — the `dependabot-report` stub's `workflow_run` trigger name-matches it exactly, and a drift silently
 disables the human-ping.
 
@@ -564,8 +584,9 @@ disables the human-ping.
 }
 ```
 
-All keys optional. Defaults: package manager from the lockfile (**npm** is the house default), `build`/`test`
-run only if those `package.json` scripts exist, `themeCheck`/`dev` run only if configured.
+All keys optional. Defaults: Node from `.nvmrc`, else `package.json` (`volta.node`, then `engines.node`),
+else the runner's default; package manager from the lockfile (**npm** is the house default);
+`build`/`test` run only if those `package.json` scripts exist; `themeCheck`/`dev` run only if configured.
 
 ## Reviewer handoff
 

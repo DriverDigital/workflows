@@ -14,11 +14,14 @@ Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v
 **22 repo@branch pairs** are wave targets after the v1.18.0 wave (2026-10-01; verified by the audit the
 same night — **69 pins at `85f15787`, 127 content matches, zero drift**). Since v1.17.0 the wave also
 discovers a branch by `.github/claude-standards.md`, which is how driver-engineering-app (lint + standards)
-and driver-onboarding (standards only) became the 21st and 22nd. The split matters because two different numbers are correct depending on the question:
+and driver-onboarding (standards only) became the 21st and 22nd. Since 2026-10-09 a repo is a target
+only if it carries the `driver-kit` topic ([`branch-model.md`](branch-model.md#which-repos-get-what)
+owns the topics and the repo list); a dry-run wave with the topics set finds 22 pairs and no
+blocks. driver-agents is enrolled but stays off the wave until it carries a kit file. The split matters because two different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|
-| **Repin-wave targets** | **20** (+1 content-only) | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 22) and `tools/fleet-wave.sh` discovers (by `claude.yml` **or** the Dependabot stubs), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
+| **Repin-wave targets** | **20** (+1 content-only) | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 22) and `tools/fleet-wave.sh` discovers (see *Execution shape*), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
 | **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deleted — verified branch-by-branch across all 618 org branches beforehand: zero rows where one was present without the other.) |
 | **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
 
@@ -76,18 +79,20 @@ commit per file. Per target:
    sed let per-repo stub edits survive, but the audit reports any such edit as drift). No kit file
    carries a per-repo value — the store handle is the `SHOPIFY_STORE_NAME` repository variable — and
    the wave aborts a target whose deployed file still carries a handle the variable does not hold.
-   The PR template and `claude-standards.md` are written under `.github/`, the rest under
-   `.github/workflows/`.
-2. `pr-bonsai-link.yml` and `claude-standards.md` ← written wherever `claude.yml` is, present or not.
-   The `@.github/claude-standards.md` import in `CLAUDE.md` stays a per-repo edit: the wave never
-   writes outside `.github/`.
+   The PR template and `claude-standards.md` are written under `.github/`, `claude-settings.json` to
+   `.claude/settings.json`, the rest under `.github/workflows/`. The one exception to verbatim is
+   `.claude/settings.json`: the repo owns that file, so the kit's keys are merged into it. A platform
+   file goes only to a repo whose topic names that platform; one found elsewhere blocks the wave.
+2. `pr-bonsai-link.yml`, `claude-standards.md` and `.claude/settings.json` ← written wherever
+   `claude.yml` is, present or not. The `@.github/claude-standards.md` import in `CLAUDE.md` stays a
+   per-repo edit: the wave never writes outside `.github/` and `.claude/`.
 3. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
 4. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
    message) and patch the ref.
 
-This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. It discovers targets by the
-presence of `claude.yml` **or** `dependabot-validate.yml`, so it reaches all 20 pairs and simply
-skips the files a stub-only pair does not have. It refuses to run if the kit's own stubs are not
+This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. On an enrolled repo it discovers a
+branch by the presence of `claude.yml`, `dependabot-validate.yml`, `claude-standards.md` or a
+platform stub, and simply skips the files a target does not have. It refuses to run if the kit's own stubs are not
 pinned to the latest tag (the reference-drift trap). A real (non-dry) wave only runs from a clean
 `main` that already contains the tag; dry runs work from anywhere, which is how a wave is planned
 from the branch that builds it.
@@ -109,8 +114,8 @@ fleet before writing anything.
 `vite-plugin-shopify-clean` #72 (2026-07-02, 19:27Z) each rewrote the SHA *and* its `# vX.Y.Z`
 trailer five minutes after the `v1.5.4` tag landed at 19:22Z. The mechanism works; it rarely gets a
 turn. Two reasons: the wave repins every target within minutes of a tag, so a monthly check finds
-nothing stale — and 5 of the 13 distinct repos behind the 20 pairs have no `github-actions` block
-for it to act on (`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`;
+nothing stale — and on 2026-10-08 five kit repos had no `github-actions` block for it to act on
+(`plugins` and `client-workspaces` carry no `dependabot.yml`; `studio-sulzer`,
 `Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
 that only a bot can bump and had never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
 is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
@@ -121,9 +126,10 @@ the cause is only visible under Insights → Dependency graph → Dependabot.
 *(The claim this replaces — that it never happens in practice, "verified 2026-07-16" — sampled open
 PRs, two weeks after the two that disprove it had already merged.)*
 
-**Shipped 2026-08-22: `templates/github/dependabot.yml`** — a daily `github-actions` block with one
-grouped `actions` rule. It is installed by hand, not waved: it lives at `.github/`, outside the
-wave's path, and a repo that already has a `dependabot.yml` keeps its npm block and adds the entry
+**Shipped 2026-08-22, the fleet house standard since 2026-10-09: `templates/github/dependabot.yml`**
+— a daily `github-actions` block and a monthly npm block, each group taking only minor and patch so
+every major arrives as its own PR; the file's header says the rest. It is installed by hand, not
+waved: a repo keeps the blocks it needs, one npm block per `package.json` directory
 (`templates/github/README.md`, step 4). Two facts found while shipping it bound what "sequence the
 wave after Dependabot" can actually buy:
 
@@ -142,18 +148,18 @@ wave after Dependabot" can actually buy:
   it: "Days since release : 1 (cooldown days 3) … All versions are in cooldown period". The
   2026-07-02 job log has no cooldown at all — the platform grew it between those dates, with no
   `cooldown` key in either repo's config. So even a daily schedule bumps a stub pin at earliest
-  three days after the tag, unless the kit `dependabot.yml` adds a `cooldown:` block excluding
-  `DriverDigital/workflows*` (our own tags need no bake time). The job logs themselves are
+  three days after the tag — which is why the kit `dependabot.yml` carries a `cooldown:` block
+  excluding `DriverDigital/workflows*` (our own tags need no bake time). The job logs themselves are
   fetchable — `gh run list --workflow "Dependabot Updates"`, then `gh run view <id> --log` — no UI
   digging needed.
 
 So the wave stays the primary path — it repins every target within minutes of the tag, one atomic
 commit per branch. Dependabot earns its keep as the backstop:
 the five repos that had no updater, drift between waves, and a reusable-only tag where no whole-file
-copy is needed. Palmers' block covers `main` alone; its seven country branches stay on the wave
-unless `target-branch` entries are added. The proof is still worth running once, at the next tag:
-`tools/fleet-wave.sh --skip vite-plugin-shopify-clean`, then watch for the PR — its block is
-monthly, so either flip it to daily first or trigger a check by hand (Insights → Dependency graph →
+copy is needed. Palmers' seven country branches get no Dependabot updates (the standard sets no `target-branch`), so
+they stay on the wave. The proof is still worth running once, at the next tag:
+`tools/fleet-wave.sh --skip vite-plugin-shopify-clean`, then watch for the PR — if its
+`dependabot.yml` is not the daily house standard yet, install that first, or trigger a check by hand (Insights → Dependency graph →
 Dependabot → *Check for updates*, or `@dependabot recreate` on an open Dependabot PR there).
 
 ---
@@ -201,7 +207,8 @@ checked; the script runs them in this order and exits non-zero if any fires:
 
 Three things worth knowing about check 3:
 
-- **Exactly one thing is normalized away:** trailing blank lines and the final newline. The two
+- **Exactly one thing is normalized away:** trailing blank lines and the final newline (except in
+  `.claude/settings.json`, where only the kit's `attribution` keys are compared). The two
   pairs waved without a final newline are otherwise identical, and permanently-red rows for a byte
   nobody can act on is how a detector stops being read. Internal blank lines *are* compared.
   Everything else that differs is reported, third-party action refs included: a repo whose
@@ -209,10 +216,13 @@ Three things worth knowing about check 3:
   means the kit is behind, not that the repo is wrong.
 - **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
   which share basenames with the stubs that call them — so comparing it against `templates/` would
-  report five phantom drifts — the four stubs plus `lint.yml`, whose kit copy is a trimmed version
+  report a phantom drift for every stub plus `lint.yml`, whose kit copy is a trimmed version
   of this repo's own CI file of the same name.
-- **A pair carrying `claude.yml` without `pr-bonsai-link.yml` is drift** (`missing`) — the wave
-  installs the one beside the other.
+- **A pair carrying `claude.yml` without `pr-bonsai-link.yml`, `claude-standards.md` or
+  `.claude/settings.json` is drift** (`missing`) — the wave installs them beside it.
+- **A platform file on a repo whose topic names another platform, or none, is drift** whatever its
+  bytes say. A repo without `driver-kit` is still scanned, but its kit files are listed under
+  `unenrolled` and never fail the audit.
 
 **Still unchecked: the tripwire parity between the reusable and canonical.** Nothing proves
 `.github/workflows/claude.yml`'s `--append-system-prompt` blockquote still matches driver-agents
@@ -233,7 +243,7 @@ that tripped the status flip also woke a real implementer run on a client repo. 
 collision from any future rail sharing `claude.yml`'s trigger: pilot on the PR leg.
 
 **`closingIssuesReferences` only populates for PRs targeting the default branch.** A PR into a
-scratch base dodges the theme-deploy workflows (they filter on `branches: [staging, dev-staging]`)
+scratch base dodges the theme-deploy workflows (at the time they filtered on `branches: [staging, dev-staging]`)
 but resolves `uuid=<none>`, so the run never reaches the `curl` and passes green having tested
 nothing. If the assertion needs the network call, the PR must target the default branch.
 
@@ -259,19 +269,19 @@ the installed stub — the wave covers it anyway.
 
 ## Branch protection
 
-`enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
-branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
-protection endpoint). Every other kit branch has a protection object — but **having one is not the
-same as requiring a human**, and the gap is wider than those two. Surveyed across all pairs
-2026-08-02; `driver-bonsai-mcp@main` has since been archived and is dropped from the counts:
+`enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. `Team-Laird@develop`
+has **no protection at all** (404 on the protection endpoint). Every other kit branch has a protection object — but **having one is not the
+same as requiring a human**, and the gap is wider than that one. Surveyed across all pairs
+2026-08-02; `driver-bonsai-mcp@main` has since been archived and is dropped from the counts, and
+studio-sulzer (kit branch `develop`, its default) gained a 1-review rule by 2026-10-08:
 
 | Pairs | `required_approving_review_count` | |
 |---|---|---|
-| 12 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-engineering-app, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
+| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-engineering-app, foundrae-blackridge, plugins, studio-sulzer, vite-plugin-shopify-clean |
 | **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
-| **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
+| **1** | **no protection at all** | **`Team-Laird@develop`** |
 
-The kit's onboarding steps assume a human-approver rule exists. On **10** of the 22 pairs it does
+The kit's onboarding steps assume a human-approver rule exists. On **9** of the 22 pairs it does
 not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`

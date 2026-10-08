@@ -1,15 +1,22 @@
-# The updater the kit's caller stubs rely on. Dependabot reads the `# vX.Y.Z` trailer on each
-# `uses: DriverDigital/workflows/...@<sha>` pin and opens ONE grouped PR per new tag (any other
-# action bump rides in the same group). Install as .github/dependabot.yml; a repo that already has
-# one keeps its npm block and adds this entry. Dependabot scans the DEFAULT branch only — a repo
-# carrying the kit on other branches needs one copy of this entry per branch with `target-branch:`.
-# Daily, not monthly: the wave repins within minutes of a tag, so this only has to cover the repos
-# and tags the wave skips — and a monthly backstop is up to a month late
-# (DriverDigital/workflows docs/fleet-operations.md, "Dependabot and the wave").
+# House standard .github/dependabot.yml for every Driver repo. Keep the blocks the repo needs (actions
+# always; npm where a package.json exists, one block per package.json directory) and change nothing
+# else; a justified per-repo exception (an `ignore` for a pinned major) is commented where it sits.
+#
+# Every major arrives as its own pull request: each group takes only minor and patch updates, so a
+# major falls out of its group and Dependabot opens it alone, where a breaking change can be handled
+# without holding back everything else. Tailwind is grouped apart from other npm packages because
+# its releases usually need migration work.
+#
+# No `target-branch`: Dependabot reads this file from the default branch and opens pull requests
+# against it, which is `main` on Shopify sites and `develop` on Vercel sites. Palmers' main-* country
+# branches get no Dependabot updates; the wave keeps their kit pins current.
 version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
+    # Daily, not monthly: the wave repins within minutes of a tag, so this only has to cover the repos
+    # and tags the wave skips, and a monthly backstop is up to a month late
+    # (DriverDigital/workflows docs/fleet-operations.md, "Dependabot and the wave").
     schedule:
       interval: "daily"
     # GitHub's default 3-day cooldown stays for third-party actions. Kit tags are exempt so a repo
@@ -32,5 +39,20 @@ updates:
       - "mcarter-astronautdev"
     groups:
       actions:
-        patterns:
-          - "*"
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    assignees:
+      - "mcarter-astronautdev"
+    groups:
+      tailwind:
+        patterns: ["tailwindcss*", "@tailwindcss*"]
+        update-types: ["minor", "patch"]
+      other-dependencies:
+        patterns: ["*"]
+        exclude-patterns: ["tailwindcss*", "@tailwindcss*"]
+        update-types: ["minor", "patch"]

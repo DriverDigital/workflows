@@ -14,17 +14,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-The public home of Driver's Bonsai→GitHub pipeline workflows. Two products live here:
+The public home of Driver's Bonsai→GitHub pipeline workflows and platform CI/CD standards. Two products
+live here:
 
-- **Reusables** in `.github/workflows/` — `workflow_call`-only: `claude.yml` (the implementer) and the
-  three Dependabot rails (`dependabot-validate` / `-report` / `-keep-current`). The two review rails
+- **Reusables** in `.github/workflows/` — `workflow_call`-only: `claude.yml` (the implementer), the
+  three Dependabot rails (`dependabot-validate` / `-report` / `-keep-current`), and one per platform:
+  `shopify-theme.yml` and `vercel-deploy.yml`. The two review rails
   retired at v1.12.0 were deleted 2026-09-30; any tag through `v1.16.0` still holds them.
 - **The onboarding kit** in `templates/github/` — what fleet repos copy into `.github/workflows/`:
-  four caller stubs pinning a reusable by immutable SHA (`claude.yml` and the Dependabot three), plus
-  three whole-file workflows (`shopify-tool-smoke.yml` store repos only, `lint.yml`,
+  four caller stubs pinning a reusable by immutable SHA (`claude.yml` and the Dependabot three; the two
+  platform stubs join at the next repin), plus
+  three whole-file workflows (`shopify-tool-smoke.yml` on `shopify-theme` repos only, `lint.yml`,
   `pr-bonsai-link.yml` beside `claude.yml`) and `pull_request_template.md` and `claude-standards.md`
-  (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand) and `dependabot.yml` (hand-installed — merged into a repo's existing file, never copied over it).
-  Kit install conventions: `templates/github/README.md`.
+  (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand), `claude-settings.json` (its attribution keys merged into the repo's `.claude/settings.json` beside `claude.yml`; the repo owns every other key) and `dependabot.yml` (the fleet house standard, written by hand per repo with the blocks it needs; never waved).
+  Kit install conventions: `templates/github/README.md`. Repo topics decide who gets what:
+  `driver-kit` opts a repo in, `shopify-theme` / `vercel-site` add that platform's files, `wordpress-site` adds none
+  (`tools/kit-platforms.sh`; the standards and the per-repo cutover: `docs/branch-model.md`).
 
 PR review is Macroscope's, org-wide (Maria, 2026-09-12): Claude reviews a PR only when a person `@claude`s it
 (optionally naming `/code-review`). The implementer's own `/code-review` pass before it opens a PR is
@@ -67,7 +72,7 @@ also `jq` + `actionlint`):
 tools/fleet-pin-audit.sh            # full drift report; --stale for drifted rows only; non-zero on any drift
 tools/fleet-wave.sh --dry-run       # plan the wave, touches nothing; allowed from any branch
 tools/fleet-wave.sh --only <repo>   # canary one repo (all its kit branches)
-tools/fleet-wave.sh                 # the whole fleet — only from a clean main that contains the tag
+tools/fleet-wave.sh                 # every driver-kit repo — only from a clean main that contains the tag
 tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commit message
 ```
 
@@ -84,7 +89,7 @@ tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commi
 
 A kit-only change (no reusable touched, no pin moved) needs no tag and no wave; it rides with the next
 release. Cutting a tag is what creates the obligation to wave. A new reusable's stub lands in step 2 of
-the *next* release, not in the PR that adds the reusable. Full detail and the v1.11.0 stub-conversion
+the release that tags it, not in the PR that adds the reusable. Full detail and the v1.11.0 stub-conversion
 caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/fleet-operations.md`.
 
 ## Invariants that fail silently
@@ -143,5 +148,11 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   whole message, and a PR with *no* check runs looks healthy.
 - Branch protection: `PATCH` the subresource; a `PUT` replaces the whole object and drops the
   approval rule. This repo keeps `enforce_admins: false` and is pushed to directly on purpose.
+- A platform file (`tools/kit-platforms.sh`) never goes to a repo whose topic names another platform
+  or none, nothing goes to a repo without `driver-kit`, and a repo with more than one platform topic
+  blocks the wave. The wave enforces all three; the audit reports a misplaced platform file as drift
+  and lists an unenrolled repo's kit files apart, never failing on them. A new platform file must be
+  added to the list there, or neither sees it.
+- No wave runs while a Shopify repo is mid-cutover: the wave reads `default_branch` live.
 - A new fleet rail that shares `claude.yml`'s trigger wakes a real implementer run on a client repo;
   pilot on the PR leg (`docs/fleet-operations.md` → "Piloting a cross-repo reusable").

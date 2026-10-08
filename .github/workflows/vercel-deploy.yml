@@ -1,0 +1,40 @@
+name: Vercel deploy (reusable)
+
+# Deploys a Vercel site for pushes Vercel itself will not build, called by the kit stub
+# templates/github/vercel-deploy.yml on push to main or develop. Vercel's GitHub app deploys pushes
+# by members of the Vercel team and blocks everyone else's, so this job fires the branch's deploy
+# hook for everyone else and skips team members, whose push Vercel has already picked up.
+#
+# The team's GitHub logins come from the variable VERCEL_TEAM_LOGINS, space-separated and set per
+# repo to the logins with a seat on that project's Vercel team; unset, it falls back to
+# mcarter-astronautdev alone. A login missing from it deploys twice, once from each side. Hooks:
+# VERCEL_DEPLOY_HOOK_MAIN (production) and VERCEL_DEPLOY_HOOK_DEVELOP (preview), each bound to its
+# branch in the Vercel project.
+
+on:
+  workflow_call:
+    secrets:
+      VERCEL_DEPLOY_HOOK_MAIN:
+        required: true
+      VERCEL_DEPLOY_HOOK_DEVELOP:
+        required: true
+
+permissions: {}
+
+jobs:
+  deploy:
+    if: >-
+      !contains(format(' {0} ', vars.VERCEL_TEAM_LOGINS || 'mcarter-astronautdev'), format(' {0} ', github.actor))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Deploy production
+        if: github.ref == 'refs/heads/main'
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_MAIN }}
+        run: curl -fsS --max-time 20 -X POST "$HOOK"
+      - name: Deploy preview
+        if: github.ref == 'refs/heads/develop'
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_DEVELOP }}
+        run: curl -fsS --max-time 20 -X POST "$HOOK"

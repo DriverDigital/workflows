@@ -6,7 +6,7 @@ name: Lint workflows
 
 on:
   pull_request:
-  # Multi-branch repos add their release branches here.
+  # PRs into any branch, pushes to main only. The wave replaces this file whole, so do not edit it per repo.
   push:
     branches: [main]
 
