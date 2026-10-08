@@ -313,7 +313,8 @@ jobs:
           # app-home trail until it retired with the box (2026-08-21), and a replacement collector is
           # expected; `issue`/`run` stay driver-side. The Bonsai task uuid lives in the ISSUE body
           # (`uuid=` query param); on the @claude-on-a-PR rails the issue is found via
-          # closingIssuesReferences.
+          # closingIssuesReferences. A PR can close several issues (each one its ticket names), so the
+          # issue the implementer branched from, issue-<n>, is read first.
           # All best-effort: a human's ad-hoc @claude has no ticket, and that's correct.
           UUID_RE='uuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
           TICKET=""
@@ -323,9 +324,11 @@ jobs:
             if [ -z "$TICKET" ]; then
               # shellcheck disable=SC2016  # $o/$r/$n are GraphQL variables, not shell
               TICKET="$(gh api graphql \
-                -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){closingIssuesReferences(first:1){nodes{body}}}}}' \
+                -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){pullRequest(number:$n){headRefName closingIssuesReferences(first:20){nodes{number body}}}}}' \
                 -f o="${GITHUB_REPOSITORY%%/*}" -f r="${GITHUB_REPOSITORY#*/}" -F n="$ISSUE_NUMBER" \
-                --jq '.data.repository.pullRequest.closingIssuesReferences.nodes[0].body // ""' 2>/dev/null \
+                --jq '.data.repository.pullRequest as $p | (($p.headRefName | capture("^issue-(?<n>[0-9]+)$").n) // "") as $own
+                      | [$p.closingIssuesReferences.nodes[] | select((.number | tostring) == $own)] + $p.closingIssuesReferences.nodes
+                      | .[].body // ""' 2>/dev/null \
                 | grep -oE "$UUID_RE" | head -1 | cut -c6-)" || TICKET=""
             fi
           fi
