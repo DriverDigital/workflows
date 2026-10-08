@@ -19,7 +19,7 @@ workflow here touches it.
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
 
-All four go to `.github/workflows/` unchanged. Each pins `DriverDigital/workflows/...@<sha>`; the
+All go to `.github/workflows/` unchanged; the two platform stubs are below. Each pins `DriverDigital/workflows/...@<sha>`; the
 trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is recorded.
 
 | File | Rail |
@@ -34,8 +34,8 @@ trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is
 A repo takes the kit only with the `driver-kit` topic. Its platform topic, `shopify-theme`,
 `vercel-site` or `wordpress-site` (no platform files yet), decides which of these it may carry; the
 wave never writes one to a repo of another platform or of none (`tools/kit-platforms.sh`).
-`shopify-theme.yml` and `vercel-deploy.yml` land here in the next release's repin commit (they pin
-the tag); until then they wait on branch `ci-standards-stubs`. The standards, the cutover and the
+The wave refreshes a platform stub only where a repo already carries it; the first copy comes from the
+repo's canary, cutover or install commit. The standards, the cutover and the
 install steps: [`../../docs/branch-model.md`](../../docs/branch-model.md).
 
 | File | Platform | Rail |

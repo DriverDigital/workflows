@@ -1,0 +1,17 @@
+name: Vercel deploy
+
+# Caller stub: deploys pushes to main (production) and develop (preview) that Vercel's GitHub app
+# will not build because the pusher is outside the Vercel team. The work lives in the reusable.
+
+on:
+  push:
+    branches: [main, develop]
+
+permissions: {}
+
+jobs:
+  deploy:
+    uses: DriverDigital/workflows/.github/workflows/vercel-deploy.yml@b6a6f8dc61fbe8bcfc71d21878d5577051774a6f # v1.19.0
+    secrets:
+      VERCEL_DEPLOY_HOOK_MAIN: ${{ secrets.VERCEL_DEPLOY_HOOK_MAIN }}
+      VERCEL_DEPLOY_HOOK_DEVELOP: ${{ secrets.VERCEL_DEPLOY_HOOK_DEVELOP }}

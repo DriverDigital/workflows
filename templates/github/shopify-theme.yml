@@ -1,0 +1,28 @@
+name: Shopify theme
+
+# Caller stub for every theme push a Shopify site makes: a preview theme per pull request (checked
+# while draft, pushed once ready, deleted on close) and DRIVER/<branch> on every push to main or a
+# Palmers-style main-* branch. The work lives in the reusable it pins.
+
+on:
+  pull_request:
+    branches: [main, "main-*"]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
+  push:
+    branches: [main, "main-*"]
+
+permissions:
+  contents: read
+
+jobs:
+  theme:
+    # Dependabot PRs build in dependabot-validate instead, a fork PR gets no secrets, and a commit
+    # from Shopify's GitHub integration is already on the theme it came from.
+    if: >-
+      (github.event_name == 'push' && !contains(github.event.head_commit.message, 'Update from Shopify')) ||
+      (github.event_name == 'pull_request' &&
+       github.event.pull_request.user.login != 'dependabot[bot]' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    uses: DriverDigital/workflows/.github/workflows/shopify-theme.yml@b6a6f8dc61fbe8bcfc71d21878d5577051774a6f # v1.19.0
+    # inherit, not a map: environment secrets (Palmers) cannot be passed by name.
+    secrets: inherit

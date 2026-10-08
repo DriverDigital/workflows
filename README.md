@@ -28,11 +28,10 @@ task to Internal Review.
 
 ## Status & versions
 
-Latest tag **`v1.18.0`** (`85f1578`, 2026-10-01) — `dependabot-validate` no longer fails every clean
-Dependabot PR, the implementer prompt carries the revised comments standard, and the house standards
-gain the subagents-and-replies rule; hours after `v1.17.0`, which made `claude.yml` a reusable + stub.
-Both canaried, then waved the same night — see [`v1.18.0`](#v1180-85f1578-2026-10-01) below. The four
-caller stubs are pinned to `85f1578`.
+Latest tag **`v1.19.0`** (`b6a6f8d`, 2026-10-09) — the two platform standards (Shopify and Vercel
+reusables), kit opt-in by repo topic, each repo's pinned Node in CI, Closes lines for every issue a
+ticket names, the Dependabot house standard and `.claude/settings.json` — see
+[`v1.19.0`](#v1190-b6a6f8d-2026-10-09) below. The six caller stubs are pinned to `b6a6f8d`.
 
 **State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
 
@@ -53,7 +52,26 @@ rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real 
 resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
 npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
 1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-`v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → `v1.15.0` → **`v1.16.0`** (all below). `v1.3.0` was never tagged.
+`v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → `v1.15.0` → `v1.16.0` → `v1.17.0` → `v1.18.0` →
+**`v1.19.0`** (all below). `v1.3.0` was never tagged.
+
+### `v1.19.0` (`b6a6f8d`, 2026-10-09)
+
+The kit splits into a shared part and one part per hosting platform (#87). Standards, topics and the
+per-repo cutover: [`docs/branch-model.md`](docs/branch-model.md).
+
+- **New reusables:** `shopify-theme.yml` (PR preview themes `DRIVER/<branch>` and the `main`/`main-*`
+  push, with the build in a job with no secrets; #80, #82) and `vercel-deploy.yml` (the deploy hook for
+  pushers outside the Vercel team). Their stubs join the kit at this release; they reach a repo through
+  its canary, cutover or install commit, never the wave.
+- **Opt-in by topic:** the wave targets only repos with `driver-kit`; `shopify-theme`, `vercel-site`
+  and `wordpress-site` decide the platform files (`tools/kit-platforms.sh`). Set on 20 repos.
+- **Reusable changes reaching the fleet with the repin:** `claude.yml` and `dependabot-validate.yml`
+  run the repo's pinned Node (`.nvmrc`, then `package.json`; #75, #77); the implementer adds a Closes
+  line per issue the ticket names (#76), and the PR-run ticket lookup prefers the branch's own issue.
+- **Kit:** `.claude/settings.json` turns off attribution in interactive sessions (#83; the wave merges
+  its keys); the house standards allow `CLAUDE.local.md` for private to-dos (#78) and gain the Replies
+  bullet (#88); `dependabot.yml` is the fleet house standard, written by hand per repo (#62).
 
 ### `v1.18.0` (`85f1578`, 2026-10-01)
 
@@ -483,8 +501,8 @@ Two review reusables, `pr-first-review.yml` and `ticketed-review.yml`, were reti
 all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
 
 **The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries a caller stub for each reusable above (the two platform stubs join at the next release's
-repin; until then they wait on branch `ci-standards-stubs`), plus `shopify-tool-smoke.yml` (a Shopify
+carries a caller stub for each reusable above (the two platform stubs reach a repo through its
+cutover or install commit, `docs/branch-model.md`), plus `shopify-tool-smoke.yml` (a Shopify
 platform file),
 `lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
 that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment

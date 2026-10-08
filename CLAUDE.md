@@ -22,8 +22,8 @@ live here:
   `shopify-theme.yml` and `vercel-deploy.yml`. The two review rails
   retired at v1.12.0 were deleted 2026-09-30; any tag through `v1.16.0` still holds them.
 - **The onboarding kit** in `templates/github/` — what fleet repos copy into `.github/workflows/`:
-  four caller stubs pinning a reusable by immutable SHA (`claude.yml` and the Dependabot three; the two
-  platform stubs join at the next repin), plus
+  six caller stubs pinning a reusable by immutable SHA (`claude.yml`, the Dependabot three, and the
+  platform stubs `shopify-theme.yml` and `vercel-deploy.yml`), plus
   three whole-file workflows (`shopify-tool-smoke.yml` on `shopify-theme` repos only, `lint.yml`,
   `pr-bonsai-link.yml` beside `claude.yml`) and `pull_request_template.md` and `claude-standards.md`
   (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand), `claude-settings.json` (its attribution keys merged into the repo's `.claude/settings.json` beside `claude.yml`; the repo owns every other key) and `dependabot.yml` (the fleet house standard, written by hand per repo with the blocks it needs; never waved).
