@@ -31,6 +31,8 @@ set -u
 
 ORG="${ORG:-DriverDigital}"
 KIT="$(cd "$(dirname "$0")/../templates/github" && pwd)"
+# shellcheck source=tools/kit-platforms.sh
+. "$(dirname "$0")/kit-platforms.sh"
 
 # Newest vX.Y.Z by semver, not the API's first row: the tags endpoint orders by ref name, which
 # GitHub does not document, so a non-release tag could land at .[0] and every guard below would
@@ -82,8 +84,8 @@ content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
   fi
 }
 
-scan_ref() {  # repo ref
-  local repo="$1" ref="$2" files f
+scan_ref() {  # repo ref platform
+  local repo="$1" ref="$2" plat="$3" files f fp
   files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
   for f in $files; do
     # Straight to a file, never a variable: `$(...)` strips ALL trailing newlines, so a deployed
@@ -97,8 +99,14 @@ scan_ref() {  # repo ref
       | sed "s|$ORG/workflows/.github/workflows/||; s|@\([0-9a-f]\{8\}\)[0-9a-f]*|@\1|" \
       | while read -r line; do echo "PIN $repo@$ref $f $line"; done
 
-    # 3. CONTENT — only for files the kit actually ships.
+    # 3. CONTENT — only for files the kit actually ships. A platform file on a repo whose topic
+    # names another platform (or none) is drift whatever its bytes say; the wave refuses to touch it.
     [ -f "$KIT/$f" ] || continue
+    fp="$(file_platform "$f")"
+    if [ -n "$fp" ] && [ "$fp" != "$plat" ]; then
+      echo "CONTENT $repo@$ref $f DRIFT platform: a $fp file, repo topic says $plat"
+      continue
+    fi
     content_row "$repo" "$ref" "$f"
   done
   # The wave installs pr-bonsai-link.yml and claude-standards.md wherever claude.yml is, so their
@@ -120,12 +128,23 @@ scan_ref() {  # repo ref
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
+  # The shared Claude Code project settings, installed beside claude.yml at .claude/settings.json.
+  grep -qx claude.yml <<<"$files" || return 0
+  local rootdirs
+  rootdirs="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | select(.type == "dir") | .name' 2>/dev/null)" || return 0
+  if grep -qx .claude <<<"$rootdirs" \
+     && gh api "repos/$ORG/$repo/contents/.claude/settings.json?ref=$ref" \
+          -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
+    content_row "$repo" "$ref" claude-settings.json
+  else
+    echo "CONTENT $repo@$ref claude-settings.json DRIFT missing"
+  fi
 }
 
 # Enumerate the fleet OUTSIDE the report subshell — a failure here has to be able to kill the run.
 # `--limit 200` against ~58 non-archived repos today; the old 100 was a silent truncation cliff.
-repos="$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef \
-           --jq '.[] | "\(.name) \(.defaultBranchRef.name)"')" || repos=""
+repos="$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,repositoryTopics \
+           --jq '.[] | "\(.name) \(.defaultBranchRef.name) \([(.repositoryTopics // [])[].name] | join(","))"')" || repos=""
 if [ -z "$repos" ]; then
   echo "FATAL: could not enumerate $ORG repos (gh failed, or auth/network is down)." >&2
   echo "This run proves NOTHING. An empty scan is not a clean fleet — do not read it as one." >&2
@@ -133,7 +152,7 @@ if [ -z "$repos" ]; then
 fi
 
 report="$(
-  printf '%s\n' "$repos" | while read -r repo def; do
+  printf '%s\n' "$repos" | while read -r repo def topics; do
     # Skip the kit repo itself: its .github/workflows/ holds the REUSABLES, which share basenames
     # with the stubs that call them (dependabot-validate.yml is a reusable here and a thin stub in
     # the kit), so a content compare against templates/ would report four phantom drifts: the three
@@ -141,10 +160,11 @@ report="$(
     # the same name here. NB: no apostrophes in comments inside this $( ) — bash opens a quote on
     # one even in a comment, and the parse error it produces points at EOF, not at the line.
     [ "$repo" = "workflows" ] && continue
-    scan_ref "$repo" "$def"
+    plat="$(topics_platform "${topics//,/ }")"
+    scan_ref "$repo" "$def" "$plat"
     if [ "$repo" = "Palmers" ]; then
       gh api "repos/$ORG/Palmers/branches?per_page=100" --jq '.[].name' 2>/dev/null \
-        | grep '^main' | grep -v "^$def\$" | while read -r b; do scan_ref "$repo" "$b"; done
+        | grep '^main' | grep -v "^$def\$" | while read -r b; do scan_ref "$repo" "$b" "$plat"; done
     fi
   done | sort
 )"
