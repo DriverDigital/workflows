@@ -30,8 +30,8 @@ concurrency:
   group: shopify-theme-${{ github.head_ref || github.ref }}
   cancel-in-progress: false
 
-# ponytail: cut to Shopify's 50-character theme-name limit in each run step, so two branches sharing
-# their first 43 characters share one preview theme.
+# Shopify caps a theme name at 50 characters, so a longer name keeps its first 41 and ends in an
+# 8-character hash of the whole name; branches sharing a long prefix still get a theme each.
 env:
   THEME_NAME: DRIVER/${{ github.head_ref || github.ref_name }}
 
@@ -108,7 +108,8 @@ jobs:
           SHOPIFY_CLI_TTY: 0
         run: |
           set -euo pipefail
-          name=${THEME_NAME:0:50}
+          name=$THEME_NAME
+          [ ${#name} -le 50 ] || name="${name:0:41}-$(printf %s "$name" | sha1sum | cut -c1-8)"
           themes=$(shopify theme list --json)
           id=$(jq -r --arg n "$name" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
           if [ -n "$id" ]; then
@@ -139,7 +140,8 @@ jobs:
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
         run: |
           set -euo pipefail
-          name=${THEME_NAME:0:50}
+          name=$THEME_NAME
+          [ ${#name} -le 50 ] || name="${name:0:41}-$(printf %s "$name" | sha1sum | cut -c1-8)"
           ids=$(jq -r --arg n "$name" '.[] | select(.name == $n and .role != "live") | .id' themes.json)
           [ -n "$ids" ] || { echo "No theme named $name"; exit 0; }
           for id in $ids; do shopify theme delete --theme "$id" --force; done
