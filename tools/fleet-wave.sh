@@ -34,8 +34,8 @@
 #   6. no path is written twice in one commit;
 #   7. discovery failures are fatal — a short target list is never reported as a clean fleet;
 #   8. --dry-run prints the plan for the whole fleet and touches nothing;
-#   9. a platform file on a repo of another platform (or none), or a repo tagged with both platform
-#      topics, blocks the wave before anything is written.
+#   9. a platform file on a repo of another platform (or none), or a repo tagged with more than one
+#      platform topic, blocks the wave before anything is written.
 #
 # Companion: tools/fleet-pin-audit.sh sees the drift; this closes it. Run the audit after a wave.
 set -euo pipefail
@@ -191,7 +191,7 @@ targets() {
       continue
     fi
     plat=$(topics_platform "${topics//,/ }")
-    [ "$plat" != both ] || { echo "$r carries both shopify-theme and vercel-site topics — pick one" >&2; exit 2; }
+    [ "$plat" != several ] || { echo "$r carries more than one platform topic — pick one" >&2; exit 2; }
     if [ "$r" = "Palmers" ]; then
       branches=$(api "repos/$ORG/$r/branches?per_page=100" --paginate --jq '.[].name') \
         || { echo "could not list $r branches — refusing to wave a partial fleet" >&2; exit 2; }

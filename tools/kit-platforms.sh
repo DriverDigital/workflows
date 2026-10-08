@@ -5,6 +5,7 @@
 #   driver-kit                  the repo takes the kit at all; the wave targets nothing without it,
 #                               so a stale repo stays untouched without having to be archived
 #   shopify-theme / vercel-site its hosting platform, which adds that platform's files
+#   / wordpress-site            (WordPress has none yet: those repos take the shared kit only)
 # A platform's files never reach a repo of the other platform or of none: the wave refuses to write
 # one there and the audit reports one found there, as it does kit files on a repo without driver-kit.
 KIT_TOPIC=driver-kit
@@ -24,13 +25,16 @@ topics_enrolled() {
   return 1
 }
 
-# A repo's platform from its topics (space- or newline-separated): shopify, vercel, none, or both —
-# which callers treat as an error, since no kit file could be checked against it.
+# A repo's platform from its topics (space- or newline-separated): shopify, vercel, wordpress, none,
+# or several — which callers treat as an error, since no kit file could be checked against it.
 topics_platform() {
-  local s=0 v=0 t
+  local found="" n=0 t
   for t in $1; do
-    [ "$t" = shopify-theme ] && s=1
-    [ "$t" = vercel-site ] && v=1
+    case "$t" in
+      shopify-theme) found=shopify; n=$((n + 1)) ;;
+      vercel-site) found=vercel; n=$((n + 1)) ;;
+      wordpress-site) found=wordpress; n=$((n + 1)) ;;
+    esac
   done
-  case "$s$v" in 10) echo shopify ;; 01) echo vercel ;; 11) echo both ;; *) echo none ;; esac
+  case $n in 0) echo none ;; 1) echo "$found" ;; *) echo several ;; esac
 }
