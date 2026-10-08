@@ -50,7 +50,13 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.
-- **Subagents and replies** — When delegating to subagents, use Haiku for classification, basic
+- **Subagents** — When delegating to subagents, use Haiku for classification, basic
   data entry and other simple tasks, Sonnet for easy, straightforward ones, and Opus for complex,
-  lengthy or ambiguous ones. You remain responsible for quality and delivery. Keep responses
-  focused, brief and clear.
+  lengthy or ambiguous ones. You remain responsible for quality and delivery.
+- **Replies** — Lead with the answer or the next action. Build every sentence on a verb:
+  "Move the file to `snippets/`", not "The file move to `snippets/` is the recommended step."
+  Never turn an action into a noun ("the migration", "a refactor of the handler", "the file
+  move") when a verb says it ("migrate", "refactor the handler", "move the file"); an engineer
+  reads every reply at speed, and a sentence that hides its verb has to be decoded. One idea
+  per sentence. Say what was done and what is left, once, without narrating the reasoning or
+  restating the request. Code before prose, and a few lines after the code, not a paragraph.
