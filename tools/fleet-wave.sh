@@ -8,7 +8,8 @@
 #   tools/fleet-wave.sh                      # the whole fleet
 #   tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commit message
 #
-# Targets are discovered by presence: every non-archived DriverDigital repo whose branch carries
+# Only repos carrying the driver-kit topic are targets (tools/kit-platforms.sh); within them, targets
+# are discovered by presence: every enrolled non-archived DriverDigital repo whose branch carries
 # claude.yml, dependabot-validate.yml, the house standards or a platform stub — the stub-only pairs
 # never took the full kit but still carry pins to move (Palmers: every branch named main*).
 # Per target, in one commit:
@@ -185,6 +186,10 @@ targets() {
     # keeping the wave out of the kit — and the mistake is fleet-wide, not one commit to undo.
     if [ "$r" = "$SELF_REPO" ]; then continue; fi
     case " $SKIP " in *" $r "*) echo "skip   $r (--skip)" >&2; continue ;; esac
+    if ! topics_enrolled "${topics//,/ }"; then
+      [ -z "$ONLY" ] || { echo "--only $r: the repo has no $KIT_TOPIC topic, so it takes no kit" >&2; exit 2; }
+      continue
+    fi
     plat=$(topics_platform "${topics//,/ }")
     [ "$plat" != both ] || { echo "$r carries both shopify-theme and vercel-site topics — pick one" >&2; exit 2; }
     if [ "$r" = "Palmers" ]; then

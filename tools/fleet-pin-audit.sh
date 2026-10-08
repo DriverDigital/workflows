@@ -102,6 +102,10 @@ scan_ref() {  # repo ref platform
     # 3. CONTENT — only for files the kit actually ships. A platform file on a repo whose topic
     # names another platform (or none) is drift whatever its bytes say; the wave refuses to touch it.
     [ -f "$KIT/$f" ] || continue
+    if [ "$plat" = unenrolled ]; then
+      echo "CONTENT $repo@$ref $f DRIFT unenrolled: no $KIT_TOPIC topic, so the wave skips this repo"
+      continue
+    fi
     fp="$(file_platform "$f")"
     if [ -n "$fp" ] && [ "$fp" != "$plat" ]; then
       echo "CONTENT $repo@$ref $f DRIFT platform: a $fp file, repo topic says $plat"
@@ -109,6 +113,9 @@ scan_ref() {  # repo ref platform
     fi
     content_row "$repo" "$ref" "$f"
   done
+  # The install-beside-claude.yml checks below are about what the wave would add; it adds nothing to
+  # an unenrolled repo, whose kit files are already reported above.
+  [ "$plat" = unenrolled ] && return 0
   # The wave installs pr-bonsai-link.yml and claude-standards.md wherever claude.yml is, so their
   # absence there is drift (the standards file is probed at .github/ below).
   if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
@@ -161,6 +168,9 @@ report="$(
     # one even in a comment, and the parse error it produces points at EOF, not at the line.
     [ "$repo" = "workflows" ] && continue
     plat="$(topics_platform "${topics//,/ }")"
+    # A repo without the driver-kit topic is still scanned: kit files there are drift, since the
+    # wave no longer keeps them current. Its rows are tagged so the report says why.
+    topics_enrolled "${topics//,/ }" || plat="unenrolled"
     scan_ref "$repo" "$def" "$plat"
     if [ "$repo" = "Palmers" ]; then
       gh api "repos/$ORG/Palmers/branches?per_page=100" --jq '.[].name' 2>/dev/null \

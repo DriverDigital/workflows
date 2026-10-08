@@ -1,9 +1,13 @@
 # shellcheck shell=bash
 # tools/kit-platforms.sh — sourced by fleet-wave.sh and fleet-pin-audit.sh.
 #
-# The kit has a shared part and one part per hosting platform. A repo declares its platform with a
-# GitHub topic, shopify-theme or vercel-site, and a platform's files never reach a repo of the other
-# platform or of none: the wave refuses to write one there and the audit reports one found there.
+# Which repos get the kit, and which part of it, is set by GitHub topics on each repo:
+#   driver-kit                  the repo takes the kit at all; the wave targets nothing without it,
+#                               so a stale repo stays untouched without having to be archived
+#   shopify-theme / vercel-site its hosting platform, which adds that platform's files
+# A platform's files never reach a repo of the other platform or of none: the wave refuses to write
+# one there and the audit reports one found there, as it does kit files on a repo without driver-kit.
+KIT_TOPIC=driver-kit
 SHOPIFY_FILES=(shopify-tool-smoke.yml shopify-theme.yml)
 VERCEL_FILES=(vercel-deploy.yml)
 
@@ -11,6 +15,13 @@ VERCEL_FILES=(vercel-deploy.yml)
 file_platform() {
   case " ${SHOPIFY_FILES[*]} " in *" $1 "*) echo shopify; return ;; esac
   case " ${VERCEL_FILES[*]} " in *" $1 "*) echo vercel ;; esac
+}
+
+# Whether a repo takes the kit, from its topics (space- or newline-separated).
+topics_enrolled() {
+  local t
+  for t in $1; do [ "$t" = "$KIT_TOPIC" ] && return 0; done
+  return 1
 }
 
 # A repo's platform from its topics (space- or newline-separated): shopify, vercel, none, or both —

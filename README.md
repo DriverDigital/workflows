@@ -469,6 +469,8 @@ produces a silent `startup_failure` — no check run, no notification).
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
 | `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
 | `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
+| `shopify-theme.yml` | theme token, read-only GitHub token | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: PR preview themes and `DRIVER/<branch>`, the build in a secretless job |
+| `vercel-deploy.yml` | the two deploy hooks only | `push` on `main` / `develop` | Vercel sites: deploy hook for pushers outside the Vercel team |
 
 Two review reusables, `pr-first-review.yml` and `ticketed-review.yml`, were retired at v1.12.0
 (2026-08-08) and deleted 2026-09-30; any tag through `v1.16.0` still holds them. Macroscope reviews
@@ -478,8 +480,13 @@ all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration
 carries a caller stub for each reusable above, plus `shopify-tool-smoke.yml` (store repos only),
 `lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
 that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
-standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it) and `dependabot.yml` (the `github-actions` updater that bumps
-the stub pins between waves — installed by hand, merged into an existing file).
+standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it), `claude-settings.json` (the repo's
+`.claude/settings.json`, installed beside `claude.yml`) and `dependabot.yml` (the fleet house standard, written by hand per repo).
+
+**The kit has a shared part and one part per platform.** Shopify sites (topic `shopify-theme`) run
+`main` only and take `shopify-theme.yml`; Vercel sites (topic `vercel-site`) keep `develop` and `main`
+and take `vercel-deploy.yml`. The wave and the audit keep each platform's files to its own repos:
+[`docs/branch-model.md`](docs/branch-model.md).
 
 **Not every repo takes the whole kit.** A repo that is not on the Bonsai → PR pipeline can install
 `lint.yml` alone and skip the rest as inert weight.

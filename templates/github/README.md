@@ -12,6 +12,7 @@ workflow here touches it.
 | `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body: a PR with no Bonsai mention is skipped (grey, never red — most human PRs have no ticket), one that mentions a link must carry an `app.hellobonsai.com/tasks/<uuid>` URL. Check-run context is the job id, **`bonsai-link`**. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house commit-message and code-comment standard. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy), so local sessions load it (CI loading is unconfirmed — `../../docs/HANDOFF.md`). Lint-only repos are wave targets through it. |
+| `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI already sets the same keys). Kit-owned: the wave replaces it whole, so a repo setting goes in `.claude/settings.local.json`, never here. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
@@ -26,6 +27,18 @@ trailing `# vX.Y.Z` comment on the `uses:` line is the only place the version is
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | Rebases out-of-date Dependabot PRs on strict (require-up-to-date) repos; inert elsewhere. |
+
+### Platform stubs (one platform each)
+
+A repo's GitHub topic, `shopify-theme` or `vercel-site`, decides which of these it may carry; the
+wave never writes one to a repo of the other platform or of none (`tools/kit-platforms.sh`). The
+standards, the cutover and the install steps: [`../../docs/branch-model.md`](../../docs/branch-model.md).
+
+| File | Platform | Rail |
+|---|---|---|
+| `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (checked while draft, pushed when ready, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets. |
+| `shopify-tool-smoke.yml` | Shopify (store repos) | The full workflow described above. |
+| `vercel-deploy.yml` | Vercel | Fires the deploy hook on push to `main` (production) or `develop` (preview) for pushers outside the Vercel team. |
 
 **PR review is Macroscope's job, not the kit's** (decided 2026-08-08, reaffirmed 2026-09-12). The old
 review rails — `pr-first-review.yml` and `ticketed-review.yml` — were retired at v1.12.0: stubs deleted
@@ -124,13 +137,12 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
    it replaces what a branch already carries, and installs `pr-bonsai-link.yml` and
    `claude-standards.md` beside `claude.yml`; the `CLAUDE.md` import line is the one step it cannot do).
-   **Then `dependabot.yml`, by hand** — it is the updater for the stub pins (without it nothing
-   bumps the `uses: DriverDigital/workflows/...@<sha>` lines between waves), and most repos already
-   have one, so never blind-copy it. No `.github/dependabot.yml` → copy the kit's. One without a
-   `github-actions` entry → add the kit's entry under its npm block. One with a `github-actions`
-   entry already → keep it and set its `interval` to `daily`. Dependabot scans the default branch
-   only, so a repo carrying the kit on other branches (Palmers) needs one entry per branch with
-   `target-branch:` set.
+   **Then `dependabot.yml`, by hand** — the house standard: write the kit's file over the repo's,
+   keeping only the blocks the repo needs (npm only where a `package.json` exists, one block per
+   `package.json` directory) and any commented per-repo exception. It is also the updater for the
+   stub pins, which nothing else bumps between waves. The wave does not carry it, since repos differ
+   in which blocks they keep; the cutover and install commits in `docs/branch-model.md` write it.
+   Palmers' country branches get no Dependabot updates (it reads the default branch only).
    **Re-copying into a repo that already has the kit?** Let the wave do it
    (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value. It
    refuses a repo whose deployed file still carries a store handle the `SHOPIFY_STORE_NAME` variable
@@ -172,7 +184,7 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 
 Some repos run **several independent long-lived branches that merely share one repo** — Palmers runs
 one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me`, `main-sa`, and
-`main-au` / `main-uk`; `main-ma` for Morocco is planned). These branches are *not* a hub-and-spoke off
+`main-au` / `main-uk` / `main-ma`). These branches are *not* a hub-and-spoke off
 `main`; they don't intersect. Treat each branch as its own self-contained store.
 
 - **Install `claude.yml` on EVERY release branch.** Because the branches are independent, each one
@@ -190,7 +202,6 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   map); the branch is still taken from config, never the field.
 - **Don't flag a project whose branch doesn't exist yet.** A `branch` must be a real branch in the
   repo before the project is `"pipeline": "github"` — otherwise the implementer can't branch from it.
-  (Palmers Morocco is mapped to `main-ma` but left unflagged until that branch is created.)
 
 ## Validate before trusting it
 
