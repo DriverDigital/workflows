@@ -23,6 +23,13 @@ on:
 permissions:
   contents: read
 
+# One run per preview theme or branch, in order: a newer push queues behind the one running, and a
+# close queues behind the push it would race, so the preview is never deleted and then recreated.
+# Not cancel-in-progress, which would stop a theme push halfway through its upload.
+concurrency:
+  group: shopify-theme-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+
 # ponytail: cut to Shopify's 50-character theme-name limit in each run step, so two branches sharing
 # their first 43 characters share one preview theme.
 env:
