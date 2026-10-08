@@ -109,8 +109,8 @@ fleet before writing anything.
 `vite-plugin-shopify-clean` #72 (2026-07-02, 19:27Z) each rewrote the SHA *and* its `# vX.Y.Z`
 trailer five minutes after the `v1.5.4` tag landed at 19:22Z. The mechanism works; it rarely gets a
 turn. Two reasons: the wave repins every target within minutes of a tag, so a monthly check finds
-nothing stale — and 5 of the 13 distinct repos behind the 20 pairs have no `github-actions` block
-for it to act on (`studio-sulzer`, `plugins`, `client-workspaces` carry no `dependabot.yml`;
+nothing stale — and on 2026-10-08 five kit repos had no `github-actions` block for it to act on
+(`plugins` and `client-workspaces` carry no `dependabot.yml`; `studio-sulzer`,
 `Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
 that only a bot can bump and had never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
 is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
@@ -259,9 +259,9 @@ the installed stub — the wave covers it anyway.
 
 ## Branch protection
 
-`enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. Two live kit
-branches have **no protection at all** — `studio-sulzer@main` and `Team-Laird@develop` (404 on the
-protection endpoint). Every other kit branch has a protection object — but **having one is not the
+`enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. `Team-Laird@develop`
+has **no protection at all** (404 on the protection endpoint); `studio-sulzer@main` was the other
+until it gained a 1-review rule (seen 2026-10-08). Every other kit branch has a protection object — but **having one is not the
 same as requiring a human**, and the gap is wider than those two. Surveyed across all pairs
 2026-08-02; `driver-bonsai-mcp@main` has since been archived and is dropped from the counts:
 
@@ -269,7 +269,7 @@ same as requiring a human**, and the gap is wider than those two. Surveyed acros
 |---|---|---|
 | 12 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-engineering-app, foundrae-blackridge, plugins, vite-plugin-shopify-clean |
 | **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
-| **2** | **no protection at all** | **`studio-sulzer@main`, `Team-Laird@develop`** |
+| **2** | **no protection at all** | **`studio-sulzer@main`** (protected since, seen 2026-10-08), **`Team-Laird@develop`** |
 
 The kit's onboarding steps assume a human-approver rule exists. On **10** of the 22 pairs it does
 not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.

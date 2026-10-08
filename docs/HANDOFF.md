@@ -1,9 +1,20 @@
-# Handoff — 2026-10-01
+# Handoff — 2026-10-09
 
 State of play for the next session. Conventions, how-tos and release history live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
 
 ## Where things stand
+
+2026-10-09: **two platform standards, built on branch `ci-standards` and not released yet**
+([`branch-model.md`](branch-model.md)). Shopify sites go to `main` only (Palmers: `main` + `main-*`)
+and take the `shopify-theme.yml` reusable (#80, #82). Vercel sites keep `develop` + `main` and take
+`vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site`
+pick the platform files. The wave and the audit enforce both. In the same release: the Dependabot
+house standard (#62), each repo's pinned Node in CI (#75, #77), Closes lines (#76), the
+`CLAUDE.local.md` rule (#78) and `.claude/settings.json` (#83). The two new stubs are drafted but
+land only at the repin, because they pin the tag. **Decided: `dependabot-report` stays**
+(Maria, 2026-10-09). It, validate and Macroscope together are what make a clear Dependabot PR safe to
+merge unread; auto-merge on all three is #85.
 
 2026-10-01, later: **v1.18.0 is released and waved** (22 targets, converged): the validator fix (#73 —
 every clean Dependabot PR had carried a red required check since v1.15.0), the implementer prompt's
@@ -42,9 +53,10 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Open decisions
 
-- **`dependabot-report`'s future.** It runs Claude automatically on every Dependabot PR (verdict over
-  the inert artifact, never the diff). Macroscope reviews Dependabot PRs too since 2026-09-10, so it is
-  the one place two bots still review automatically. Keep, or retire like the review rails.
+- **Which repos carry `driver-kit`.** Nothing is enrolled yet, so the wave targets nothing until the
+  topics are set. The candidate list is today's 20 kit repos less the stale ones; The-Gathery is
+  the open case.
+- **foundrae's `dev-staging` and `testparty/06-2026`:** retire at its cutover or keep.
 
 ## Watch-items
 
@@ -71,6 +83,9 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
   standard is global to `--append-system-prompt` — both unchanged.
 
 ## Recommended next steps
+
+0. **Release the platform standards** (`branch-model.md` → "Order"): merge, tag, repin with the two
+   new stubs, set the topics, wave. Then pilot the Shopify cutover on LittleMe, then the Vercel installs.
 
 1. ~~Make `bonsai-link` a required check per repo~~ — dropped (Maria, 2026-10-01): the check skips
    PRs with no Bonsai mention, since most human PRs have no ticket and a red X read as a failing
