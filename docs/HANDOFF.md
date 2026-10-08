@@ -29,7 +29,7 @@ outside the wave, was re-copied by hand the same night, `ed2ad6a`). Release reco
 proven: [`README.md`](../README.md#v1170-359505a-2026-10-01).
 
 To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry the former
-`CLAUDE.local.md` items); that file is retired across Driver repos.
+`CLAUDE.local.md` items).
 
 2026-09-30 (#59) settled the decisions the release was built on:
 
