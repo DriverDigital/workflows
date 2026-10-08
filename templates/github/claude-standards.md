@@ -38,6 +38,12 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   driver-skills plugin lists a repo's open ones at session start, and its todo-capture skill files new
   ones, including cross-repo handoffs with a `from:` line. Close the issue when done. `CLAUDE.local.md`
   is not used in Driver repos.
+- **Branches and pull requests** — Macroscope reviews a pull request at most three times, and every
+  push to an open PR spends one. A session works on one feature branch, commits each piece of work
+  separately (even when they touch unrelated things) and pushes to the branch as often as it likes,
+  then opens one PR at the end, when the work is ready for review. A PR needed sooner is a draft
+  (Macroscope does not review drafts). Once a PR is open, collect fixes locally and push them
+  together. PRs land with a merge commit, never a squash, so each commit survives on `main`.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.
