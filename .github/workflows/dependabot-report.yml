@@ -1,7 +1,7 @@
 name: Dependabot report (reusable)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# REUSABLE WORKFLOW — PRIVILEGED. Phase 3 PR-first rail.
+# REUSABLE WORKFLOW — PRIVILEGED.
 # Holds AGENTS_GH_PAT + CLAUDE_CODE_OAUTH_TOKEN. Invoked by a per-repo caller stub
 # (templates/github/dependabot-report.yml) on `workflow_run` after the
 # 'Dependabot validate' workflow completes.
@@ -88,7 +88,7 @@ jobs:
       # Install Claude Code (latest STABLE, unpinned) + hand it to the action via
       # path_to_claude_code_executable, so we track the current CLI without bumping the action, and a
       # transient `curl (35)` download blip retries + fails loudly instead of the action's silent
-      # single-retry install (which threw "native binary not found" on Avara PR #143). continue-on-error
+      # single-retry install (which then throws "native binary not found"). continue-on-error
       # MIRRORS the verdict step so an install outage never drops the human-ping below. ubuntu-latest → $HOME=/home/runner.
       - name: Install Claude Code (latest stable, resilient)
         if: ${{ steps.provenance.outputs.report == 'true' && steps.download.outcome == 'success' }}
@@ -117,7 +117,7 @@ jobs:
         continue-on-error: true
         uses: anthropics/claude-code-action@v1
         env:
-          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"  # anthropics/claude-code-action#1499; see templates/github/claude.yml
+          CLAUDE_CODE_DISABLE_BACKGROUND_TASKS: "1"  # anthropics/claude-code-action#1499; see .github/workflows/claude.yml
         with:
           path_to_claude_code_executable: /home/runner/.local/bin/claude
           github_token: ${{ secrets.AGENTS_GH_PAT }}

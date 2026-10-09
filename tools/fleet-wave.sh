@@ -74,7 +74,7 @@ MSG=${MSG:-"chore(kit): repin to $TAG [skip ci]"}
 # Guard 0: a real wave commits the working tree's idea of the kit under the latest tag's name, so
 # the checkout has to be the released one. Guard 1 only proves the stubs agree with `git describe`
 # — it passes on a feature branch whose claude.yml is already the NEXT version's content, which
-# would push 20 commits labelled with a tag that does not contain what they carry. Dry runs are
+# would push commits labelled with a tag that does not contain what they carry. Dry runs are
 # read-only and stay allowed anywhere, which is how you plan a wave from the branch that builds it.
 if [ "$DRY" -eq 0 ]; then
   [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || { echo "real waves run from main (you are on $(git rev-parse --abbrev-ref HEAD)); use --dry-run here" >&2; exit 2; }
@@ -96,10 +96,10 @@ if grep -lE '^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"' "$KIT"/*.yml; then
   echo "the kit files above carry a literal SHOPIFY_STORE_NAME — it belongs in the repo variable" >&2; exit 2
 fi
 
-# Every kit file a target carries is replaced with the kit's copy — the stubs too, since v1.15.0.
-# A pin-line sed used to let per-repo stub edits survive, but fleet-pin-audit.sh reports any such
-# edit as drift, so nothing the kit does not ship should outlive a wave. No kit file carries a
-# per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable (guard 4).
+# Every kit file a target carries is replaced with the kit's copy, the stubs too: fleet-pin-audit.sh
+# reports any per-repo edit as drift, so nothing the kit does not ship should outlive a wave. No kit
+# file carries a per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable
+# (guard 4).
 FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.yml lint.yml
             pr-bonsai-link.yml dependabot-keep-current.yml dependabot-report.yml
             dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json
@@ -162,8 +162,8 @@ handle_of() {
 # ever called as `TARGETS=$(targets)`. Verified on bash 3.2.57 — `f(){ local x; x=$(false); echo
 # reached; }; T=$(f)` prints `reached` and exits 0. So errexit cannot be relied on to stop a wave
 # here, and a half-read fleet is the one failure this whole script must never report as success:
-# a `gh` hiccup on the Palmers branch listing would silently drop 8 of the 20 targets and print
-# `targets: 12  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
+# a `gh` hiccup on the Palmers branch listing would silently drop every country branch and still
+# exit 0. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
   local repos r def topics plat branches b
@@ -348,8 +348,8 @@ plan_and_push() {
 
 echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"
 # Guard 7: resolve the whole plan before touching anything. Fed straight from `< <(targets)` the
-# discovery process would be a background job whose exit status is never read at all, so a 12-of-20
-# wave would report `targets: 12` and exit 0. Capturing it makes the status observable — see the
+# discovery process would be a background job whose exit status is never read at all, so a partial
+# wave would report a short target count and exit 0. Capturing it makes the status observable — see the
 # errexit note on targets() for why the calls in there still need their own `|| exit`.
 TARGETS=$(targets)
 BLOCKED=0

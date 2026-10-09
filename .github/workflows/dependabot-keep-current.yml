@@ -1,10 +1,10 @@
 name: Dependabot keep current (reusable)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# REUSABLE WORKFLOW — Phase 3+ kit. When a PR is merged into a branch, rebase the
+# REUSABLE WORKFLOW. When a PR is merged into a branch, rebase the
 # open Dependabot PRs targeting that same branch that are now BLOCKED by being out
 # of date, so they don't go stale. MECHANICAL (no AI): it posts `@dependabot
-# rebase`, which Dependabot acts on. Home: DriverDigital/workflows.
+# rebase`, which Dependabot acts on.
 #
 # WHAT GAP THIS FILLS: Dependabot's default `rebase-strategy: auto` already rebases
 # PRs on conflicts / dependency changes. It does NOT rebase a clean-but-behind PR
@@ -21,7 +21,7 @@ name: Dependabot keep current (reusable)
 # IDENTITY: must post as a real USER with push access (driver-digital-agents via
 # AGENTS_GH_PAT). Dependabot ignores `@dependabot` commands from GitHub Apps /
 # github-actions[bot] (dependabot-core#9147). `rebase`/`recreate` survive the
-# Jan-2026 comment-command deprecation (only merge/close/reopen-family were removed).
+# comment-command deprecation (only merge/close/reopen-family were removed).
 # The PAT is the SOLE credential and does the only write; the workflow's own
 # GITHUB_TOKEN is never used (gh always reads GH_TOKEN), so it stays read-only.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ jobs:
     steps:
       - name: Rebase Dependabot PRs blocked by being behind this base
         env:
-          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }} # sole credential; not the default GITHUB_TOKEN
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           REPO: ${{ github.repository }}
           BASE: ${{ github.event.pull_request.base.ref }}
         run: |

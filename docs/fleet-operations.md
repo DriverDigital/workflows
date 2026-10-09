@@ -287,7 +287,7 @@ not, so a bot signal alone could satisfy a merge — not the 2 this section used
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`
 had `strict: true` but empty `contexts`, so `lint.yml` could report red without being able to block).
-The context is the **job id** at `.github/workflows/lint.yml:28` — the workflow-level `name:` is not
+The context is the **job id** at `.github/workflows/lint.yml:26` — the workflow-level `name:` is not
 part of it. Applied through the narrow sub-resource, never a whole-object `PUT`:
 
 ```bash

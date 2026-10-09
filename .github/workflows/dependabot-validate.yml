@@ -1,9 +1,8 @@
 name: Dependabot validate (reusable)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# REUSABLE WORKFLOW — UNPRIVILEGED, credential-less. Phase 3 PR-first rail.
-# Home: DriverDigital/workflows. Invoked by a per-repo caller stub
-# (templates/github/dependabot-validate.yml) named EXACTLY 'Dependabot validate'
+# REUSABLE WORKFLOW — UNPRIVILEGED, credential-less. Invoked by a per-repo caller
+# stub (templates/github/dependabot-validate.yml) named EXACTLY 'Dependabot validate'
 # on `pull_request`.
 #
 # SECURITY CONTRACT — DO NOT WEAKEN:
@@ -171,7 +170,7 @@ jobs:
                     } 2>/dev/null | grep -E '^(@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$' | awk '!seen[$0]++' | head -20 || true )"
           # `|| true` is load-bearing: the step runs under bash -e, and with pipefail the pipeline above
           # returns 1 whenever the log has no `npm error pkg@` line — i.e. on every CLEAN run — which
-          # killed the step silently before result.json was written (every clean Dependabot PR red, v1.15.0–v1.17.0).
+          # would kill the step silently before result.json was written.
           : > registry.ndjson
           for n in $names; do
             if timeout 20 npm view --json -- "$n" name version dist-tags peerDependencies > n.json 2>/dev/null \

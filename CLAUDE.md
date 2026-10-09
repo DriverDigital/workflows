@@ -60,7 +60,7 @@ grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/              # m
 ```
 
 Two more CI checks: the prompt survives tokenization (the python step at
-`.github/workflows/lint.yml:82`; run it verbatim, needs PyYAML, after any edit to the reusable
+`.github/workflows/lint.yml:74`; run it verbatim, needs PyYAML, after any edit to the reusable
 `claude.yml`'s `claude_args` or `prompt:`), and `DRIVER_AGENTS_REF` matches in the reusable and
 `shopify-tool-smoke.yml` (the step after it). Those check the first and third invariants below; the rest
 are unenforced, and the blockquote parity check in particular is by hand at release time.

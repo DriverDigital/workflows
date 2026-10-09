@@ -5,9 +5,6 @@
 #
 #   1. REFERENCE — every `uses:` pin in templates/github/*.yml equals the latest tag's SHA. Checks
 #      2 and 3 measure the fleet against `templates/`, so a stale reference makes both of them lie.
-#      That is exactly how the v1.9.0 gap survived a day: the wave repinned the fleet to `a54c91e`
-#      while the kit's own stubs still said `80c35fe`, and an audit that compared deployed pins to
-#      the latest *tag* — never to `templates/` — called the fleet uniform the whole time.
 #   2. PINS — every deployed caller stub's `uses: DriverDigital/workflows/...@SHA` vs that tag.
 #   3. CONTENT — the whole waved file vs its templates/github/ source. The pin is one line of it:
 #      `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, the implementer's system prompt is just
@@ -22,9 +19,8 @@
 # platform file on a repo whose topic names another platform, or none, is drift (tools/kit-platforms.sh).
 #
 # Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
-# the wave (Palmers #93 / vite-plugin-shopify-clean #72, 2026-07-02) — in practice the wave repins
-# within minutes of every tag, so it rarely gets the chance; see docs/fleet-operations.md. This
-# script is how drift gets seen between waves. Needs: gh (authenticated), org read access, jq.
+# the wave — in practice the wave repins within minutes of every tag, so it rarely gets the chance;
+# see docs/fleet-operations.md. This script is how drift gets seen between waves. Needs: gh (authenticated), org read access, jq.
 #
 # Usage: tools/fleet-pin-audit.sh            # full report
 #        tools/fleet-pin-audit.sh --stale    # only what has drifted
@@ -50,11 +46,9 @@ LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA
 # One normalization for every file, deliberate (claude-settings.json is compared on its attribution
 # keys alone, in content_row). Everything else that differs is reported — third-party
 # action refs included: a consumer repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of
-# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong. (The
-# store handle needed a second one until v1.17.0 moved it into a repository variable.)
+# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong.
 #
-#   Trailing blank lines and the final newline. Two stub-rails-only pairs (Team-Laird@develop,
-#      The-Gathery@develop) were waved without a final newline and are
+#   Trailing blank lines and the final newline. A file waved without its final newline is
 #      otherwise byte-identical. That is not drift anyone can act on, and a detector that reports
 #      permanent red rows is a detector nobody reads. Internal blank lines ARE still compared —
 #      awk buffers blanks and only emits them once a non-blank line follows.
@@ -132,9 +126,9 @@ scan_ref() {  # repo ref platform
   if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
     echo "CONTENT $repo@$ref pr-bonsai-link.yml DRIFT missing"
   fi
-  # The kit files outside .github/workflows/: the PR template (waved since v1.15.0) and the house
-  # standards. Presence comes from the directory listing, as above, so a failed API call skips the
-  # file rather than reading as "missing".
+  # The kit files outside .github/workflows/: the PR template and the house standards. Presence
+  # comes from the directory listing, as above, so a failed API call skips the file rather than
+  # reading as "missing".
   local dotgithub
   dotgithub="$(gh api "repos/$ORG/$repo/contents/.github?ref=$ref" --jq '.[].name' 2>/dev/null)" || dotgithub=""
   for f in pull_request_template.md claude-standards.md; do
@@ -176,7 +170,7 @@ scan_ref() {  # repo ref platform
 }
 
 # Enumerate the fleet OUTSIDE the report subshell — a failure here has to be able to kill the run.
-# `--limit 200` against ~58 non-archived repos today; the old 100 was a silent truncation cliff.
+# ponytail: `--limit 200` against ~58 non-archived repos; past it the fleet truncates silently.
 repos="$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,repositoryTopics \
            --jq '.[] | "\(.name) \(.defaultBranchRef.name) \([(.repositoryTopics // [])[].name] | join(","))"')" || repos=""
 if [ -z "$repos" ]; then
