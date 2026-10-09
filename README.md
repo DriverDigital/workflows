@@ -445,12 +445,12 @@ Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
    to confirm the fleet converged afterwards — it now checks waved file **content** against
    `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
    - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
-   - Dependabot also bumps the *stub pins*: every repo's `.github/dependabot.yml` follows the house
-     standard `templates/github/dependabot.yml`, whose `github-actions` block is always kept — on
-     its schedule and through a PR a human merges, so the wave stays the primary path and
-     Dependabot the backstop. `--skip <repo>` leaves every branch of a repo to it on purpose — only
-     sound where Dependabot covers each kit branch. The standard has no `target-branch`, so it
-     scans the default branch only, never Palmers' `main-*`. See
+   - Dependabot also bumps the *stub pins*: the wave writes every target's `.github/dependabot.yml`
+     from a `templates/github/dependabot/` variant, each with a `github-actions` block — on its
+     schedule and through a PR a human merges, so the wave stays the primary path and Dependabot
+     the backstop. `--skip <repo>` leaves every branch of a repo to it on purpose — only sound where
+     Dependabot covers each kit branch. The variants set no `target-branch`, so Dependabot scans the
+     default branch only, never Palmers' `main-*`. See
      [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
    - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
      v1.11.0 wave specifically), the wave diff
@@ -484,7 +484,7 @@ checksum check fails the job.
 **Onboarding a new repo:** set its topics first — `driver-kit` plus its platform topic
 ([`docs/branch-model.md`](docs/branch-model.md)); without `driver-kit` the wave never reaches it. Then
 copy the matching stubs from **this repo's `templates/github/`** into the repo's `.github/workflows/`,
-write its `.github/dependabot.yml` from the house standard, run a test PR (human + Dependabot), then pin the required check
+let the wave write its `.github/dependabot.yml`, run a test PR (human + Dependabot), then pin the required check
 `validate / validate` + add a human-approver rule (see *First-run / required-check* below). Caller stubs
 MUST carry their own `permissions:` block (a repo whose default workflow token is read-only otherwise
 produces a silent `startup_failure` — no check run, no notification).
@@ -511,7 +511,7 @@ platform file),
 `lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
 that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
 standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it), `claude-settings.json` (the repo's
-`.claude/settings.json`, installed beside `claude.yml`) and `dependabot.yml` (the fleet house standard, written by hand per repo).
+`.claude/settings.json`, installed beside `claude.yml`) and `dependabot/` (the `.github/dependabot.yml` variants, one waved to every target).
 
 **The kit has a shared part and one part per platform.** A repo opts in with the `driver-kit` topic;
 the wave targets nothing else. Shopify sites (topic `shopify-theme`) take `shopify-theme.yml` and

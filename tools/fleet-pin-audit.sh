@@ -76,15 +76,15 @@ reference="$(
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
-  local repo="$1" ref="$2" f="$3"
+content_row() {  # repo ref file [kit source, default $KIT/file] — $TMP/raw holds the deployed bytes
+  local repo="$1" ref="$2" f="$3" src="${4:-$KIT/$3}"
   if [ "$f" = claude-settings.json ]; then
     # The repo owns the rest of .claude/settings.json; the wave merges in only the kit keys.
     jq -S .attribution < "$TMP/raw" > "$TMP/deployed" 2>/dev/null || echo "invalid JSON" > "$TMP/deployed"
-    jq -S .attribution < "$KIT/$f"  > "$TMP/kit"
+    jq -S .attribution < "$src"     > "$TMP/kit"
   else
     kit_normalize < "$TMP/raw"  > "$TMP/deployed"
-    kit_normalize < "$KIT/$f"   > "$TMP/kit"
+    kit_normalize < "$src"      > "$TMP/kit"
   fi
   if command diff -q "$TMP/deployed" "$TMP/kit" >/dev/null 2>&1; then
     echo "CONTENT $repo@$ref $f ok"
@@ -96,7 +96,8 @@ content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
 
 scan_ref() {  # repo ref platform
   local repo="$1" ref="$2" plat="$3" files f fp
-  files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
+  # A standards-only target has no .github/workflows; its .github/ kit files are still checked below.
+  files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || files=""
   for f in $files; do
     # Straight to a file, never a variable: `$(...)` strips ALL trailing newlines, so a deployed
     # file differing from the kit only in trailing blank lines would compare equal and report `ok`.
@@ -145,11 +146,24 @@ scan_ref() {  # repo ref platform
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
+  local root dotclaude="" variant
+  root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
+  # The wave writes .github/dependabot.yml on every branch it targets, so only those are compared:
+  # an enrolled repo the wave never reaches keeps its own file.
+  if grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
+     || grep -qx claude-standards.md <<<"$dotgithub"; then
+    variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)")"
+    if grep -qx dependabot.yml <<<"$dotgithub"; then
+      gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
+        -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
+        && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
+    elif [ -n "$dotgithub" ]; then
+      echo "CONTENT $repo@$ref dependabot.yml DRIFT missing"
+    fi
+  fi
   # The shared Claude Code project settings at .claude/settings.json, installed beside claude.yml.
   # Missing is reported only when both listings succeeded; a failed call skips the check.
-  local rootdirs dotclaude=""
-  rootdirs="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | select(.type == "dir") | .name' 2>/dev/null)" || return 0
-  if grep -qx .claude <<<"$rootdirs"; then
+  if grep -qx "dir .claude" <<<"$root"; then
     dotclaude="$(gh api "repos/$ORG/$repo/contents/.claude?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
   fi
   if grep -qx settings.json <<<"$dotclaude"; then

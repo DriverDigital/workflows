@@ -38,3 +38,12 @@ topics_platform() {
   done
   case $n in 0) echo none ;; 1) echo "$found" ;; *) echo several ;; esac
 }
+
+# Which templates/github/dependabot/<variant>.yml a repo takes as its .github/dependabot.yml: a repo
+# with its own exceptions by name, otherwise npm when the branch root holds a package.json (1).
+dependabot_variant() {  # repo has_root_package_json
+  case "$1" in
+    driver-agents|vite-plugin-shopify-clean) echo "$1" ;;
+    *) if [ "$2" = 1 ]; then echo npm; else echo actions; fi ;;
+  esac
+}
