@@ -5,9 +5,8 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
-2026-10-09: **v1.19.0 is released and waved** (#87; 22 targets; audit 69 pins at `b6a6f8dc`, 144
-files matching, one drift: driver-agents' hand-installed `lint.yml` misses the kit's one-line comment
-change). **Two platform standards** ([`branch-model.md`](branch-model.md)); no repo carries a
+2026-10-09: **v1.19.0 is released and waved** (#87; 22 targets, then driver-agents as the 23rd once
+the wave found branches by `lint.yml`; the audit reads converged). **Two platform standards** ([`branch-model.md`](branch-model.md)); no repo carries a
 platform stub yet, since each arrives with the repo's canary, cutover or install commit. Shopify sites go to `main` only (Palmers: `main` + `main-*`)
 and take the `shopify-theme.yml` reusable (#80, #82). Vercel sites keep `develop` + `main` and take
 `vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site` /
