@@ -241,7 +241,8 @@ plan_and_push() {
   fi
   root=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list the repo root" >&2; exit 3; }
-  variant=$(dependabot_variant "$repo" "$(grep -qxF "file package.json" <<<"$root" && echo 1 || echo 0)")
+  variant=$(dependabot_variant "$repo" "$(grep -qxF "file package.json" <<<"$root" && echo 1 || echo 0)" \
+    "$(grep -qxF "dir .github/workflows" <<<"$dotgithub" && echo 1 || echo 0)")
   if grep -qxF "dir .claude" <<<"$root"; then
     dotclaude=$(api "repos/$ORG/$repo/contents/.claude?ref=$branch" --jq '.[].path') \
       || { echo "  $repo@$branch: cannot list .claude" >&2; exit 3; }
@@ -256,8 +257,8 @@ plan_and_push() {
 
   # Three files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
   # check, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
-  # Code project settings. dependabot.yml is installed on every target. Nothing outside .github/ and
-  # .claude/ is ever written.
+  # Code project settings. dependabot.yml is installed on every target that has a variant
+  # (dependabot_variant). Nothing outside .github/ and .claude/ is ever written.
   for f in "${FULL_FILES[@]}"; do
     # Guard 9, per file: a platform file is never written to a repo of another platform, and one
     # already there blocks the wave instead of being refreshed into place.
@@ -269,6 +270,7 @@ plan_and_push() {
       fi
       continue
     fi
+    [ "$f" != dependabot.yml ] || [ "$variant" != none ] || continue
     grep -qxF "$(dest "$f")" <<<"$existing" \
       || { case "$f" in dependabot.yml) true ;; pr-bonsai-link.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
       || continue

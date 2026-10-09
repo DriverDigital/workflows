@@ -40,10 +40,11 @@ topics_platform() {
 }
 
 # Which templates/github/dependabot/<variant>.yml a repo takes as its .github/dependabot.yml: a repo
-# with its own exceptions by name, otherwise npm when the branch root holds a package.json (1).
-dependabot_variant() {  # repo has_root_package_json
+# with its own exceptions by name, otherwise npm when the branch root holds a package.json (1), else
+# actions when it has .github/workflows (1), else none: Dependabot errors daily on an empty ecosystem.
+dependabot_variant() {  # repo has_root_package_json has_workflows
   case "$1" in
     driver-agents|vite-plugin-shopify-clean) echo "$1" ;;
-    *) if [ "$2" = 1 ]; then echo npm; else echo actions; fi ;;
+    *) if [ "$2" = 1 ]; then echo npm; elif [ "$3" = 1 ]; then echo actions; else echo none; fi ;;
   esac
 }

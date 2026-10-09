@@ -130,8 +130,9 @@ PRs, two weeks after the two that disprove it had already merged.)*
 **The kit's Dependabot config: `templates/github/dependabot/`** — whole-file variants of
 `.github/dependabot.yml`, a daily `github-actions` block and, where the root has a `package.json`, a
 monthly npm block, each group taking only minor and patch so every major arrives as its own PR; each
-file's header says the rest. The wave writes the variant `tools/kit-platforms.sh` picks to every
-target. Two facts found while shipping it bound what "sequence the wave after Dependabot" can
+file's header says the rest. The exception is `driver-agents.yml`, that repo's own weekly config
+carried verbatim (no root `package.json`, SHA-pinned workflows), whose groups still bundle majors.
+The wave writes the variant `tools/kit-platforms.sh` picks to every target that has one. Two facts found while shipping it bound what "sequence the wave after Dependabot" can
 actually buy:
 
 - Every existing fleet block is **monthly**, so on schedule Dependabot sees a new tag up to a month

@@ -130,3 +130,8 @@ jobs:
           [ "$(wc -l <<<"$a")" -eq 1 ] && [ -n "$a" ] || { echo "::error::expected one DRIVER_AGENTS_REF in .github/workflows/claude.yml, got: $a"; exit 1; }
           [ "$a" = "$b" ] || { echo "::error::DRIVER_AGENTS_REF differs: claude.yml has '${a#* }', shopify-tool-smoke.yml has '${b#* }'"; exit 1; }
           echo "both pin ${a#* }"
+
+      - name: The kit's dependabot.yml variants match Dependabot's schema
+        # The wave writes these to every target, and Dependabot rejects a bad config only once it
+        # lands on a default branch, silently stopping that repo's updates (the stub pins included).
+        run: pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/github/dependabot/*.yml

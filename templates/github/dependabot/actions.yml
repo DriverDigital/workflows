@@ -1,4 +1,5 @@
-# .github/dependabot.yml for a Driver repo with no package.json at its root: GitHub Actions only.
+# .github/dependabot.yml for a Driver repo with workflows but no package.json at its root: GitHub
+# Actions only.
 # The fleet wave installs it on every kit branch and keeps it current (tools/kit-platforms.sh picks
 # the variant); edit it in DriverDigital/workflows (templates/github/dependabot/), never in place.
 #

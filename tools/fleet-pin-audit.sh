@@ -146,8 +146,11 @@ scan_ref() {  # repo ref platform
   # an enrolled repo the wave never reaches keeps its own file.
   if grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
      || grep -qx claude-standards.md <<<"$dotgithub"; then
-    variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)")"
-    if grep -qx dependabot.yml <<<"$dotgithub"; then
+    variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)" \
+      "$([ -n "$files" ] && echo 1 || echo 0)")"
+    if [ "$variant" = none ]; then
+      :
+    elif grep -qx dependabot.yml <<<"$dotgithub"; then
       gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
         && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
