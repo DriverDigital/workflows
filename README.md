@@ -72,6 +72,9 @@ per-repo cutover: [`docs/branch-model.md`](docs/branch-model.md).
 - **Kit:** `.claude/settings.json` turns off attribution in interactive sessions (#83; the wave merges
   its keys); the house standards allow `CLAUDE.local.md` for private to-dos (#78) and gain the Replies
   bullet (#88); `dependabot.yml` is the fleet house standard, written by hand per repo (#62).
+- **Wave:** all **22** targets, no canary (the wave carries only stub repins and shared files; the
+  platform stubs canary per repo). Audit: **69 pins at `b6a6f8dc`, 144 files matching, 1 drifted**
+  (driver-agents' hand-installed `lint.yml`, outside the wave).
 
 ### `v1.18.0` (`85f1578`, 2026-10-01)
 

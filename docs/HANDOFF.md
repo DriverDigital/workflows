@@ -5,8 +5,10 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
-2026-10-09: **two platform standards, built on branch `ci-standards` and not released yet**
-([`branch-model.md`](branch-model.md)). Shopify sites go to `main` only (Palmers: `main` + `main-*`)
+2026-10-09: **v1.19.0 is released and waved** (#87; 22 targets; audit 69 pins at `b6a6f8dc`, 144
+files matching, one drift: driver-agents' hand-installed `lint.yml` misses the kit's one-line comment
+change). **Two platform standards** ([`branch-model.md`](branch-model.md)); no repo carries a
+platform stub yet, since each arrives with the repo's canary, cutover or install commit. Shopify sites go to `main` only (Palmers: `main` + `main-*`)
 and take the `shopify-theme.yml` reusable (#80, #82). Vercel sites keep `develop` + `main` and take
 `vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site` /
 `wordpress-site` pick the platform files (WordPress has none yet). The topics are set on all 20 kit
@@ -15,8 +17,7 @@ dry-run wave with the branch's tools finds 22 targets and no blocks. The wave wr
 repos and only their own platform's files; the audit reports a platform file on the wrong repo as
 drift and lists unenrolled repos' kit files apart, never failing on them. In the same release: the Dependabot
 house standard (#62), each repo's pinned Node in CI (#75, #77), Closes lines (#76), the
-`CLAUDE.local.md` rule (#78) and `.claude/settings.json` (#83). The two new stubs are drafted on branch
-`ci-standards-stubs` (placeholder pin, never a PR) and land in the repin commit, because they pin the tag. **Decided: `dependabot-report` stays**
+`CLAUDE.local.md` rule (#78) and `.claude/settings.json` (#83). **Decided: `dependabot-report` stays**
 (Maria, 2026-10-09). It, validate and Macroscope together are what make a clear Dependabot PR safe to
 merge unread; auto-merge on all three is #85. One Node version per platform (a kit `.nvmrc`) is #86.
 
@@ -90,9 +91,11 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Recommended next steps
 
-0. **Release the platform standards** (`branch-model.md` → "Order"): merge, tag, repin with the two
-   new stubs, wave (the topics are already set). Then canary the `shopify-theme.yml` stub on
-   savannahfriedkin (watch-items), pilot the Shopify cutover on LittleMe, then the Vercel installs.
+0. **Roll out the platform standards** (`branch-model.md` → "Order", from step 4): canary the
+   `shopify-theme.yml` stub on savannahfriedkin (watch-items), then pilot the Shopify cutover on
+   LittleMe once driver-agents #53 points its map entry at `main`, then the rest one at a time, then
+   the Vercel installs. Watch the first implementer and Dependabot validate runs on a `volta.node`
+   repo (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers): CI now builds on the pinned Node, not 22.
 
 1. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
    driver-engineering-app's security hardening pass (Maria, 2026-10-01: a couple of weeks; she will
