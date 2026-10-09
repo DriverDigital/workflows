@@ -160,9 +160,8 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 
    **Partial install (`lint.yml`, plus the standards).** For a repo that is *not* on the Bonsai → PR
    pipeline — no dispatcher issues — `lint.yml` and `claude-standards.md` are the useful subset and
-   the rest is inert weight. `driver-engineering-app` runs both. The wave finds a branch by its
-   standards file, so a repo holding `lint.yml` alone (`driver-agents` today) is not waved even with
-   `driver-kit`. Add the Dependabot
+   the rest is inert weight. `driver-engineering-app` runs both, `driver-agents` `lint.yml` alone;
+   the wave finds a branch by either file. Add the Dependabot
    trio if and when such a repo turns Dependabot on.
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the

@@ -34,7 +34,7 @@ Set 2026-10-09:
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
 
-driver-agents is enrolled but is not a wave target until it carries a file the wave discovers by.
+driver-agents is a wave target through its `lint.yml` alone.
 Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 
 ## The standards
