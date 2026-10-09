@@ -5,9 +5,6 @@
 #
 #   1. REFERENCE — every `uses:` pin in templates/github/*.yml equals the latest tag's SHA. Checks
 #      2 and 3 measure the fleet against `templates/`, so a stale reference makes both of them lie.
-#      That is exactly how the v1.9.0 gap survived a day: the wave repinned the fleet to `a54c91e`
-#      while the kit's own stubs still said `80c35fe`, and an audit that compared deployed pins to
-#      the latest *tag* — never to `templates/` — called the fleet uniform the whole time.
 #   2. PINS — every deployed caller stub's `uses: DriverDigital/workflows/...@SHA` vs that tag.
 #   3. CONTENT — the whole waved file vs its templates/github/ source. The pin is one line of it:
 #      `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, the implementer's system prompt is just
@@ -22,9 +19,8 @@
 # platform file on a repo whose topic names another platform, or none, is drift (tools/kit-platforms.sh).
 #
 # Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
-# the wave (Palmers #93 / vite-plugin-shopify-clean #72, 2026-07-02) — in practice the wave repins
-# within minutes of every tag, so it rarely gets the chance; see docs/fleet-operations.md. This
-# script is how drift gets seen between waves. Needs: gh (authenticated), org read access, jq.
+# the wave — in practice the wave repins within minutes of every tag, so it rarely gets the chance;
+# see docs/fleet-operations.md. This script is how drift gets seen between waves. Needs: gh (authenticated), org read access, jq.
 #
 # Usage: tools/fleet-pin-audit.sh            # full report
 #        tools/fleet-pin-audit.sh --stale    # only what has drifted
@@ -50,11 +46,9 @@ LATEST_TAG="${LATEST%% *}"; LATEST_SHA="${LATEST#* }"; LATEST_SHA8="${LATEST_SHA
 # One normalization for every file, deliberate (claude-settings.json is compared on its attribution
 # keys alone, in content_row). Everything else that differs is reported — third-party
 # action refs included: a consumer repo whose Dependabot moved `actions/checkout@v7` to `@v8` ahead of
-# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong. (The
-# store handle needed a second one until v1.17.0 moved it into a repository variable.)
+# the kit is drift worth seeing, since it means the kit is behind, not that the repo is wrong.
 #
-#   Trailing blank lines and the final newline. Two stub-rails-only pairs (Team-Laird@develop,
-#      The-Gathery@develop) were waved without a final newline and are
+#   Trailing blank lines and the final newline. A file waved without its final newline is
 #      otherwise byte-identical. That is not drift anyone can act on, and a detector that reports
 #      permanent red rows is a detector nobody reads. Internal blank lines ARE still compared —
 #      awk buffers blanks and only emits them once a non-blank line follows.
@@ -76,15 +70,15 @@ reference="$(
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
-  local repo="$1" ref="$2" f="$3"
+content_row() {  # repo ref file [kit source, default $KIT/file] — $TMP/raw holds the deployed bytes
+  local repo="$1" ref="$2" f="$3" src="${4:-$KIT/$3}"
   if [ "$f" = claude-settings.json ]; then
     # The repo owns the rest of .claude/settings.json; the wave merges in only the kit keys.
     jq -S .attribution < "$TMP/raw" > "$TMP/deployed" 2>/dev/null || echo "invalid JSON" > "$TMP/deployed"
-    jq -S .attribution < "$KIT/$f"  > "$TMP/kit"
+    jq -S .attribution < "$src"     > "$TMP/kit"
   else
     kit_normalize < "$TMP/raw"  > "$TMP/deployed"
-    kit_normalize < "$KIT/$f"   > "$TMP/kit"
+    kit_normalize < "$src"      > "$TMP/kit"
   fi
   if command diff -q "$TMP/deployed" "$TMP/kit" >/dev/null 2>&1; then
     echo "CONTENT $repo@$ref $f ok"
@@ -96,7 +90,8 @@ content_row() {  # repo ref file — $TMP/raw holds the deployed bytes
 
 scan_ref() {  # repo ref platform
   local repo="$1" ref="$2" plat="$3" files f fp
-  files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
+  # A standards-only target has no .github/workflows; its .github/ kit files are still checked below.
+  files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || files=""
   for f in $files; do
     # Straight to a file, never a variable: `$(...)` strips ALL trailing newlines, so a deployed
     # file differing from the kit only in trailing blank lines would compare equal and report `ok`.
@@ -131,9 +126,9 @@ scan_ref() {  # repo ref platform
   if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
     echo "CONTENT $repo@$ref pr-bonsai-link.yml DRIFT missing"
   fi
-  # The kit files outside .github/workflows/: the PR template (waved since v1.15.0) and the house
-  # standards. Presence comes from the directory listing, as above, so a failed API call skips the
-  # file rather than reading as "missing".
+  # The kit files outside .github/workflows/: the PR template and the house standards. Presence
+  # comes from the directory listing, as above, so a failed API call skips the file rather than
+  # reading as "missing".
   local dotgithub
   dotgithub="$(gh api "repos/$ORG/$repo/contents/.github?ref=$ref" --jq '.[].name' 2>/dev/null)" || dotgithub=""
   for f in pull_request_template.md claude-standards.md; do
@@ -145,11 +140,27 @@ scan_ref() {  # repo ref platform
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
+  local root dotclaude="" variant
+  root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
+  # The wave writes .github/dependabot.yml on every branch it targets, so only those are compared:
+  # an enrolled repo the wave never reaches keeps its own file.
+  if grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
+     || grep -qx claude-standards.md <<<"$dotgithub"; then
+    variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)" \
+      "$([ -n "$files" ] && echo 1 || echo 0)")"
+    if [ "$variant" = none ]; then
+      :
+    elif grep -qx dependabot.yml <<<"$dotgithub"; then
+      gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
+        -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
+        && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
+    elif [ -n "$dotgithub" ]; then
+      echo "CONTENT $repo@$ref dependabot.yml DRIFT missing"
+    fi
+  fi
   # The shared Claude Code project settings at .claude/settings.json, installed beside claude.yml.
   # Missing is reported only when both listings succeeded; a failed call skips the check.
-  local rootdirs dotclaude=""
-  rootdirs="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | select(.type == "dir") | .name' 2>/dev/null)" || return 0
-  if grep -qx .claude <<<"$rootdirs"; then
+  if grep -qx "dir .claude" <<<"$root"; then
     dotclaude="$(gh api "repos/$ORG/$repo/contents/.claude?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
   fi
   if grep -qx settings.json <<<"$dotclaude"; then
@@ -162,7 +173,7 @@ scan_ref() {  # repo ref platform
 }
 
 # Enumerate the fleet OUTSIDE the report subshell — a failure here has to be able to kill the run.
-# `--limit 200` against ~58 non-archived repos today; the old 100 was a silent truncation cliff.
+# ponytail: `--limit 200` against ~58 non-archived repos; past it the fleet truncates silently.
 repos="$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,repositoryTopics \
            --jq '.[] | "\(.name) \(.defaultBranchRef.name) \([(.repositoryTopics // [])[].name] | join(","))"')" || repos=""
 if [ -z "$repos" ]; then

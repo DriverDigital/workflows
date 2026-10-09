@@ -117,7 +117,8 @@ turn. Two reasons: the wave repins every target within minutes of a tag, so a mo
 nothing stale — and on 2026-10-08 five kit repos had no `github-actions` block for it to act on
 (`plugins` and `client-workspaces` carry no `dependabot.yml`; `studio-sulzer`,
 `Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
-that only a bot can bump and had never shipped the updater that maintains them. `DRIVER_AGENTS_REF`
+that only a bot can bump and had never shipped the updater that maintains them; the wave now
+writes it to every target. `DRIVER_AGENTS_REF`
 is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
 is repo-local: Avara has had a valid `github-actions` block since 2025-04-25 and zero Dependabot
 PRs in 16 months (its SBOM resolves all three reusables), so the sequencing fix will not reach it;
@@ -126,12 +127,13 @@ the cause is only visible under Insights → Dependency graph → Dependabot.
 *(The claim this replaces — that it never happens in practice, "verified 2026-07-16" — sampled open
 PRs, two weeks after the two that disprove it had already merged.)*
 
-**Shipped 2026-08-22, the fleet house standard since 2026-10-09: `templates/github/dependabot.yml`**
-— a daily `github-actions` block and a monthly npm block, each group taking only minor and patch so
-every major arrives as its own PR; the file's header says the rest. It is installed by hand, not
-waved: a repo keeps the blocks it needs, one npm block per `package.json` directory
-(`templates/github/README.md`, step 4). Two facts found while shipping it bound what "sequence the
-wave after Dependabot" can actually buy:
+**The kit's Dependabot config: `templates/github/dependabot/`** — whole-file variants of
+`.github/dependabot.yml`, a daily `github-actions` block and, where the root has a `package.json`, a
+monthly npm block, each group taking only minor and patch so every major arrives as its own PR; each
+file's header says the rest. The exception is `driver-agents.yml`, that repo's own weekly config
+carried verbatim (no root `package.json`, SHA-pinned workflows), whose groups still bundle majors.
+The wave writes the variant `tools/kit-platforms.sh` picks to every target that has one. Two facts found while shipping it bound what "sequence the wave after Dependabot" can
+actually buy:
 
 - Every existing fleet block is **monthly**, so on schedule Dependabot sees a new tag up to a month
   late. The five-minute bumps of 2026-07-02 were not the schedule: Maria posted `@dependabot
@@ -156,10 +158,10 @@ wave after Dependabot" can actually buy:
 So the wave stays the primary path — it repins every target within minutes of the tag, one atomic
 commit per branch. Dependabot earns its keep as the backstop:
 the five repos that had no updater, drift between waves, and a reusable-only tag where no whole-file
-copy is needed. Palmers' seven country branches get no Dependabot updates (the standard sets no `target-branch`), so
+copy is needed. Palmers' seven country branches get no Dependabot updates (the variants set no `target-branch`), so
 they stay on the wave. The proof is still worth running once, at the next tag:
 `tools/fleet-wave.sh --skip vite-plugin-shopify-clean`, then watch for the PR — if its
-`dependabot.yml` is not the daily house standard yet, install that first, or trigger a check by hand (Insights → Dependency graph →
+`dependabot.yml` is not its daily variant yet, wave that first, or trigger a check by hand (Insights → Dependency graph →
 Dependabot → *Check for updates*, or `@dependabot recreate` on an open Dependabot PR there).
 
 ---
@@ -286,7 +288,7 @@ not, so a bot signal alone could satisfy a merge — not the 2 this section used
 
 On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`
 had `strict: true` but empty `contexts`, so `lint.yml` could report red without being able to block).
-The context is the **job id** at `.github/workflows/lint.yml:28` — the workflow-level `name:` is not
+The context is the **job id** at `.github/workflows/lint.yml:26` — the workflow-level `name:` is not
 part of it. Applied through the narrow sub-resource, never a whole-object `PUT`:
 
 ```bash

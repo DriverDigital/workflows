@@ -2,8 +2,8 @@
 
 Driver sites are hosted on Shopify, Vercel or WordPress. Shopify and Vercel each have their own CI/CD
 standard; WordPress has none yet, so its repos take the shared kit only. The shared kit (implementer,
-Dependabot rails, lint, Bonsai link, PR template, house standards, `.claude/settings.json`) is waved
-to enrolled repos, and `dependabot.yml` is written by hand in each one. A platform's files go only
+Dependabot rails, lint, Bonsai link, PR template, house standards, `.claude/settings.json`,
+`dependabot.yml`) is waved to enrolled repos. A platform's files go only
 to repos of that platform. The fleet survey behind this was taken 2026-10-08.
 
 ## Which repos get what
@@ -74,7 +74,7 @@ Elsewhere:
 | Theme deploy workflows | Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds: `Feature-*` on PRs to `develop`, `Develop-Deploy` on push to `develop` → `DRIVER/develop` (Kissy-Kissy: `Kissy-2.0/develop`), and `Production-Deploy` on push to `main` (Avara, LaPointe, R-Finds; never run). foundrae: `Feature-*` and `Staging-Deploy` on `staging`/`dev-staging` → `DRIVER/<branch>`. |
 | Vercel `deploy.yml` | Team-Laird, Driver-Digital-Website: `refs/heads/main` → production hook, `refs/heads/develop` → preview hook, skipped for the Vercel team's logins (`mcarter-astronautdev`; Driver-Digital-Website also `jadewang425`). studio-sulzer has none. |
 | Vercel project settings | Production branch and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
-| `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. |
+| `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. The waved file sets none. |
 | GitHub environments | foundrae: `staging`, `dev-staging`, `testparty/06-2026` hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
 | Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
 
@@ -104,7 +104,7 @@ lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set fi
    - The commits only on `main`: `compare/<default>...main`. In every repo surveyed they are old
      "Update main with stable develop" promotions, but read them.
    - Open issues whose first line names the old branch.
-   - Protection on both branches, environments, and `dependabot.yml`'s `target-branch`.
+   - Protection on both branches and environments.
 2. **Rename the preview theme in the Shopify admin** from `DRIVER/develop` (or `Kissy-2.0/develop`,
    `DRIVER/staging`) to `DRIVER/main`. The first push then updates it in place instead of creating
    a new theme.
@@ -123,8 +123,6 @@ lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set fi
    - deletes the old theme workflows (`Feature-*`, `Develop-Deploy`, `Staging-Deploy`, `Production-Deploy`,
      any lowercase variants)
    - adds the `shopify-theme.yml` stub
-   - writes `dependabot.yml` from the kit (keeping the blocks the repo needs), unless #89 has landed
-     and the wave carries it
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing (#83)
 6. **Check that it worked.**
@@ -159,8 +157,6 @@ No branch changes:
 4. Push one direct commit to `develop`:
    - add the `vercel-deploy.yml` stub
    - delete `deploy.yml`
-   - write `dependabot.yml` from the kit (its `target-branch: develop` goes), unless #89 has landed
-     and the wave carries it
    - add `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - add the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing (#83)
 

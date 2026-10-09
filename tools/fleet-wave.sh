@@ -21,6 +21,9 @@
 #                                                 .github/workflows/
 #   pr-bonsai-link.yml, claude-standards.md,   <- also written wherever claude.yml is; the settings
 #   claude-settings.json                          file's keys are merged into an existing one
+#   dependabot.yml                             <- written on every target, at .github/, from the
+#                                                 templates/github/dependabot/ variant that
+#                                                 tools/kit-platforms.sh picks for the repo
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
@@ -32,7 +35,7 @@
 #   3. a SHOPIFY_STORE_NAME we cannot parse aborts rather than being dropped unread;
 #   4. a deployed store handle blocks the wave unless the repo's SHOPIFY_STORE_NAME variable holds
 #      it, checked fleet-wide before the first push; the kit may carry no literal handle at all;
-#   5. every file is actionlinted before it is written;
+#   5. every workflow file is actionlinted before it is written;
 #   6. no path is written twice in one commit;
 #   7. discovery failures are fatal — a short target list is never reported as a clean fleet;
 #   8. --dry-run prints the plan for the whole fleet and touches nothing;
@@ -71,7 +74,7 @@ MSG=${MSG:-"chore(kit): repin to $TAG [skip ci]"}
 # Guard 0: a real wave commits the working tree's idea of the kit under the latest tag's name, so
 # the checkout has to be the released one. Guard 1 only proves the stubs agree with `git describe`
 # — it passes on a feature branch whose claude.yml is already the NEXT version's content, which
-# would push 20 commits labelled with a tag that does not contain what they carry. Dry runs are
+# would push commits labelled with a tag that does not contain what they carry. Dry runs are
 # read-only and stay allowed anywhere, which is how you plan a wave from the branch that builds it.
 if [ "$DRY" -eq 0 ]; then
   [ "$(git rev-parse --abbrev-ref HEAD)" = "main" ] || { echo "real waves run from main (you are on $(git rev-parse --abbrev-ref HEAD)); use --dry-run here" >&2; exit 2; }
@@ -93,19 +96,20 @@ if grep -lE '^[[:space:]]*SHOPIFY_STORE_NAME:[[:space:]]*"' "$KIT"/*.yml; then
   echo "the kit files above carry a literal SHOPIFY_STORE_NAME — it belongs in the repo variable" >&2; exit 2
 fi
 
-# Every kit file a target carries is replaced with the kit's copy — the stubs too, since v1.15.0.
-# A pin-line sed used to let per-repo stub edits survive, but fleet-pin-audit.sh reports any such
-# edit as drift, so nothing the kit does not ship should outlive a wave. No kit file carries a
-# per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable (guard 4).
+# Every kit file a target carries is replaced with the kit's copy, the stubs too: fleet-pin-audit.sh
+# reports any per-repo edit as drift, so nothing the kit does not ship should outlive a wave. No kit
+# file carries a per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable
+# (guard 4).
 FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.yml lint.yml
             pr-bonsai-link.yml dependabot-keep-current.yml dependabot-report.yml
-            dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json)
+            dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json
+            dependabot.yml)
 DELETE_FILES=(bonsai-status-sync.yml)
-# Where a kit file lives in a target repo: the PR template and the house standards sit in .github/,
-# and the shared Claude Code project settings are the repo's .claude/settings.json.
+# Where a kit file lives in a target repo: the PR template, the house standards and the Dependabot
+# config sit in .github/, and the shared Claude Code project settings are the repo's .claude/settings.json.
 dest() {
   case "$1" in
-    pull_request_template.md|claude-standards.md) echo ".github/$1" ;;
+    pull_request_template.md|claude-standards.md|dependabot.yml) echo ".github/$1" ;;
     claude-settings.json) echo ".claude/settings.json" ;;
     *) echo ".github/workflows/$1" ;;
   esac
@@ -158,8 +162,8 @@ handle_of() {
 # ever called as `TARGETS=$(targets)`. Verified on bash 3.2.57 — `f(){ local x; x=$(false); echo
 # reached; }; T=$(f)` prints `reached` and exits 0. So errexit cannot be relied on to stop a wave
 # here, and a half-read fleet is the one failure this whole script must never report as success:
-# a `gh` hiccup on the Palmers branch listing would silently drop 8 of the 20 targets and print
-# `targets: 12  exit=0`. An explicit `exit` in the subshell does propagate — the assignment carries
+# a `gh` hiccup on the Palmers branch listing would silently drop every country branch and still
+# exit 0. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
   local repos r def topics plat branches b
@@ -223,7 +227,7 @@ plan_and_push() {
   local repo=$1 branch=$2 plat=$3 tmp f fp cur
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
-  local changes=0 existing rootdirs dotgithub workflows dotclaude kit_paths
+  local changes=0 existing root dotgithub workflows dotclaude kit_paths variant src
   # Each listing is its own assignment so a failure cannot hide behind another (errexit is off inside
   # an assignment's substitution). A standards-only target has no .github/workflows, so that listing
   # runs only when .github says the directory exists.
@@ -235,22 +239,26 @@ plan_and_push() {
       || { echo "  $repo@$branch: cannot list .github/workflows" >&2; exit 3; }
     existing="$existing"$'\n'"$workflows"
   fi
-  rootdirs=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | select(.type == "dir") | .path') \
+  root=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list the repo root" >&2; exit 3; }
-  if grep -qxF .claude <<<"$rootdirs"; then
+  variant=$(dependabot_variant "$repo" "$(grep -qxF "file package.json" <<<"$root" && echo 1 || echo 0)" \
+    "$(grep -qxF "dir .github/workflows" <<<"$dotgithub" && echo 1 || echo 0)")
+  if grep -qxF "dir .claude" <<<"$root"; then
     dotclaude=$(api "repos/$ORG/$repo/contents/.claude?ref=$branch" --jq '.[].path') \
       || { echo "  $repo@$branch: cannot list .claude" >&2; exit 3; }
     existing="$existing"$'\n'"$dotclaude"
   fi
   # Discovery proved the target carries at least one kit file, so a listing with none is a lie — and
-  # would otherwise report "(no changes)", silently dropping the repo from the wave.
-  kit_paths=$(for f in "${FULL_FILES[@]}"; do dest "$f"; done)
+  # would otherwise report "(no changes)", silently dropping the repo from the wave. dependabot.yml is
+  # no proof: discovery never probes for it, and plenty of repos carry their own.
+  kit_paths=$(for f in "${FULL_FILES[@]}"; do [ "$f" = dependabot.yml ] || dest "$f"; done)
   grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
   # Three files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
   # check, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
-  # Code project settings. Nothing outside .github/ and .claude/ is ever written.
+  # Code project settings. dependabot.yml is installed on every target that has a variant
+  # (dependabot_variant). Nothing outside .github/ and .claude/ is ever written.
   for f in "${FULL_FILES[@]}"; do
     # Guard 9, per file: a platform file is never written to a repo of another platform, and one
     # already there blocks the wave instead of being refreshed into place.
@@ -262,13 +270,15 @@ plan_and_push() {
       fi
       continue
     fi
+    [ "$f" != dependabot.yml ] || [ "$variant" != none ] || continue
     grep -qxF "$(dest "$f")" <<<"$existing" \
-      || { case "$f" in pr-bonsai-link.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
+      || { case "$f" in dependabot.yml) true ;; pr-bonsai-link.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
       || continue
     # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
-    [ -f "$KIT/$f" ] \
-      || { echo "  $repo@$branch $f: not in the kit any more — move it to DELETE_FILES?" >&2; exit 3; }
+    src=$KIT/$f; [ "$f" != dependabot.yml ] || src=$KIT/dependabot/$variant.yml
+    [ -f "$src" ] \
+      || { echo "  $repo@$branch $src: not in the kit any more — move it to DELETE_FILES?" >&2; exit 3; }
     cur="$tmp/deployed-$f"; : > "$cur"
     grep -qxF "$(dest "$f")" <<<"$existing" && raw "$repo" "$branch" "$f" > "$cur"
     local handle; handle=$(handle_of "$cur")
@@ -283,14 +293,15 @@ plan_and_push() {
     fi
     # The repo owns the rest of its .claude/settings.json; the kit owns only the keys it ships.
     if [ "$f" = claude-settings.json ] && [ -s "$cur" ]; then
-      jq -s '.[0] * .[1]' "$cur" "$KIT/$f" > "$tmp/$f" \
+      jq -s '.[0] * .[1]' "$cur" "$src" > "$tmp/$f" \
         || { echo "  $repo@$branch .claude/settings.json: not valid JSON, so the kit keys cannot be merged in" >&2; exit 3; }
     else
-      cp "$KIT/$f" "$tmp/$f"
+      cp "$src" "$tmp/$f"
     fi
     if ! cmp -s "$cur" "$tmp/$f"; then
-      case "$f" in *.yml) actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; } ;; esac
-      tree+=("$f"); changes=1; echo "  write  $f"
+      # dependabot.yml is not a workflow; actionlint rejects it outright.
+      case "$f" in dependabot.yml) ;; *.yml) actionlint "$tmp/$f" || { echo "  $repo@$branch $f: actionlint failed" >&2; exit 3; } ;; esac
+      tree+=("$f"); changes=1; echo "  write  $f$([ "$f" != dependabot.yml ] || echo " ($variant)")"
     fi
   done
 
@@ -339,8 +350,8 @@ plan_and_push() {
 
 echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"
 # Guard 7: resolve the whole plan before touching anything. Fed straight from `< <(targets)` the
-# discovery process would be a background job whose exit status is never read at all, so a 12-of-20
-# wave would report `targets: 12` and exit 0. Capturing it makes the status observable — see the
+# discovery process would be a background job whose exit status is never read at all, so a partial
+# wave would report a short target count and exit 0. Capturing it makes the status observable — see the
 # errexit note on targets() for why the calls in there still need their own `|| exit`.
 TARGETS=$(targets)
 BLOCKED=0

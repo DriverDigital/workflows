@@ -5,6 +5,17 @@ State of play for the next session. Conventions, how-tos and release history liv
 
 ## Where things stand
 
+2026-10-09, later: **#89 and #63 are merged, unreleased and unwaved.** The wave now writes
+`.github/dependabot.yml` from a `templates/github/dependabot/` variant (actions, npm,
+vite-plugin-shopify-clean, driver-agents; none for a repo with neither workflows nor a root
+`package.json`), and this repo's reusables and tools are trimmed to the comment standard. No tag:
+the next wave carries both (run it with `--message`, since the default names v1.19.0). Close #62 once
+the audit shows every target on its variant. #64 (close-on-merge off the default branch) is
+deferred: Palmers' country branches are separate live sites and nobody else needs it. #83: the
+import PRs are open on LaPointe #149, Palmers #124, Driver-Digital-Website #179, studio-sulzer #65,
+client-workspaces #7, savannahfriedkin #16 and Driver-Horizon #11; the six repos without a
+`CLAUDE.md` each have a to-do (Maria runs `/init` there). Close #83 once those land.
+
 2026-10-09: **v1.19.0 is released and waved** (#87; 22 targets, then driver-agents as the 23rd once
 the wave found branches by `lint.yml`; the audit reads converged). Maria trains the engineering team
 on these SOPs at the end of the week of 2026-10-12; the rollout below is not time-sensitive, but a
@@ -92,10 +103,14 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Recommended next steps
 
-0. **#89 first: wave `dependabot.yml` as whole-file variants** (actions only, actions + npm, and
-   vite-plugin-shopify-clean's own). Land it before the cutovers and installs, so their commits carry
-   no hand-written `dependabot.yml`; the wave installs it instead. It closes #62 once every enrolled
-   repo is on a variant. Kit-only, so it rides the next release.
+0. **The next wave writes `dependabot.yml` fleet-wide for the first time.** Canary it with `--only`
+   on one npm repo first: every live npm config bundles majors into its group today, so each npm repo
+   gets a burst of single-major PRs (capped at 5 open), each with a validate run and a Macroscope
+   review. driver-engineering-app, client-workspaces and plugins get Dependabot for the first time;
+   driver-engineering-app has no validate or report rails, so its PRs arrive unchecked. The
+   `actions/*` minor/patch ignore also stops patch bumps on repo-owned workflows that pin exact
+   versions (the pre-cutover deploy workflows, which the cutovers delete, and
+   vite-plugin-shopify-clean's `ci.yml`, vite-plugin-shopify-clean #120).
 1. **Roll out the platform standards** (#91; `branch-model.md` → "Order", from step 4):
    - canary the `shopify-theme.yml` stub on savannahfriedkin and read its push job log (watch-items);
    - pilot the Shopify cutover on LittleMe once driver-agents #53 points its map entry at `main`, then

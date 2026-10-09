@@ -26,7 +26,7 @@ live here:
   platform stubs `shopify-theme.yml` and `vercel-deploy.yml`), plus
   three whole-file workflows (`shopify-tool-smoke.yml` on `shopify-theme` repos only, `lint.yml`,
   `pr-bonsai-link.yml` beside `claude.yml`) and `pull_request_template.md` and `claude-standards.md`
-  (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand), `claude-settings.json` (its attribution keys merged into the repo's `.claude/settings.json` beside `claude.yml`; the repo owns every other key) and `dependabot.yml` (the fleet house standard, written by hand per repo with the blocks it needs; never waved).
+  (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand), `claude-settings.json` (its attribution keys merged into the repo's `.claude/settings.json` beside `claude.yml`; the repo owns every other key) and `dependabot/` (whole-file variants of `.github/dependabot.yml`; the wave writes one to every target, picked per repo by `tools/kit-platforms.sh`).
   Kit install conventions: `templates/github/README.md`. Repo topics decide who gets what:
   `driver-kit` opts a repo in, `shopify-theme` / `vercel-site` add that platform's files, `wordpress-site` adds none
   (`tools/kit-platforms.sh`; the standards and the per-repo cutover: `docs/branch-model.md`).
@@ -55,12 +55,12 @@ No build, no test suite. CI is `lint.yml`; reproduce it locally before pushing:
 ```sh
 brew install actionlint shellcheck jq         # CI pins actionlint 1.7.12 (VERSION + SHA256 in lint.yml — bump together)
 SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color                         # globs .github/workflows/
-SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color $(ls templates/github/*.yml | grep -v dependabot.yml)  # kit; dependabot.yml is not a workflow
+SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color templates/github/*.yml  # kit; the dependabot/ variants are not workflows
 grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/              # must print nothing (placeholder-pin guard)
 ```
 
 Two more CI checks: the prompt survives tokenization (the python step at
-`.github/workflows/lint.yml:82`; run it verbatim, needs PyYAML, after any edit to the reusable
+`.github/workflows/lint.yml:74`; run it verbatim, needs PyYAML, after any edit to the reusable
 `claude.yml`'s `claude_args` or `prompt:`), and `DRIVER_AGENTS_REF` matches in the reusable and
 `shopify-tool-smoke.yml` (the step after it). Those check the first and third invariants below; the rest
 are unenforced, and the blockquote parity check in particular is by hand at release time.

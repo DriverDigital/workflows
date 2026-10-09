@@ -15,6 +15,7 @@ workflow here touches it.
 | `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, branches and PRs. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI already sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — **STORE REPOS ONLY** | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. Skip it in repos with no store. |
+| `dependabot/<variant>.yml` | `.github/dependabot.yml` — wave targets with a variant | The Dependabot config, one whole file per kind of repo: `actions.yml` (no root `package.json`), `npm.yml` (one at the root), none for a repo with neither a root `package.json` nor workflows, and one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`). `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as this repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
 ### Caller stubs (thin — they call this repo's reusables at a pinned SHA)
@@ -144,12 +145,9 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
    it replaces what a branch already carries, and installs `pr-bonsai-link.yml`, `claude-standards.md`
    and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
    it cannot do). A platform's stubs come from its cutover or install commit (`../../docs/branch-model.md`).
-   **Then `dependabot.yml`, by hand** — the house standard: write the kit's file over the repo's,
-   keeping only the blocks the repo needs (npm only where a `package.json` exists, one block per
-   `package.json` directory) and any commented per-repo exception. It is also the updater for the
-   stub pins, which nothing else bumps between waves. The wave does not carry it, since repos differ
-   in which blocks they keep; the cutover and install commits in `docs/branch-model.md` write it.
-   Palmers' country branches get no Dependabot updates (it reads the default branch only).
+   The wave also writes `.github/dependabot.yml` on every target, from the variant that fits the repo
+   (table above); copy that variant by hand only for a repo the wave cannot reach yet. Palmers'
+   country branches carry it too but get no Dependabot updates (Dependabot reads the default branch only).
    **Re-copying into a repo that already has the kit?** Let the wave do it
    (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
    `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It

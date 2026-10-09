@@ -2,13 +2,11 @@ name: Lint workflows
 
 # THIS REPO'S OWN CI — not a reusable, not part of the kit.
 #
-# The three reusables in .github/workflows/ are `workflow_call`-only, so they never run on this
-# repo's own PRs; `dependabot-auto-merge.yml` is the one other file here that does, and it lints
-# nothing. So before this file existed, nothing checked the workflows this repo SHIPS: a YAML or
-# shell error in templates/github/ would sail through review and land in every consumer repo on the
-# next fleet wave, where it surfaces as a silent `startup_failure` rather than a red check here.
+# The reusables in .github/workflows/ are `workflow_call`-only, so they never run on this repo's
+# own PRs, and a YAML or shell error in what this repo SHIPS surfaces in a consumer repo as a silent
+# `startup_failure` rather than a red check here.
 #
-# Lints BOTH halves — the three reusables in .github/workflows/ AND the kit in templates/github/,
+# Lints BOTH halves — the reusables in .github/workflows/ AND the kit in templates/github/,
 # which is the actual product. actionlint also runs shellcheck over every `run:` block (shellcheck
 # is preinstalled on ubuntu-latest), so the kit's shell is covered too.
 
@@ -48,29 +46,23 @@ jobs:
 
       - name: Lint the reusables and the kit
         env:
-          # SC2015 ("A && B || C is not if-then-else") is the ONLY exclusion, and it is a false
-          # positive here: every hit is this repo's deliberate `cond && action || true`, where the
-          # trailing C is a literal `true` — a no-op that exists so `set -e` doesn't abort when cond
-          # is false. C running "unexpectedly" is precisely the intent, so there is nothing to fix.
-          # Upstream agrees: shellcheck 0.11 no longer reports this shape at all, so the finding
-          # only appears on the older shellcheck preinstalled on the runner. Excluded rather than
-          # rewriting two load-bearing reusables to satisfy a check that is going away.
+          # SC2015 flags the `cond && action || true` set -e idiom. Newer shellcheck no longer does,
+          # but the runner's copy is older and actionlint fails on its INFO findings.
           SHELLCHECK_OPTS: --exclude=SC2015
         run: |
           set -euo pipefail
           # With no paths actionlint globs .github/workflows/ itself. The kit lives outside that
           # path, so it is passed explicitly — without the second call the files consumer repos
-          # actually install would go unchecked, which is the whole point of this job. The kit's
-          # dependabot.yml is not a workflow (actionlint rejects it outright), so it is excluded.
+          # actually install would go unchecked. The kit's dependabot/ variants are not workflows
+          # (actionlint rejects them outright), so they are excluded.
           ./actionlint -color
-          find templates/github -name '*.yml' ! -name dependabot.yml -exec ./actionlint -color {} +
+          find templates/github -name '*.yml' -not -path 'templates/github/dependabot/*' -exec ./actionlint -color {} +
 
       - name: Every kit stub is pinned to a real SHA
         # A new reusable's stub ships with an all-zero placeholder pin so it cannot be installed
-        # before the release tag exists. An unresolvable `uses:` ref fails the consumer's run as
-        # `startup_failure` — which this repo's README documents as SILENT (no check run, no
-        # notification). So the placeholder must never reach main: this is the gate that stops it.
-        # Step 2 of the README's release order (repin the stubs) is what clears it.
+        # before the release tag exists. An unresolvable `uses:` ref fails the consumer's run as a
+        # SILENT `startup_failure` (no check run, no notification), so the placeholder must never
+        # reach main. Repinning the stubs (release step 2) clears it.
         run: |
           set -euo pipefail
           if grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/; then
@@ -138,3 +130,8 @@ jobs:
           [ "$(wc -l <<<"$a")" -eq 1 ] && [ -n "$a" ] || { echo "::error::expected one DRIVER_AGENTS_REF in .github/workflows/claude.yml, got: $a"; exit 1; }
           [ "$a" = "$b" ] || { echo "::error::DRIVER_AGENTS_REF differs: claude.yml has '${a#* }', shopify-tool-smoke.yml has '${b#* }'"; exit 1; }
           echo "both pin ${a#* }"
+
+      - name: The kit's dependabot.yml variants match Dependabot's schema
+        # The wave writes these to every target, and Dependabot rejects a bad config only once it
+        # lands on a default branch, silently stopping that repo's updates (the stub pins included).
+        run: pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/github/dependabot/*.yml

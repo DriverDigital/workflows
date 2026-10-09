@@ -1,0 +1,44 @@
+# .github/dependabot.yml for driver-agents, which keeps its own Dependabot setup. The fleet wave
+# installs it and keeps it current (tools/kit-platforms.sh picks the variant); edit it in
+# DriverDigital/workflows (templates/github/dependabot/), never in place.
+#
+# The kit's github-actions entry, minus its minor/patch ignore: this repo's own workflows pin
+# actions by SHA, so a patch reaches them only through a Dependabot PR. lint.yml is a kit file on a
+# floating major tag that the wave owns, so it is left to the wave. Weekly, since
+# claude-code-action ships several patches a week. The MCP servers' npm blocks are this repo's own.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    exclude-paths:
+      - ".github/workflows/lint.yml"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+      exclude:
+        - "DriverDigital/workflows*"
+    assignees:
+      - "mcarter-astronautdev"
+    groups:
+      actions:
+        patterns:
+          - "*"
+  - package-ecosystem: "npm"
+    directories:
+      - "/mcp/figma"
+      - "/mcp/bonsai"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    # @types/node tracks the Node 24 runtime (engines, Vercel); lift this with the Node 26 move.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+    assignees:
+      - "mcarter-astronautdev"
+    groups:
+      mcp:
+        patterns:
+          - "*"
