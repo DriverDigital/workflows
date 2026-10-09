@@ -160,9 +160,12 @@ Requested, approved → Ready for QA) were retired with the review leg at v1.12.
 
    **Partial install (`lint.yml`, plus the standards).** For a repo that is *not* on the Bonsai → PR
    pipeline — no dispatcher issues — `lint.yml` and `claude-standards.md` are the useful subset and
-   the rest is inert weight. `driver-engineering-app` runs both, `driver-agents` `lint.yml` alone;
-   the wave finds a branch by either file. Add the Dependabot
-   trio if and when such a repo turns Dependabot on.
+   the rest is inert weight. `driver-engineering-app` runs both; the wave finds a branch by either
+   file. Add Dependabot stubs if and when such a repo turns Dependabot on. `driver-agents` carries
+   `lint.yml`, the standards, `dependabot-validate.yml` and `dependabot-keep-current.yml`, and
+   deliberately no `dependabot-report.yml`, `claude.yml` or `pr-bonsai-link.yml`: it holds the
+   whole-CRM Bonsai key, so no shared workflow gets its secrets. The wave never adds them, since it
+   only refreshes what a repo carries (and installs beside `claude.yml`, which it lacks).
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
    workflow display **name** is never part of it. Two shapes:

@@ -34,7 +34,8 @@ Set 2026-10-09:
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
 
-driver-agents is a wave target through its `lint.yml` alone.
+driver-agents carries a partial kit and deliberately no `dependabot-report.yml` or `claude.yml`
+(`templates/github/README.md`, *Partial install*).
 Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 
 ## The standards
@@ -122,7 +123,8 @@ lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set fi
    - deletes the old theme workflows (`Feature-*`, `Develop-Deploy`, `Staging-Deploy`, `Production-Deploy`,
      any lowercase variants)
    - adds the `shopify-theme.yml` stub
-   - writes `dependabot.yml` from the kit (keeping the blocks the repo needs)
+   - writes `dependabot.yml` from the kit (keeping the blocks the repo needs), unless #89 has landed
+     and the wave carries it
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing (#83)
 6. **Check that it worked.**
@@ -157,7 +159,8 @@ No branch changes:
 4. Push one direct commit to `develop`:
    - add the `vercel-deploy.yml` stub
    - delete `deploy.yml`
-   - write `dependabot.yml` from the kit (its `target-branch: develop` goes)
+   - write `dependabot.yml` from the kit (its `target-branch: develop` goes), unless #89 has landed
+     and the wave carries it
    - add `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - add the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing (#83)
 

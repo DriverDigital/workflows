@@ -74,7 +74,8 @@ per-repo cutover: [`docs/branch-model.md`](docs/branch-model.md).
   bullet (#88); `dependabot.yml` is the fleet house standard, written by hand per repo (#62).
 - **Wave:** all **22** targets, no canary (the wave carries only stub repins and shared files; the
   platform stubs canary per repo). Audit: **69 pins at `b6a6f8dc`, 144 files matching, 1 drifted**
-  (driver-agents' hand-installed `lint.yml`, outside the wave).
+  (driver-agents' `lint.yml`, outside the wave until `lint.yml` became a discovery file the same night;
+  then waved, converged).
 
 ### `v1.18.0` (`85f1578`, 2026-10-01)
 
@@ -522,12 +523,14 @@ audit keep each platform's files to its own repos: [`docs/branch-model.md`](docs
 **Not every repo takes the whole kit.** The wave refreshes only the kit files an enrolled repo already
 carries (plus the three installed beside `claude.yml`), so a repo that is not on the Bonsai → PR
 pipeline can install `lint.yml` alone and skip the rest as inert weight. A repo with none of the
-discovery files (`claude.yml`, `dependabot-validate.yml`, `claude-standards.md`, a platform stub) is
-not waved at all.
-[`driver-agents`](https://github.com/DriverDigital/driver-agents) and
-[`driver-engineering-app`](https://github.com/DriverDigital/driver-engineering-app) run that subset (they took
-`pr-first-review.yml` + `lint.yml` on 2026-08-02; the review stub was deleted in the v1.12.0
-retirement wave). The trade-off is written up in `templates/github/README.md` under *Partial install*.
+discovery files (`claude.yml`, `dependabot-validate.yml`, `claude-standards.md`, `lint.yml`, a
+platform stub) is not waved at all.
+[`driver-engineering-app`](https://github.com/DriverDigital/driver-engineering-app) runs `lint.yml` and the
+standards; [`driver-agents`](https://github.com/DriverDigital/driver-agents) adds `dependabot-validate` and
+`-keep-current`, but never `dependabot-report`, `claude.yml` or `pr-bonsai-link.yml` (it holds the
+whole-CRM Bonsai key, so no shared workflow gets its secrets). The wave only refreshes what a repo
+carries, so it never adds them. The trade-off is written up in `templates/github/README.md` under
+*Partial install*.
 
 **A kit-only addition does not need a tag or a wave.** `lint.yml` shipped without either, and that was
 correct: it changes no reusable, repins no stub, and carries no `uses: DriverDigital/workflows@<sha>` of

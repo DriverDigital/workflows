@@ -16,8 +16,8 @@ same night — **69 pins at `85f15787`, 127 content matches, zero drift**). Sinc
 discovers a branch by `.github/claude-standards.md`, which is how driver-engineering-app (lint + standards)
 and driver-onboarding (standards only) became the 21st and 22nd. Since 2026-10-09 a repo is a target
 only if it carries the `driver-kit` topic ([`branch-model.md`](branch-model.md#which-repos-get-what)
-owns the topics and the repo list), and `lint.yml` is a discovery file too, which brought
-driver-agents in as the 23rd pair. The split matters because two different numbers are correct depending on the question:
+owns the topics and the repo list), and `lint.yml` is a discovery file too; driver-agents is the
+23rd pair. The split matters because two different numbers are correct depending on the question:
 
 | Set | Size | What it is |
 |---|---|---|

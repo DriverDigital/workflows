@@ -6,7 +6,9 @@ State of play for the next session. Conventions, how-tos and release history liv
 ## Where things stand
 
 2026-10-09: **v1.19.0 is released and waved** (#87; 22 targets, then driver-agents as the 23rd once
-the wave found branches by `lint.yml`; the audit reads converged). **Two platform standards** ([`branch-model.md`](branch-model.md)); no repo carries a
+the wave found branches by `lint.yml`; the audit reads converged). Maria trains the engineering team
+on these SOPs at the end of the week of 2026-10-12; the rollout below is not time-sensitive, but a
+canary and one cutover done before then give the training a working example. **Two platform standards** ([`branch-model.md`](branch-model.md)); no repo carries a
 platform stub yet, since each arrives with the repo's canary, cutover or install commit. Shopify sites go to `main` only (Palmers: `main` + `main-*`)
 and take the `shopify-theme.yml` reusable (#80, #82). Vercel sites keep `develop` + `main` and take
 `vercel-deploy.yml`. Repos opt in with the `driver-kit` topic, and `shopify-theme` / `vercel-site` /
@@ -68,7 +70,7 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 - **Dependabot PRs opened before v1.18.0** still show the old red validate on their current head; a
   `@dependabot rebase` or any push gets a fresh run. Nothing to do fleet-wide; they clear as they move.
-- **The first real ticket through v1.18.0.** The guard steps should stay quiet; if one fires, the
+- **The first real ticket through v1.19.0.** The guard steps should stay quiet; if one fires, the
   failure note lands on the issue and, on a private repo, the transcript is in the run log.
 - **Major bumps of the kit's floated actions.** `actions/checkout@v7`, `actions/upload-artifact@v7`
   and `anthropics/claude-code-action@v1` float in the kit; when a new major ships, a fleet repo's
@@ -90,23 +92,27 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Recommended next steps
 
-0. **Roll out the platform standards** (`branch-model.md` → "Order", from step 4): canary the
-   `shopify-theme.yml` stub on savannahfriedkin (watch-items), then pilot the Shopify cutover on
-   LittleMe once driver-agents #53 points its map entry at `main`, then the rest one at a time, then
-   the Vercel installs. Watch the first implementer and Dependabot validate runs on a `volta.node`
-   repo (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers): CI now builds on the pinned Node, not 22.
-
-1. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
+0. **#89 first: wave `dependabot.yml` as whole-file variants** (actions only, actions + npm, and
+   vite-plugin-shopify-clean's own). Land it before the cutovers and installs, so their commits carry
+   no hand-written `dependabot.yml`; the wave installs it instead. It closes #62 once every enrolled
+   repo is on a variant. Kit-only, so it rides the next release.
+1. **Roll out the platform standards** (#91; `branch-model.md` → "Order", from step 4):
+   - canary the `shopify-theme.yml` stub on savannahfriedkin and read its push job log (watch-items);
+   - pilot the Shopify cutover on LittleMe once driver-agents #53 points its map entry at `main`, then
+     the rest one at a time (Driver-Horizon waits on Driver-Horizon #10, a theme check error);
+   - the Vercel installs (Driver-Digital-Website needs `VERCEL_TEAM_LOGINS` first).
+   No wave runs while a cutover is in progress.
+2. **Watch the first implementer and Dependabot validate runs on a `volta.node` repo** (Avara,
+   Kissy-Kissy, LittleMe, LaPointe, Palmers): CI now builds on the pinned Node, not 22, so a red build
+   there is most likely the repo's own Node problem surfacing.
+3. **One real ticket end to end** on the new rail, transcript read (private repos log it) — after
    driver-engineering-app's security hardening pass (Maria, 2026-10-01: a couple of weeks; she will
    not run tickets through the app before it). On Avara, the first store run's log must read
    `Provisioned store 'avara'` and the "Mint the store token as a log mask" step must pass — never
    print the token cache to prove the mask.
-2. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
+4. **`fleet-wave.sh` gains `.macroscope/check-run-agents/`** (#61) — after the first real Avara design
    ticket tunes the rubric (driver-agents #32 holds the prompt; Avara's copy merged 2026-09-29). The
    `dest()` helper is where another root goes (it already maps `.claude/settings.json`).
-3. **Hand-write the `dependabot.yml` house standard** (#62) into each enrolled repo. The cutover and
-   Vercel install commits do it for the sites; the tool repos and The-Gathery need their own pass.
-   Close #62 when the last one lands.
 
 ## Pointers
 
