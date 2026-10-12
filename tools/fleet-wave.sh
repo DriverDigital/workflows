@@ -21,9 +21,9 @@
 #                                                 .github/workflows/
 #   pr-bonsai-link.yml, claude-standards.md,   <- also written wherever claude.yml is; the settings
 #   claude-settings.json                          file's keys are merged into an existing one
-#   dependabot.yml                             <- written on every target, at .github/, from the
-#                                                 templates/github/dependabot/ variant that
-#                                                 tools/kit-platforms.sh picks for the repo
+#   dependabot.yml                             <- written at .github/ on every target with a
+#                                                 templates/github/dependabot/ variant (picked by
+#                                                 tools/kit-platforms.sh; none = not written)
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.

@@ -35,15 +35,13 @@ merge unread; auto-merge on all three is #85. One Node version per platform (a k
 
 2026-10-01, later: **v1.18.0 is released and waved** (22 targets, converged): the validator fix (#73 —
 every clean Dependabot PR had carried a red required check since v1.15.0), the implementer prompt's
-comments item (#74), the subagents rule (#72), plus the kit-only changes since v1.17.0. Canary and
-audit: [`README.md`](../README.md#v1180-85f1578-2026-10-01). driver-onboarding is a wave target for
+comments item (#74), the subagents rule (#72), plus the kit-only changes since v1.17.0. driver-onboarding is a wave target for
 `claude-standards.md` only.
 
 2026-10-01: **v1.17.0 is released and waved.** `claude.yml` is a reusable + thin stub (#60), the canary
 on vite-plugin-shopify-clean passed every assertion in [`claude-yml-wave-plan.md`](claude-yml-wave-plan.md)
 "Running it", all 21 targets are on the tag, and the audit reads converged (driver-agents' hand-installed `lint.yml`,
-outside the wave, was re-copied by hand the same night, `ed2ad6a`). Release record and what is not yet
-proven: [`README.md`](../README.md#v1170-359505a-2026-10-01).
+outside the wave, was re-copied by hand the same night, `ed2ad6a`).
 
 To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry the former
 `CLAUDE.local.md` items).
@@ -131,7 +129,7 @@ To-dos are the open `todo` issues on this repo since 2026-10-01 (#61–#64 carry
 
 ## Pointers
 
-- [`README.md`](../README.md) — release + repin order, what's in the kit, dated release history.
+- [`README.md`](../README.md) — what this repo is, where it sits in the pipeline, release + repin order.
 - [`fleet-operations.md`](fleet-operations.md) — wave mechanics, the fleet counts, what the pin audit
   cannot see, branch protection.
 - [`branch-model.md`](branch-model.md) — the two platform standards, the topics, and the Shopify

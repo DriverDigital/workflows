@@ -9,8 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `docs/HANDOFF.md` — state of play, open decisions, what the next session should do.
 - The open `todo` issues on this repo — the to-dos (the driver-skills hook lists them at session
   start; `gh issue list --label todo`). Re-list before a wave; another session may have filed since.
-- `README.md` — the full conventions and the dated release history. This file is the subset an
-  agent breaks by accident; README is the authority where they overlap.
+- `README.md` — what this repo is, where it sits in the pipeline, and the full conventions. This
+  file is the subset an agent breaks by accident; README is the authority where they overlap.
 
 ## What this is
 
@@ -45,7 +45,7 @@ plain tag-mode `@claude` (driver-agents spec 2026-09-18 §3, §9). The actor car
 `driver-digital-agents` is what the loop runs through — keep it.
 
 Sibling repo: `driver-agents` (private; the dispatcher, plus the canonical Shopify instructions
-pinned by `DRIVER_AGENTS_REF`) — README, *How the repos fit together*. `driver-bonsai-mcp`, the
+pinned by `DRIVER_AGENTS_REF`) — README, *Where it sits in the pipeline*. `driver-bonsai-mcp`, the
 dispatcher until 2026-09-10, was archived 2026-09-11 — every mention of it is history.
 
 ## Commands
@@ -89,8 +89,8 @@ tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commi
 
 A kit-only change (no reusable touched, no pin moved) needs no tag and no wave; it rides with the next
 release. Cutting a tag is what creates the obligation to wave. A new reusable's stub lands in step 2 of
-the release that tags it, not in the PR that adds the reusable. Full detail and the v1.11.0 stub-conversion
-caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/fleet-operations.md`.
+the release that tags it, not in the PR that adds the reusable. Full detail:
+README "Release + repin order"; wave mechanics and fleet counts: `docs/fleet-operations.md`.
 
 ## Invariants that fail silently
 
