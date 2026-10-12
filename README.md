@@ -54,7 +54,7 @@ The flow end to end, and Macroscope's behaviour on a PR:
 | `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer. An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
 | `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
-| `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs that fell behind or conflict on that base. |
+| `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 | `shopify-theme.yml` | theme token; read-only GitHub token | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR and per release branch. The build runs in a job with no secrets. |
 | `vercel-deploy.yml` | the two deploy hooks | `push` on `main` / `develop` | Vercel sites: fires the branch's deploy hook when the pusher is outside the Vercel team. |
 
@@ -114,19 +114,20 @@ Do the steps in order. A wave is safe only once all three are done.
      paragraph break. Nothing else checks this: `lint.yml` proves only that the reusable and
      `shopify-tool-smoke.yml` carry the same ref.
 2. **Repin every stub in `templates/github/`** to the tag's SHA and its `# vX.Y.Z` trailer in one sed,
-   then commit. A reusable added in this release gets its stub here, since the tag it pins did not
-   exist before step 1. `lint.yml` fails on a placeholder pin and `fleet-wave.sh` refuses an
+   then commit. A reusable added in this release gets its stub here: its tag is cut in step 1, so it
+   cannot be pinned earlier. `lint.yml` fails on a placeholder pin and `fleet-wave.sh` refuses an
    unrepinned kit, so this step cannot be skipped silently.
 3. **Wave, then audit.** `tools/fleet-wave.sh --dry-run`, then for real: one direct `[skip ci]` commit
    per branch. Then `tools/fleet-pin-audit.sh --stale` must report converged.
 
-The wave rewrites pin lines by sed, never by patch: a patch applies from whatever SHA the kit held,
-which need not be what a fleet repo holds. It also refuses a write set that touches one destination
-path twice, which is what a full workflow becoming a stub of the same name would produce.
+The wave writes every kit file whole from `templates/`, stubs included, so a deployed stub ends up
+byte-identical to the kit whatever SHA it held before. It never patches a file in place.
 
 **A kit-only change needs no tag and no wave.** If no reusable changed and no pin moved, nothing
 deployed has to move, and the change rides with the next release. Cutting a tag is what creates the
-obligation to wave, because the audit compares every stub against the latest tag.
+obligation to wave, because the audit compares every stub against the latest tag. The audit also
+compares each deployed kit file against `templates/`, so between a kit-only merge and the next wave
+it reports content drift on the changed files; that is expected and clears with the wave.
 
 ## Action refs
 
@@ -191,7 +192,7 @@ request. The reviewer is `mcarter-astronautdev` unless the repo sets the `PR_REV
 All keys are optional. Node comes from `.nvmrc`, else `package.json` (`volta.node`, then
 `engines.node`), else the runner's default. The package manager comes from the lockfile (`pnpm`,
 `yarn`, else npm, the house default). `build` and `test` run only if those `package.json` scripts
-exist; `themeCheck` and `dev` run only if configured.
+exist unless the override sets them; `themeCheck` and `dev` run only if configured.
 
 ## Required checks
 

@@ -25,10 +25,10 @@ place the version is recorded.
 
 | File | Rail |
 |---|---|
-| `claude.yml` | The implementer. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line and a `Pre-review:` line. It requests no GitHub reviewer: the Bonsai assignment is the review request. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Commits carry no attribution trailer and PR bodies no footer. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
+| `claude.yml` | The implementer. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line and a `Pre-review:` line. It requests no GitHub reviewer: the Bonsai assignment is the review request. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
-| `dependabot-keep-current.yml` | After a merge, asks Dependabot to rebase its PRs that fell behind or conflict on that base. |
+| `dependabot-keep-current.yml` | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 
 ### Platform stubs (one platform each)
 
@@ -42,7 +42,7 @@ cutover or install commit. The standards, the cutover and the install steps:
 | File | Platform | Rail |
 |---|---|---|
 | `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (checked while draft, pushed when ready, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
-| `shopify-tool-smoke.yml` | Shopify (store repos) | The full workflow described above. |
+| `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
 | `vercel-deploy.yml` | Vercel | Fires the branch's deploy hook on push to `main` (production) or `develop` (preview) when the pusher is not in `VERCEL_TEAM_LOGINS`. The wave and the audit reach a repo's default branch, `develop`; `main` takes kit changes at its next promotion. |
 
 **PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org,
@@ -119,7 +119,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    opens issues as the driver-digital-agents PAT, which is what lets `claude.yml` fire on
    `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). The PAT is
    fine-grained across **All repositories**, and its minimal permission set, not the repo list, is
-   the security boundary: it can read and write issues and PRs and read code, never push it.
+   the security boundary: it reads and writes issues and PRs and reads code and Actions (artifacts, run logs), and can never push code.
 4. **Set the topics, then copy the kit** (from a checkout of `DriverDigital/workflows`). The topics
    are `driver-kit` plus the repo's platform; the wave touches nothing on a repo without `driver-kit`.
    ```bash
@@ -147,7 +147,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    **Re-copying into a repo that already has the kit?** Let the wave do it
    (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
    `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It
-   refuses a repo whose deployed file still carries a store handle the `SHOPIFY_STORE_NAME` variable
+   refuses a repo whose deployed file carries a store handle the `SHOPIFY_STORE_NAME` variable
    does not hold — set the variable first.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
@@ -174,8 +174,8 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    every PR unconditionally, so it is the right thing to require — but **run it once and let it go
    green before you pin it**. `lint.yml` lints every workflow the repo already has, not just the
    ones this kit ships, so a repo with its own hand-written workflows can have findings to fix on
-   day one. (`actionlint` fails on *info*-level shellcheck findings too. The kit already excludes
-   `SC2015`, which the runner's older shellcheck still reports and upstream has since dropped; add
+   day one. (`actionlint` fails on *info*-level shellcheck findings too. The kit excludes
+   `SC2015`, which the runner's shellcheck reports and current shellcheck does not; add
    further exclusions to `SHELLCHECK_OPTS` in that repo's copy if it needs them.)
 
    Never require a context whose workflow's trigger list can leave a head SHA with **no run at
@@ -184,6 +184,10 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    `skipped` is a different case; GitHub accepts that — reason from whether a check run exists for
    the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
    (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
+
+6. **Route tickets to it.** Once `claude.yml` is live on the target branch, add the client's Bonsai
+   project to driver-agents `pipeline/project-repo-map.json` with its `repo`, `branch` and
+   `"pipeline": "github"`. Until then the dispatcher opens no issues there.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 
@@ -196,13 +200,15 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   carries its own copy of the kit. (Strictly, the issue/`@claude` *kickoff* always fires from the
   repo's default branch — that's a hard GitHub rule for `issues` events; installing it on every
   branch means no one has to reason about which event resolves from where.)
-- **Which branch a task targets is decided by the map, not the task.** Branch routing lives in
-  driver-agents `pipeline/project-repo-map.json`: each pipeline project carries an explicit `branch`
-  (e.g. the Palmers India project → `main-in`, the Palmers USA / Managed-Services project → `main`).
-  The dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
+- **The map decides the branch.** Branch routing lives in driver-agents
+  `pipeline/project-repo-map.json`: each pipeline project carries an explicit `branch` (e.g. the
+  Palmers India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The
+  dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
   dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. A Repo
-  directive in the ticket can override the map's repo, but only for a repo that has `claude.yml`; the
-  branch still comes from the map (`main` for a repo with no entry).
+  directive in the ticket can override the map's repo, but only for a repo that has `claude.yml`; it
+  takes the branch that repo's map entries agree on (`main` for a repo with none). Where the entries
+  disagree (Palmers), the ticket must name the branch itself (`branch: main-ca`), or the dispatcher
+  hands it to a person.
 - **Don't flag a project whose branch doesn't exist yet.** A `branch` must be a real branch in the
   repo before the project is `"pipeline": "github"` — otherwise the implementer can't branch from it.
 

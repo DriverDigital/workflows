@@ -1,6 +1,6 @@
 # Handoff — 2026-10-09
 
-State of play for the next session. Conventions, how-tos and release history live in
+State of play for the next session. Conventions and how-tos live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
 
 ## Where things stand
