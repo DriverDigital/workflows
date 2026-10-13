@@ -1,600 +1,197 @@
-# DriverDigital/workflows — central reusable workflows
+# DriverDigital/workflows
 
-Single source for Driver's Bonsai→GitHub pipeline reusable workflows, the Shopify and Vercel CI/CD
-standards, **and the onboarding kit**
-(`templates/github/` in this repo). Each consuming repo installs a thin caller stub per workflow that pins
-an **immutable commit SHA**; `tools/fleet-wave.sh` repins them after each tag, with Dependabot as the
-backstop. This repo is
-**public** so cross-repo reusable calls resolve from any consuming repo (the org enforces a
-selected-actions allowlist at the org/enterprise tier).
+The GitHub side of Driver's agentic pipeline. Two products live here:
 
-## How the repos fit together
+- **Reusable workflows** in `.github/workflows/` (`workflow_call` only): the implementer that turns a
+  ticket into a pull request, the three Dependabot rails, and one CI/CD rail per hosting platform.
+- **The onboarding kit** in [`templates/github/`](templates/github/README.md): the caller stubs and
+  whole-file workflows a client repo installs, plus the house standards every repo's `CLAUDE.md`
+  imports.
 
-- **workflows** (this repo, public) — the reusable GitHub workflows + this onboarding kit. Fleet
-  repos carry thin SHA-pinned caller stubs; these run the GitHub side: the implementer once an
-  issue exists, the Dependabot rails, and each platform's deploy rail (Shopify preview themes,
-  Vercel deploy hooks).
-- **[driver-agents](https://github.com/DriverDigital/driver-agents)** (private) — the Shopify
-  admin-tool wrapper and the canonical operator instructions, cloned at the pinned
-  `DRIVER_AGENTS_REF`; also the **pipeline dispatcher** (`pipeline-dispatch.yml`, scheduled) that
-  triages ready Bonsai tasks, opens those GitHub issues, and polls the Bonsai status back. It was
-  also the box's headless `claude -p` cron runner.
-- **driver-bonsai-mcp** — archived 2026-09-11; it held the dispatcher and the Bonsai bridge server
-  until 2026-09-10. Mentions of it below are history.
+Each fleet repo carries thin caller stubs that pin a reusable here by **immutable commit SHA**.
+`tools/fleet-wave.sh` repins them after each release and keeps every kit file current;
+`tools/fleet-pin-audit.sh` reports drift. The repo is **public** so a cross-repo `uses:` resolves from
+any client repo (the org allows only selected actions).
 
-Flow: a Bonsai ticket assigned to **Agents** → the dispatcher triages it and opens a GitHub issue →
-the target repo's `claude.yml` implements it and opens the PR → the dispatcher moves the Bonsai
-task to Internal Review.
+State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md). The agent-facing
+subset of these conventions: [`CLAUDE.md`](CLAUDE.md).
 
-## Status & versions
+## Where it sits in the pipeline
 
-Latest tag **`v1.19.0`** (`b6a6f8d`, 2026-10-09) — the two platform standards (Shopify and Vercel
-reusables), kit opt-in by repo topic, each repo's pinned Node in CI, Closes lines for every issue a
-ticket names, the Dependabot house standard and `.claude/settings.json` — see
-[`v1.19.0`](#v1190-b6a6f8d-2026-10-09) below. The six caller stubs are pinned to `b6a6f8d`.
+| Repo | Role |
+|---|---|
+| **workflows** (this repo, public) | The GitHub rails every fleet repo runs: the implementer, Dependabot, platform deploys. |
+| [**driver-agents**](https://github.com/DriverDigital/driver-agents) (private) | The pipeline dispatcher, the Shopify admin-tool wrapper and the canonical Shopify instructions (cloned by the implementer at the pinned `DRIVER_AGENTS_REF`), the read-only Figma and Bonsai MCP servers, the Macroscope Check Run agent prompts and the nightly audit publisher. |
+| [**driver-engineering-app**](https://github.com/DriverDigital/driver-engineering-app) (private) | The "Driver Engineering" Shopify app installed in each client org. Its client id and secret are the credentials the implementer's store tooling mints Admin API tokens from, and its app home shows clients what the agents did. |
 
-**State of play, open decisions and next steps: [`docs/HANDOFF.md`](docs/HANDOFF.md).**
+How a ticket becomes a merged change:
 
-Deployed fleet stubs are repinned by the wave, `tools/fleet-wave.sh`. Dependabot *does* bump these
-pins in a repo that has a `github-actions` block, but the wave repins within minutes of every tag so
-it rarely gets the chance —
-[`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave). Org Actions secrets
-(`AGENTS_GH_PAT`, `CLAUDE_CODE_OAUTH_TOKEN`, `SHOPIFY_ALERT_WEBHOOK`) and cross-repo Actions access
-are already in place — no per-repo secret setup.
+1. A Bonsai task assigned to **Agents** and set to *Ready for Dev / Design* enters the pipeline.
+2. The **dispatcher** (driver-agents `pipeline-dispatch.yml`, hourly) triages it, picks the repo and
+   branch from driver-agents' project-repo map, opens a GitHub issue as `driver-digital-agents` with
+   `@claude` in the body, and moves the task to *In Progress*. Anything it cannot route goes to a
+   person with a `⚠️ Needs a human:` comment.
+3. The repo's **`claude.yml`** (the implementer) branches `issue-<n>` from the issue's
+   `Target branch:`, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
+   body carries `Closes #n`, `Bonsai task: <url>` and a `Pre-review:` line.
+4. **Macroscope** reviews every PR in the org. It is the only automatic reviewer; Claude reviews a PR
+   only when a person `@claude`s it.
+5. The dispatcher runs the **revise loop**: while Macroscope has unresolved findings it posts a
+   tag-mode `@claude` on the PR, up to three turns, and hands anything still flagged to a person.
+6. The dispatcher moves the task to **Internal Review** and assigns it to the reviewer the ticket
+   names. That Bonsai assignment is the review request; nothing is requested on GitHub.
+7. A reviewer who sets **Revisions Requested** and assigns the task to Agents gets their comments
+   forwarded to the PR as `@claude`; the task returns to Internal Review after the push. People own
+   merging and every status after Internal Review.
 
-Tags are human labels + the bot's bump target; the caller stubs pin the SHA. History: `v1.0.0` (initial
-rail) → `v1.0.1` (no-ticket detection fix) → `v1.0.2` (`dependabot-report` bot-actor fix) → `v1.1.0` (add
-`dependabot-keep-current` + claude-code-action bump) → `v1.1.1` (keep-current fail-loud fix) → `v1.2.0`
-(PR-first house-style review) → `v1.3.1` (PR-first: REQUIRE the allow-list naming the inline-comment
-poster) → `v1.4.0` (PR-first outcome-aware marker) → `v1.5.0` (add the `ticketed-review` reviewer-loop
-rail) → `v1.5.1` (drop the `gh`-based author re-check that skipped every real PR) → `v1.5.2`
-(`allowed_bots: claude[bot]`, so the bot-opened round 1 actually reviews) → `v1.5.3` (always-latest
-resilient Claude Code self-install in the three agent reusables) → `v1.5.4` (`dependabot-validate`:
-npm-install fallback for lockfile-less repos + `actions/checkout` v7) → `v1.5.5` (claude-code-action
-1.0.161 → 1.0.168 in the agent reusables) → `v1.6.0` → `v1.7.0` → `v1.8.0` → `v1.9.0` → `v1.10.0` →
-`v1.11.0` → `v1.12.0` → `v1.13.0` → `v1.14.0` → `v1.15.0` → `v1.16.0` → `v1.17.0` → `v1.18.0` →
-**`v1.19.0`** (all below). `v1.3.0` was never tagged.
+### Macroscope on a PR
 
-### `v1.19.0` (`b6a6f8d`, 2026-10-09)
-
-The kit splits into a shared part and one part per hosting platform (#87). Standards, topics and the
-per-repo cutover: [`docs/branch-model.md`](docs/branch-model.md).
-
-- **New reusables:** `shopify-theme.yml` (PR preview themes `DRIVER/<branch>` and the `main`/`main-*`
-  push, with the build in a job with no secrets; #80, #82) and `vercel-deploy.yml` (the deploy hook for
-  pushers outside the Vercel team). Their stubs join the kit at this release; they reach a repo through
-  its canary, cutover or install commit, never the wave.
-- **Opt-in by topic:** the wave targets only repos with `driver-kit`; `shopify-theme`, `vercel-site`
-  and `wordpress-site` decide the platform files (`tools/kit-platforms.sh`). Set on 20 repos.
-- **Reusable changes reaching the fleet with the repin:** `claude.yml` and `dependabot-validate.yml`
-  run the repo's pinned Node (`.nvmrc`, then `package.json`; #75, #77); the implementer adds a Closes
-  line per issue the ticket names (#76), and the PR-run ticket lookup prefers the branch's own issue.
-- **Kit:** `.claude/settings.json` turns off attribution in interactive sessions (#83; the wave merges
-  its keys); the house standards allow `CLAUDE.local.md` for private to-dos (#78) and gain the Replies
-  bullet (#88); `dependabot.yml` is the fleet house standard, written by hand per repo (#62).
-- **Wave:** all **22** targets, no canary (the wave carries only stub repins and shared files; the
-  platform stubs canary per repo). Audit: **69 pins at `b6a6f8dc`, 144 files matching, 1 drifted**
-  (driver-agents' `lint.yml`, outside the wave until `lint.yml` became a discovery file the same night;
-  then waved, converged).
-
-### `v1.18.0` (`85f1578`, 2026-10-01)
-
-`dependabot-validate` no longer fails every clean Dependabot PR (#73), the implementer prompt carries
-the revised comments standard (#74, closing #70), and the house standards gain the
-subagents-and-replies rule (#72). Hours after v1.17.0. Canaried on `vite-plugin-shopify-clean`
-(implementer: issue #107 → PR #108; validator: a `@dependabot rebase` of #97), then waved to all
-**22** targets (20 pushed; driver-onboarding joined the targets through a hand-installed
-`claude-standards.md`). Audit the same night: **69 pins at `85f15787`, 127 files matching
-`templates/`, 0 drifted**.
-
-- **The validator bug.** Since v1.15.0 (#45) the registry-names pipeline in `dependabot-validate.yml`
-  returned 1 under `bash -e` + `pipefail` whenever `build.log` carried no `npm error <pkg>@` line —
-  every clean run — and the step died silently before `result.json` was written. So every clean
-  Dependabot PR carried a red `validate / validate` (a required check on most repos) for three weeks,
-  while PRs with a real peer-dependency failure were reported properly. The fix is one `|| true`.
-  Found through foundrae-blackridge #206/#207 (#69, whose dev-smoke diagnosis was wrong: that repo has
-  no `agent-validate.json`, so dev-smoke never ran).
-- **Canary:** implementer run green, App token obtained, no validation-skip warning, PR with
-  `Bonsai task: none`; validate on the rebased Dependabot PR green with `registry facts` and
-  `overall=0`, four artifact files, the report job ran; `bonsai-link` skipped (grey) on both.
-- **Reached the fleet with this wave,** having landed kit-only since v1.17.0: the wave installs
-  `claude-standards.md` beside `claude.yml` (#67), `pr-bonsai-link.yml` skips PRs with no Bonsai
-  mention (#68), the revised comments standard and the style-only header (#71).
-- Dependabot PRs opened before this release still show the old red validate on their current head;
-  a `@dependabot rebase` (or any push) gets a fresh, green run.
-
-### `v1.17.0` (`359505a`, 2026-10-01)
-
-`claude.yml` is a reusable + thin stub (#60; the Phase 0 spike passed 2026-09-30). Canaried on
-`vite-plugin-shopify-clean`, then waved to all **21** targets the same night (20 pushed, the canary
-already current; driver-engineering-app joined the targets through its `.github/claude-standards.md`).
-Audit the same night: **69 pins at `359505a7`, 110 files matching `templates/`, 1 drifted** —
-driver-agents' hand-installed `lint.yml` (comment-only; the wave never reaches that repo), re-copied by
-hand the same night (`ed2ad6a`).
-
-- **The reusable** carries every ungated ride-along from `docs/claude-yml-wave-plan.md`: the
-  round-marker arm and re-request step are gone, no GitHub reviewer is requested, PR bodies carry
-  `Bonsai task:` and name store changes, the house comment and commit rules, Figma MCP, the blockquote
-  and `DRIVER_AGENTS_REF` at driver-agents `0397630`, and a guard that fails a silent validation skip.
-  Beyond the plan: a "Trusted authors" step refuses outsider-authored issues and PRs, and fork PRs,
-  before checkout; the store token is minted in its own step so the log masks it; the full transcript
-  is on for private repos only.
-- **Kit:** the `claude.yml` stub (triggers, concurrency, five permissions, `secrets: inherit`),
-  `pr-bonsai-link.yml` installed beside `claude.yml`, the PR template's `Bonsai task:` line,
-  `shopify-tool-smoke.yml` reading the `SHOPIFY_STORE_NAME` repository variable, and
-  `claude-standards.md` gains the `ponytail:` comment rule. The wave installs `pr-bonsai-link.yml`
-  and refuses a store repo until its variable holds the handle, checked fleet-wide before the first
-  push; the audit flags a missing `pr-bonsai-link.yml` and no longer normalizes the handle.
-- **Canary** (vite-plugin-shopify-clean #101 → PR #102, run 36786817542): App token obtained, no
-  `Skipping action due to workflow validation`, the Trusted-authors step listed collaborators with
-  the default token, the PR carried `Bonsai task: none` and passed `bonsai-link`; a review event and
-  a plain comment each skipped the job with no runner. Closed unmerged.
-- **Macroscope:** approvability stayed "not approved" on the release-order finding (the kit ships
-  the stub only at step 2); answered in-thread and merged past by decision. Its manual pass over the
-  commits after its third automatic run found nothing. The transcript-on-private-repos residual is
-  accepted in its thread.
-- **Not yet proven:** Avara's first store run (`Provisioned store 'avara'` and the mint step), one
-  real ticket end to end, and `bonsai-link` as a required check per repo — `docs/HANDOFF.md`.
-
-### `v1.16.0` (`ff3ff34`, 2026-09-10)
-
-Every third-party action floats on its major tag, in the kit and the reusables, and Dependabot
-proposes majors only. Canaried on `vite-plugin-shopify-clean`, then waved 2026-09-10 to all **20**
-targets (19 pushed, the canary already current). Audit the same day: **51 pins at `ff3ff344`, 88
-files matching `templates/`, 2 drifted** — the hand-installed `lint.yml` copies in driver-agents and
-driver-engineering-app, which the wave never reaches (neither carries `claude.yml` or a stub); a
-to-do is filed in each and the rows clear when they land.
-
-- **Why.** A SHA in `templates/` is a pin nothing bumps (Dependabot scans `.github/workflows/` only),
-  while a fleet repo's Dependabot bumps its deployed copy when the action releases, so the fleet
-  always ran ahead of the kit and each wave rolled it back — foundrae-blackridge #174 took
-  `claude-code-action` 1.0.195 → 1.0.210 and the v1.15.0 wave put it back to 1.0.201. Maria's
-  policy (2026-09-10): action refs stay current with no commit anywhere, and a breaking change is
-  fixed after the fact rather than every patch shepherded across 20 branches.
-- **Refs:** `actions/checkout@v7`, `actions/upload-artifact@v7`, `actions/download-artifact@v8` and
-  `anthropics/claude-code-action@v1` — in `claude.yml`, `lint.yml` and `shopify-tool-smoke.yml`, the
-  three Dependabot reusables, and this repo's own `lint.yml`. A run
-  resolves the tag fresh, so every minor and patch arrives on its own; Dependabot opens a PR only
-  for a new major, and Anthropic re-points `v1` within seconds of each release.
-- **Dependabot, here and in the kit:** minor and patch bumps of `actions/*` and `anthropics/*` are
-  ignored (a floating ref already has them, and it closes a reported edge where Dependabot rewrites
-  a major-tag ref into a pinned patch). The kit block names the two owners rather than `*`, so the
-  `DriverDigital/workflows` stub bumps it exists for still flow — the tagged kit file said `*`;
-  corrected on `main` the same day, before any repo installed it. Here, `github-owned` majors still
-  auto-merge and `claude-code-action` majors land by hand.
-- **The trade, recorded in `claude.yml`:** `v1` is a mutable tag a bot repoints, and the SHA covered
-  one of two channels into a job holding the OAuth token — the CLI install was already unpinned — so
-  a small reduction, not none. Macroscope's Critical on `actions/checkout@v7` (#55) was assessed and
-  kept, by decision, in its thread.
-- **Docs** updated in place: `CLAUDE.md`'s invariant, README's "Template pins are manual", the
-  audit's normalization note, `fleet-operations.md`, the kit README, `HANDOFF.md`'s watch-items,
-  and the conversion scope doc, whose "three action pins" secondary win is gone.
-
-### `v1.15.0` (`15a34e9`, 2026-09-10)
-
-The wave that carries #50's issue-path guard, plus the ride-alongs decided 2026-09-10. Canaried on
-`vite-plugin-shopify-clean`, then waved 2026-09-10 to all **20** targets (19 pushed, the canary
-already current). Audit the same day: **51 pins at `15a34e98`, 90 files matching `templates/`, zero
-drift** — the first audit that counts the PR template.
-
-- **An issue run can no longer end green without a PR** (#50): a guard step fails the job when no
-  open PR exists from `issue-<n>` (Avara #195 pushed its branch and stopped, and nothing noticed).
-  `show_full_output: true` keeps the transcript in the masked job log — the log, not an artifact, so
-  registered secrets stay redacted (Macroscope on #50). `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS=1` is
-  set at the step env **and** through the `settings` env (claude-code-action#1499: a run that
-  backgrounds subagents exits green with the work orphaned; the step-env form is what three
-  independent reports measured, the settings path is what the CLI reads from disk).
-- **`claude-code-action` → `c81e3bc` (`v1.0.201`)** in the kit, matching the reusables since #47.
-  foundrae-blackridge@staging had been moved to 1.0.210 by its own Dependabot (#174), not by hand;
-  the wave brought it back to the kit's pin, and when Dependabot bumps it again the audit will read
-  that as the kit being behind.
-- **`DRIVER_AGENTS_REF` → `b4ea94e`** (driver-agents `main`, 2026-09-10) in both kit files.
-  driver-agents PR #7: the guard reports a value-clearing write (`value` of `""`, `[]` or `{}`) on
-  the allow path — a stdout line, not a gate — and the canonical blockquote names three exit-3
-  refusal kinds and adds two paragraphs (an empty value is a delete; the `access.admin` enum). Kit
-  copy re-copied, 2,370 → 3,480 chars, parity verified whitespace-collapsed at the pin.
-- **`templates/github/dependabot.yml`** gains a `cooldown` block: GitHub's default 3 days stays for
-  third-party actions; `DriverDigital/workflows*` is exempt, so a repo the wave skipped bumps the
-  day the tag lands.
-- **The wave replaces every kit file whole-file**, the three stubs included (the pin-line sed let
-  per-repo stub edits survive, but the audit reports those as drift and none existed), and
-  **`pull_request_template.md` joins the file set** at `.github/` — the fleet's copies still
-  credited the retired status sync, invisible to the audit until it learned the path. Presence-based
-  as before: replaced where present, never installed.
-- **`tools/fleet-pin-audit.sh`** selects the newest `vX.Y.Z` by semver across every tag page and
-  fails closed on a failed page or an empty list (#51 — three Macroscope findings, each fixed).
-- **`dependabot-report`** headers (reusable and stub) no longer claim a reusable cannot see
-  `github.event.workflow_run`; the explicit inputs exist for the provenance assertion (#51).
-
-### `v1.14.0` (`539d7ea`, 2026-08-22)
-
-The queued `DRIVER_AGENTS_REF` bump and tripwire re-copy, plus the kit's first Dependabot updater.
-Waved 2026-08-22 to **19** of the 20 repin targets — `vite-plugin-shopify-clean` deliberately
-**skipped** (`--skip`) to prove Dependabot bumps the stub pins unaided. Audit the same day: **48 pins
-at `539d7eab`, 68 files matching `templates/`**, and exactly the expected drift — 3 stale pins and 4
-content rows, all `vite-plugin-shopify-clean@main`. `fleet-pin-audit.sh --stale` reads red by design
-until that repo catches up.
-
-- **`DRIVER_AGENTS_REF` → `919ca79`** (driver-agents `main`, committed 2026-08-07) in both kit
-  files. Under `tools/` the diff is one stderr message, jq summary phrases and a comment — no file,
-  mode, env var, argument or exit-code change.
-- **Tripwire blockquote re-copied** from canonical, 978 → 2,370 chars: the two exit-3 refusals are
-  split (allowlist vs argument guard), `menuUpdate` / metaobject `values` / `collectionUpdate`
-  `ruleSet` are flagged as replace-not-patch, `redirectNewHandle` is required on a handle change,
-  and the false "extend the allowlist with one reviewed line" blanket is gone. Parity verified
-  whitespace-collapsed at the pin.
-- **`templates/github/dependabot.yml`** — a daily grouped `github-actions` block, hand-installed
-  (it lives at `.github/` and merges into a repo's existing file; the three install cases are in
-  the kit README). The fleet's existing blocks are monthly and a Dependabot PR waits on a human
-  merge, so the wave stays primary —
-  [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
-- **`tools/fleet-wave.sh --skip <repo>`**, repeatable, resolved like `--only` so case or a typo
-  cannot wave the repo it was meant to spare; both flags refuse an empty value. The default commit
-  message no longer names the v1.13.0 retirement.
-- **`claude.yml` ride-alongs:** the dangling `docs/phase2-github-setup.md` pointer is gone and a
-  Figma MCP caveat sits beside the WebSearch one above `--allowedTools`
-  ([`docs/figma-mcp-in-ci.md`](docs/figma-mcp-in-ci.md)).
-- **this repo's own CI:** the kit actionlint pass excludes `dependabot.yml` (not a workflow).
-  `CLAUDE.md` added (#41).
-
-### `v1.13.0` (`f6d25d3`, 2026-08-22)
-
-The pass that sets the rail up to run without the box — see the headline for what and why. Piloted
-on `vite-plugin-shopify-clean` (canary below), then waved 2026-08-22 to all **20** repin targets (19
-pushed, the pilot already current). Audit clean the same day: **51 pins at `f6d25d34`, 72 files
-matching `templates/`, zero drift** across the 23 pairs audited.
-
-- **`claude.yml` reads the dispatcher's issue body.** `Target branch:` is the base for both
-  `gh issue develop --base` and `gh pr create --base`; `Reviewer:` is requested with
-  `gh pr edit --add-reviewer` *after* the PR exists, non-fatally — a bad handle can no longer abort
-  PR creation; `## Instructions from the ticket` directs the task but never overrides the steps, the
-  repo rules or a system-prompt guard, and never authorises touching `.github/` or exposing
-  credentials. Branch name and handle are opaque data: one quoted argument each, never spliced into
-  a larger command.
-- **In-run pre-review.** Push, then `/code-review high <base>...HEAD` — the explicit range is
-  load-bearing, a bare invocation reviews commits ahead of upstream, which is nothing once the
-  branch is pushed. Fix, push again, and the short PR body ends `Pre-review: N findings, M fixed,
-  K dismissed` (or `Pre-review: skipped (reason)`).
-- **Quality standard** added to the static `--append-system-prompt` (9 items: CLAUDE.md/HANDOFF
-  first, design before code, one author per file, adversarial pre-review, verify before done,
-  conventional commits with no trailers, short PR body, repo conventions win, judgment over
-  compliance). It is **global** — it reaches the ticketed revision rail too, so watch the first
-  revision round against the 90-minute cap.
-- **Attribution off mechanically:** `settings: { "attribution": { "commit": "", "pr": "",
-  "sessionUrl": false } }` — no `Co-Authored-By`, no "Generated with" line on the agent rails. A
-  human `@claude` (tag mode) still gets the action's own co-author text.
-- **`--model fable --effort xhigh`**, and `claude-code-action` → `d40ddef` (`v1.0.195`), matching
-  the reusables.
-- **`bonsai-status-sync` retired** — template and reusable both deleted, and the org secret
-  `BONSAI_BEARER_TOKEN` deleted after a direct probe of every non-archived repo (+ Palmers `main*`)
-  found no copy of the workflow left anywhere. The dispatcher polls the two remaining legs instead
-  (issue opened → In Progress; non-draft dev-linked PR → Internal Review). The kit is six `.yml`
-  files; five reusables remain — three Dependabot rails plus the two retired review rails;
-  `ticketed-review.yml`'s banner now says re-activation needs `BONSAI_BEARER_TOKEN` recreated.
-- **`tools/fleet-wave.sh`** — the wave is a checked-in script now. It discovers targets by presence
-  (`claude.yml` **or** a Dependabot stub, which is what reaches the two stub-only pairs) and repins
-  the pin line's SHA and its `# vX.Y.Z` trailer together. Guards: a real wave only from a clean
-  `main` containing the tag, kit stubs must pin the latest tag, never waves this repo, actionlint
-  before every write, no destination path twice, store handle survives, `--dry-run` touches nothing,
-  zero targets is an error. Mechanics: [`docs/fleet-operations.md`](docs/fleet-operations.md).
-- **this repo's own CI:** `lint.yml` now also fails on a stray brace in `claude.yml`'s `prompt:`
-  scalar — actionlint is blind to it, and a stray `{` is a silent dispatch failure fleet-wide.
-- **`DRIVER_AGENTS_REF` held at `4d63371`**, re-checked against canonical at that pin
-  (whitespace-collapsed parity: match). driver-agents `main` is 8 commits ahead with a much longer
-  blockquote and small tool fixes; the queued re-copy + ref bump is in
-  [`docs/HANDOFF.md`](docs/HANDOFF.md).
-- Design: driver-bonsai-mcp `docs/superpowers/specs/2026-08-21-box-retirement-dispatcher-design.md` §5a.
-
-**Canary** (`vite-plugin-shopify-clean`, 2026-08-21 23:12–23:17 UTC, torn down afterwards): Bonsai
-TSK-00923 → dispatcher run `32536010404` → issue #91 by `driver-digital-agents` carrying the target
-branch, reviewer and ticket instructions → `claude.yml` run `32536083273`, **success in 3m24s** on
-`claude-fable-5` → PR #92 with `ktdriverdigital` requested 4 s after creation, a 10-line body ending
-`Pre-review: 1 finding, 1 fixed, 0 dismissed`, no footer, **0 trailers on 2 commits**, and the
-ticket's changelog instruction honoured. Timestamps prove the order: feat commit 23:15:12 →
-pre-review fix 23:16:41 → PR 23:16:49. Dispatcher reconcile run `32536361182` moved Bonsai to
-Internal Review.
-
-### `v1.12.0` (`b1fcb78`, 2026-08-08)
-
-The review-rail retirement: PR review became Macroscope's job alone (decided 2026-08-08) — the two
-review stubs left the kit, their reusables stayed here caller-less with retirement banners, and
-`bonsai-status-sync` lost its **review leg** (formal review → Revisions Requested / Ready for QA); the
-Dependabot rails, `claude.yml` and the two remaining status legs were untouched. Context and the
-Macroscope→Bonsai build plan:
-[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md). Waved 2026-08-08 to
-all 23 pairs: the two review stubs **deleted** from every fleet pair that carried them (41 pin rows
-removed), `bonsai-status-sync.yml` whole-file replaced on 18 pairs, remaining stubs repinned.
-Audit clean same day: **69 pins at `b1fcb78c`, 90 files matching `templates/`, zero drift.** Three
-pairs' only pinned stub was `pr-first-review.yml` — `driver-agents@main`, `driver-engineering-app@main`,
-`driver-bonsai-mcp@main` — so they now carry no pins at all (still content-checked) and the
-repin-target count lands at **20** (see `docs/fleet-operations.md`).
-
-- **Review rails retired, not removed.** Stubs deleted (kit + fleet); reusables preserved inert
-  with retirement banners carrying the re-activation path (restore stubs from git history, tag,
-  wave). Deletion over `gh workflow disable` because disabled-state is invisible to the pin audit —
-  the fleet's files should say what actually runs.
-- **`bonsai-status-sync` review leg removed** — the stub's `pull_request_review` trigger AND the
-  reusable's handler, deliberately **not** actor-gated: Macroscope's bot behavior (formal reviews
-  vs. comments) is unobserved as of this tag, and if it submits formal reviews the old mapping
-  would flip statuses with the wrong semantics (a bot approval is not "Ready for QA"). Statuses
-  past Internal Review are a PM's job until the Macroscope→Bonsai integration lands.
-- **`claude.yml` deliberately untouched**, including the ticketed-loop machinery (round-marker
-  prompt branch, actor carve-out, re-request step). It looks dead with `ticketed-review` gone; it
-  is the designed re-entry point for the Macroscope-driven revise loop — do not strip it in a
-  future wave. *(Superseded 2026-09-30: the driver-agents loop summons with a tag-mode `@claude`;
-  the arm and step go in the next `claude.yml` wave — `docs/claude-yml-wave-plan.md`.)*
-- **`DRIVER_AGENTS_REF` did not move.** The queued canonical-blockquote re-copy stays pending for
-  the next `claude.yml`-touching release — deliberately not folded in here, so this wave changes
-  review behavior and nothing else.
-
-### `v1.11.0` (`90f0d06`, 2026-08-02)
-
-Waved to all 21 pairs on 2026-08-02; fleet uniform, 108 pins, zero stale.
-
-- **`bonsai-status-sync.yml` conversion completed.** The 190-line per-repo copy became a 67-line
-  caller stub — the status machine, actor gate, linkage logic and cascade caveat now live in one
-  central file. The reusable itself landed one tag earlier (see `v1.10.0`), so the conversion spans
-  the two tags: a new reusable's stub cannot be pinned until the tag containing it exists.
-- **kit `claude.yml` + `shopify-tool-smoke.yml`:** `DRIVER_AGENTS_REF` → `4d63371`. The previous pin
-  `0bbb125` predated `graphql_guard.py`, so every fleet runner executed `admin-graphql.sh` with no
-  fail-closed allowlist and the Driver Engineering scope grant was the only control on destructive
-  mutations.
-- **Shopify operator tripwire** appended to `claude.yml`'s static `--append-system-prompt`, pairing
-  with that wrapper. The blockquote is copied verbatim from driver-agents
-  `docs/agent-instructions-shopify.md` (canonical — edit there first); a non-canonical kit-side
-  lead-in precedes it, un-scoping the block from the conduct rules above and telling the model how to
-  report a trip on a rail that cannot set a job exit code.
-- **this repo's own CI:** `lint.yml` gained a tokenization guard asserting `claude_args` holds
-  exactly four single quotes and the system prompt contains no apostrophe or `$`. One apostrophe
-  typed into canonical upstream silently *truncates* the prompt — `shell-quote` does not throw, every
-  flag still parses, and the wave would copy the truncated prompt fleet-wide green.
-- **Piloted before the wave:** `vars.BONSAI_URL` proven to resolve against the caller, so the
-  per-repo tunnel override survives the conversion. See
-  [`docs/fleet-operations.md`](docs/fleet-operations.md).
-
-### `v1.10.0` (`b394c6d`, 2026-08-02)
-
-- **New sixth reusable: `.github/workflows/bonsai-status-sync.yml`.** Its `jobs:` body is
-  byte-identical to the old per-repo copy except one added comment. Deliberately shipped without its
-  caller stub — see `v1.11.0`.
-- **`lint.yml` placeholder-pin guard:** fails the build on any kit stub still carrying an all-zero
-  pin, so a stub that cannot resolve can never reach `main`.
-- Never waved on its own; superseded by `v1.11.0` two commits later.
-
-### `v1.9.0` (`a54c91e`, 2026-08-01, kit-only)
-
-- **Store app secrets renamed** `DRIVER_AGENTS_SCOPES_CLIENT_ID/_SECRET` →
-  `DRIVER_ENGINEERING_APP_CLIENT_ID/_SECRET`, tied to the per-org "Driver Engineering" app that
-  replaced "Driver Agents Scopes" (retired 2026-08-01). Waved to all 21 pairs; Avara's smoke test
-  green on the new names, old-name secrets deleted.
-- **Reusables unchanged.** Note this release **never got its kit repin commit** — `templates/` sat at
-  `v1.8.0`'s SHA while the deployed fleet was waved to `a54c91e`, leaving the fleet a release *ahead*
-  of the kit templates until `v1.11.0` closed it. That gap was invisible to
-  `tools/fleet-pin-audit.sh` at the time; its reference check now catches exactly this shape — see
-  [`docs/fleet-operations.md`](docs/fleet-operations.md).
-
-### `v1.8.0` (2026-07-31, kit-only)
-
-- **kit `claude.yml` + `shopify-tool-smoke.yml`:** `DRIVER_AGENTS_REF` → `0bbb125` (the audit
-  pipeline: `SHOPIFY_AUDIT_CONTEXT` on the tool, plus the box's nightly `audit-publish.sh` —
-  design at driver-agents `docs/audit-data-model.md`). Lockstep as always.
-- **Audit context export:** the provisioning step now builds `SHOPIFY_AUDIT_CONTEXT`
-  (ticket/issue/run/host) so every tool call's audit line says *on whose behalf* it ran. The
-  Bonsai task uuid is resolved from the ISSUE body (`uuid=` param — the same linkage
-  `bonsai-status-sync.yml` greps), with a `closingIssuesReferences` fallback for the
-  @claude-on-a-PR rails; a human's ad-hoc `@claude` has no ticket, correctly.
-- **Audit artifact upload:** a final `if: always()` `actions/upload-artifact` step (pinned
-  `v7.0.1`) ships the runner's throwaway audit log to the box's nightly collector —
-  `github.run_attempt` in the artifact name dodges the immutable-artifact collision on re-runs.
-  Skips cleanly on repos without store tooling. Same step on the smoke test.
-- **reusables: unchanged**; stubs repinned to the new tag SHA for the pin-audit invariant.
-
-### `v1.7.0` (2026-07-31, kit-only)
-
-- **kit `claude.yml` + `shopify-tool-smoke.yml`:** `DRIVER_AGENTS_REF` → `0404c4e` (driver-agents
-  main @ 2026-07-31) — picks up the human-readable Slack alert wording (driver-agents PR #2). The
-  pin moves in both files together, per the lockstep rule.
-- **CI alerting leg:** the same provisioning step now writes the org-level `SHOPIFY_ALERT_WEBHOOK`
-  secret (the `#driver-agents-status` incoming webhook) to the runner's throwaway disk and exports
-  `SHOPIFY_ALERT_WEBHOOK_FILE` + `SHOPIFY_ALERT_HOST_LABEL`, so the admin tool's destructive/failed-
-  call alerts post from Actions runs exactly as they did from the box. The alert's "where to look"
-  label is the run URL — the runner's audit log doesn't outlive the job. Absent secret = alerts
-  silently off, nothing else changes (the tool's own best-effort posture).
-- **reusables: unchanged** (byte-identical to `v1.6.0`'s). The stubs are repinned to `3966041`
-  regardless, purely so `fleet-pin-audit.sh`'s latest-tag comparison stays meaningful.
-
-### `v1.6.0` (`0a3934f`, 2026-07-31)
-
-- **reusables:** `actions/checkout` → `v7.0.1`, `claude-code-action` → `v1.0.183`; each Claude Code
-  self-install attempt is now bounded by `timeout` — a stalled download used to hang one attempt
-  until the job's wall-clock cap while the retry loop never advanced.
-- **kit `claude.yml`:** human `@claude` comments always get **tag mode** (never prompt-hijacked —
-  foundrae-blackridge PR #148); the ticketed round-marker branch is author-gated on
-  `driver-digital-agents` + id `261291955`; optional self-skipping **Shopify admin tool**
-  provisioning — pinned to a reviewed `driver-agents` revision, verified before any credential is
-  written, and gated off the read-only `/code-review` rail (Avara PR #161); the same bounded
-  self-install; `actions/checkout` → `v7.0.1` and `claude-code-action` → `v1.0.183`.
-- **new kit file `shopify-tool-smoke.yml`** (store repos only): a manual diagnostic for the Shopify
-  admin-tool wiring, upstreamed from Avara PR #161 so it is maintained here rather than reinvented
-  per repo. It duplicates `claude.yml`'s provisioning step by design — same wiring, loud failures
-  instead of degrade — so the two must be kept in lockstep.
-- **this repo's own CI:** new `lint.yml` runs actionlint — plus shellcheck over every `run:` block —
-  across the reusables **and** the kit, so a broken workflow can no longer reach consumer repos.
-
-**Release + repin order (don't skip a step — a wave is only safe once all three are done):**
-
-1. Merge to `main`, then cut the new tag.
-   - **If the release moves `DRIVER_AGENTS_REF`**, re-run the tripwire parity check first: extract the
-     `>` lines from driver-agents `docs/agent-instructions-shopify.md` at the new pin, strip the `> `
-     prefixes, NFC-normalize, **collapse whitespace**, and diff against the blockquote portion of
-     `.github/workflows/claude.yml`'s `--append-system-prompt`. The whitespace collapse is mandatory —
-     the copy flattens canonical's paragraph break to a single space (forced by the no-newline
-     constraint), so a strict byte compare reports a false failure. **Nothing else re-checks this.**
-     `lint.yml` proves the reusable and `shopify-tool-smoke.yml` carry the same `DRIVER_AGENTS_REF`,
-     not that the blockquote matches canonical at it, and the ref is a raw SHA in an env var that no
-     bot can bump.
-2. Repin every caller stub in `templates/github/` to that tag's SHA **and** its `# vX.Y.Z` trailer,
-   then commit. Until this lands, the kit's stubs still point at the PREVIOUS tag's reusables.
-   - **If the release ADDS a reusable**, its stub lands *in this step*, not in the PR that added the
-     reusable — the tag it must pin does not exist until step 1. That is why
-     `dependabot-keep-current`'s reusable and its stub landed in different commits, and how
-     `bonsai-status-sync.yml`'s stub landed at `v1.11.0`. `lint.yml` fails the build on any stub left
-     carrying a placeholder pin, so this step cannot be silently skipped.
-3. Only then re-copy `templates/github/` into consumer repos — those with the `driver-kit` topic, the
-   only ones the wave targets (`tools/fleet-pin-audit.sh --stale`
-   to confirm the fleet converged afterwards — it now checks waved file **content** against
-   `templates/`, not just the pin line, and exits non-zero on any drift, so a wave can gate on it).
-   - The wave is now a checked-in script: `tools/fleet-wave.sh --dry-run` first, then without.
-   - Dependabot also bumps the *stub pins*: the wave writes every target's `.github/dependabot.yml`
-     from a `templates/github/dependabot/` variant, each with a `github-actions` block — on its
-     schedule and through a PR a human merges, so the wave stays the primary path and Dependabot
-     the backstop. `--skip <repo>` leaves every branch of a repo to it on purpose — only sound where
-     Dependabot covers each kit branch. The variants set no `target-branch`, so Dependabot scans the
-     default branch only, never Palmers' `main-*`. See
-     [`docs/fleet-operations.md`](docs/fleet-operations.md#dependabot-and-the-wave).
-   - **When a full workflow becomes a stub** (as `bonsai-status-sync.yml` did — this applies to the
-     v1.11.0 wave specifically), the wave diff
-     contains a `templates/github/` path AND a `.github/workflows/` path with the SAME basename. The
-     wave script rewrites `templates/github/` → `.github/workflows/`, so assert the rewritten diff
-     touches no destination path twice before applying — otherwise the reusable can land in a client
-     repo *as* the workflow, where it is `workflow_call`-only, fires on nothing, and looks green.
-   - **Sed pin lines; never `git apply` them.** A pin hunk patches from whatever SHA the kit held,
-     which is not necessarily what the fleet holds — at v1.11.0 the kit diff patched from `80c35fe`
-     (v1.8.0) while every deployed stub held `a54c91e` (v1.9.0), a SHA no kit revision had ever
-     carried in a pin line, so no diff base produced a matching `-` line and `git apply` would have
-     rejected all five files on target #1. The sed rewrites the SHA **and** the `# vX.Y.Z` trailer
-     in one substitution (as `fleet-wave.sh` does) — the two halves are one pin, and a stale comment
-     names the wrong release.
-   - Wave mechanics, the guards worth keeping, and what the pin audit cannot see:
-     [`docs/fleet-operations.md`](docs/fleet-operations.md).
-
-**Template pins are manual — so the kit's third-party actions float.** `.github/dependabot.yml` uses
-`directory: "/"`, which only scans `.github/workflows/` — nothing will ever bump a pin inside
-`templates/`, while a fleet repo running the `github-actions` updater bumps its deployed copy when the
-action itself releases, so a SHA there guaranteed the fleet ran ahead of the kit and each wave rolled
-it back (foundrae-blackridge #174). The kit's whole-file workflows and the reusables therefore
-reference third-party actions by major tag (`actions/checkout@v7`, `actions/upload-artifact@v7`,
-`anthropics/claude-code-action@v1`), which Dependabot leaves alone until a new major exists, so the
-only action bump that ever gets a PR — here or in a fleet repo — is a major. `DRIVER_AGENTS_REF` stays
-manual — it appears in the `claude.yml` reusable and the kit's `shopify-tool-smoke.yml`, and must carry
-the same pin in both (`lint.yml` checks) or the smoke test verifies a revision the implementer never
-runs — and so does the `VERSION` + `SHA256` pair in `lint.yml`, which must be bumped together or the
-checksum check fails the job.
-
-**Onboarding a new repo:** set its topics first — `driver-kit` plus its platform topic
-([`docs/branch-model.md`](docs/branch-model.md)); without `driver-kit` the wave never reaches it. Then
-copy the matching stubs from **this repo's `templates/github/`** into the repo's `.github/workflows/`,
-let the wave write its `.github/dependabot.yml`, run a test PR (human + Dependabot), then pin the required check
-`validate / validate` + add a human-approver rule (see *First-run / required-check* below). Caller stubs
-MUST carry their own `permissions:` block (a repo whose default workflow token is read-only otherwise
-produces a silent `startup_failure` — no check run, no notification).
+- Its bot is `macroscopeapp[bot]`. It posts two non-blocking check runs (Approvability and
+  Correctness), an approvability verdict comment, and one review carrying its inline findings.
+- The verdict comment is edited in place as the PR changes, so read its current body. It reads
+  `Approved at <sha>` once nothing is left.
+- It resolves its own threads when a push addresses them.
+- Approval follows risk, not file type: a low-risk code change can get a formal `APPROVED`, while a
+  behaviour-changing PR or a fleet-changing kit release gets "not approved" with zero findings. Read
+  the verdict, not the diff, and gate any status mapping on the actor.
+- It runs at most three automatic correctness reviews per PR. Later pushes get a skipped check reading
+  "Maximum runs reached" with no findings, which looks like a clean pass. Post
+  `@macroscope-app review this PR` to run one more on the current head.
+- A spending-limit stall ("Monthly spending limit reached") looks identical to a refusal on the code.
+  Tell the two apart before treating "not approved" as a verdict.
+- Answer an accepted residual once in its thread, with the decision, and leave it.
 
 ## What's here
 
-| Reusable (`.github/workflows/`) | Privilege | Trigger (in the caller) | Job |
+| Reusable (`.github/workflows/`) | Privilege | Caller trigger | Job |
 |---|---|---|---|
-| `claude.yml` | secrets (OAuth + PAT + optional store and Figma), write token | `issues` opened, `issue_comment`, `pull_request_review`, `pull_request_review_comment` | the implementer: `@claude`'d issue → dev-linked branch → PR; `@claude` on a PR → revisions |
-| `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | mechanical install/build/test (+ optional theme/dev-smoke) → upload artifact |
-| `dependabot-report.yml` | secrets (PAT + OAuth) | `workflow_run` | reason over the **inert** artifact → verdict comment + request a human reviewer |
-| `dependabot-keep-current.yml` | PAT only | `pull_request` (closed) | rebase out-of-date Dependabot PRs on **strict** (require-up-to-date) repos; inert elsewhere |
-| `shopify-theme.yml` | theme token, read-only GitHub token | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: PR preview themes and `DRIVER/<branch>`, the build in a secretless job |
-| `vercel-deploy.yml` | the two deploy hooks only | `push` on `main` / `develop` | Vercel sites: deploy hook for pushers outside the Vercel team |
+| `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer. An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
+| `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
+| `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
+| `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
+| `shopify-theme.yml` | theme token; read-only GitHub token | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR and per release branch. The build runs in a job with no secrets. |
+| `vercel-deploy.yml` | the two deploy hooks | `push` on `main` / `develop` | Vercel sites: fires the branch's deploy hook when the pusher is outside the Vercel team. |
 
-Two review reusables, `pr-first-review.yml` and `ticketed-review.yml`, were retired at v1.12.0
-(2026-08-08) and deleted 2026-09-30; any tag through `v1.16.0` still holds them. Macroscope reviews
-all PRs — [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
+The kit — every stub, whole-file workflow and standards file, where each goes and how to install it —
+is documented in [`templates/github/README.md`](templates/github/README.md).
 
-**The onboarding kit lives here: `templates/github/`** (moved from `driver-bonsai-mcp` 2026-07-15). It
-carries a caller stub for each reusable above (the two platform stubs reach a repo through its
-cutover or install commit, `docs/branch-model.md`), plus `shopify-tool-smoke.yml` (a Shopify
-platform file),
-`lint.yml` (actionlint over the installing repo's own workflows), `pr-bonsai-link.yml` (fails a PR
-that names no Bonsai task; installed beside `claude.yml`), `pull_request_template.md` (waved since v1.15.0), `claude-standards.md` (the house commit and comment
-standard, installed beside `claude.yml` and waved at `.github/`; each repo's `CLAUDE.md` imports it), `claude-settings.json` (the repo's
-`.claude/settings.json`, installed beside `claude.yml`) and `dependabot/` (the `.github/dependabot.yml` variants, one waved to every target).
+Two files in `.github/workflows/` are **this repo's own CI** and never ship:
 
-**The kit has a shared part and one part per platform.** A repo opts in with the `driver-kit` topic;
-the wave targets nothing else. Shopify sites (topic `shopify-theme`) take `shopify-theme.yml` and
-standardise on `main` (Palmers: `main` plus `main-<country>`), each cut over from `develop`/`staging`
-repo by repo after the release; Vercel sites (topic `vercel-site`) keep `develop` and `main` and take
-`vercel-deploy.yml`; WordPress sites (topic `wordpress-site`) take the shared kit only. The wave and the
-audit keep each platform's files to its own repos: [`docs/branch-model.md`](docs/branch-model.md).
+- `lint.yml` (job `actionlint`, the required check on `main`): actionlint and shellcheck over the
+  reusables and the kit, the placeholder-pin guard, the `claude_args` tokenization and `prompt:` brace
+  checks, `DRIVER_AGENTS_REF` parity with `shopify-tool-smoke.yml`, and a schema check of the
+  `dependabot/` variants. It is a different file from the kit's `templates/github/lint.yml`, which
+  lints only the installing repo's own workflows; both use the job id `actionlint`.
+- `dependabot-auto-merge.yml`: auto-merges this repo's `github-owned` Dependabot bumps.
+  `claude-code-action` majors land by hand.
 
-**Not every repo takes the whole kit.** The wave refreshes only the kit files an enrolled repo already
-carries (plus the three installed beside `claude.yml`), so a repo that is not on the Bonsai → PR
-pipeline can install `lint.yml` alone and skip the rest as inert weight. A repo with none of the
-discovery files (`claude.yml`, `dependabot-validate.yml`, `claude-standards.md`, `lint.yml`, a
-platform stub) is not waved at all.
-[`driver-engineering-app`](https://github.com/DriverDigital/driver-engineering-app) runs `lint.yml` and the
-standards; [`driver-agents`](https://github.com/DriverDigital/driver-agents) adds `dependabot-validate` and
-`-keep-current`, but never `dependabot-report`, `claude.yml` or `pr-bonsai-link.yml` (it holds the
-whole-CRM Bonsai key, so no shared workflow gets its secrets). The wave only refreshes what a repo
-carries, so it never adds them. The trade-off is written up in `templates/github/README.md` under
-*Partial install*.
+`main` here requires `actionlint` and one approval, with `enforce_admins: false`: release commits are
+pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fleet-operations.md#branch-protection).
 
-**A kit-only addition does not need a tag or a wave.** `lint.yml` shipped without either, and that was
-correct: it changes no reusable, repins no stub, and carries no `uses: DriverDigital/workflows@<sha>` of
-its own, so nothing deployed had to move. Note the direction of the obligation — **cutting the tag is what
-creates the wave**, because the moment the latest tag moves the audit's reference check fires
-against every stub in `templates/` and they must be repinned and re-copied everywhere. Let a kit-only file
-ride along with the next release that actually changes a reusable.
+## How a repo takes the kit
 
-**`claude.yml` is a reusable** (2026-09-30), so an implementer change reaches the fleet as a repin, not a
-whole-file wave. The store handle is the `SHOPIFY_STORE_NAME` repository variable, so no kit file carries a
-per-repo value. Design and spike: [`docs/reusable-conversion-scope.md`](docs/reusable-conversion-scope.md).
+- **Topics decide everything.** `driver-kit` enrolls a repo; the wave touches nothing without it. A
+  platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files it may
+  carry, and a repo with two platform topics blocks the wave. The lists live in
+  `tools/kit-platforms.sh`; the standards and the per-repo cutover in
+  [`docs/branch-model.md`](docs/branch-model.md).
+- **Stubs pin by SHA.** Every `uses: DriverDigital/workflows/...@<sha> # vX.Y.Z` names the release in
+  its trailer. The pin and the trailer are one value and always move together.
+- **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
+  carries, installs `pr-bonsai-link.yml`, `claude-standards.md` and the `.claude/settings.json`
+  attribution keys wherever `claude.yml` is, and writes `.github/dependabot.yml` from the variant
+  `tools/kit-platforms.sh` picks. It never adds a platform stub; that arrives with the repo's cutover or
+  install commit.
+- **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
+  Dependabot also bumps the stub pins on a repo the wave skipped. It scans the default branch only.
+- **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit
+  file against the latest tag and `templates/`, and exits non-zero on any drift.
+- **Partial installs are normal.** A repo off the ticket pipeline can carry just `lint.yml` and the
+  standards (driver-engineering-app does). driver-agents carries no `claude.yml`, `dependabot-report`
+  or `pr-bonsai-link.yml`, to keep the dispatcher's repo separate from the rails it drives; the wave only
+  refreshes what a repo carries, so it never adds them.
 
-Two files in `.github/workflows/` are **this repo's own CI**, not products — they are `workflow_call`-free
-and never ship to the fleet: `lint.yml` (actionlint + shellcheck over the reusables *and* the kit, so a
-broken workflow can't reach consumer repos) and `dependabot-auto-merge.yml` (auto-merges this repo's own
-`github-owned` Dependabot bumps; the `claude-code-action` group is deliberately excluded, so those land by
-hand). Both are quiet below a major: every third-party action here and in the kit floats on its major
-tag, so a run already has each minor and patch, and `.github/dependabot.yml` ignores everything but majors.
+Install steps, the required checks and the multi-branch (Palmers) setup:
+[`templates/github/README.md`](templates/github/README.md). Wave mechanics and what the
+audit cannot see: [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
-**`actionlint` is a required status check on `main`** (set 2026-08-02) — before that, `lint.yml` could
-report red without being able to block. Note the name collision: this repo's own `lint.yml` and the kit's
-`templates/github/lint.yml` are **different files**. The kit one runs actionlint over the installing repo's
-`.github/workflows/` and nothing else; this one additionally lints `templates/github/`, gates on placeholder
-pins, asserts `claude.yml`'s system prompt still tokenizes, and checks `DRIVER_AGENTS_REF` matches in the
-reusable and `shopify-tool-smoke.yml`. Both use the job id `actionlint`, so the
-required-check context string is the same either way. `enforce_admins` stays **`false`** here, deliberately
-— which means an admin can still merge past a red `actionlint`. Requiring the check makes it binding for
-everyone else and puts a red X in front of an admin who previously had nothing to override; that was worth
-having on its own. Flipping the flag would break this repo's own release habit — six commits on `main`,
-`v1.9.0`'s included, were pushed directly with no PR. Detail in
-[`docs/fleet-operations.md`](docs/fleet-operations.md#branch-protection).
+## Release + repin order
 
-## The three identities
+Do the steps in order. A wave is safe only once all three are done.
 
-- **`claude[bot]`** — the implementer (Phase 2 `claude.yml`), distinct from any reviewer.
-- **`driver-digital-agents`** (the `AGENTS_GH_PAT` fine-grained PAT) — the agent-rail actor: `GH_TOKEN`
-  on every agent-acting `gh` step (the default `GITHUB_TOKEN` is used only where a post must not
-  cascade — `claude.yml`'s failed-run notice), `dependabot-report`'s comment/reviewer-request
-  identity, and the author of the dispatcher's issues and revise-loop `@claude` comments. It was the
-  reviewer on the retired review rails.
-- **Anthropic billing** — `CLAUDE_CODE_OAUTH_TOKEN` (Max). **Never set `anthropic_api_key`** (it overrides
-  OAuth and bills at API rates).
+1. **Merge to `main`, cut the tag and push it.** The wave reads the tag locally and the audit reads it
+   from GitHub, so an unpushed tag waves clean and then audits as stale everywhere.
+   - **If `DRIVER_AGENTS_REF` moved**, run the blockquote parity check first. Extract the `>` lines
+     from driver-agents `docs/agent-instructions-shopify.md` at the new pin, strip the `> ` prefixes,
+     NFC-normalize, **collapse whitespace**, and diff against the blockquote in the reusable
+     `claude.yml`'s `--append-system-prompt`. The collapse is required because the copy flattens one
+     paragraph break. Nothing else checks this: `lint.yml` proves only that the reusable and
+     `shopify-tool-smoke.yml` carry the same ref.
+2. **Repin every stub in `templates/github/`** to the tag's SHA and its `# vX.Y.Z` trailer in one sed,
+   then commit. A reusable added in this release gets its stub here: its tag is cut in step 1, so it
+   cannot be pinned earlier. `lint.yml` fails on a placeholder pin and `fleet-wave.sh` refuses an
+   unrepinned kit, so this step cannot be skipped silently.
+3. **Wave, then audit.** `tools/fleet-wave.sh --dry-run`, then for real: one direct `[skip ci]` commit
+   per branch. Then `tools/fleet-pin-audit.sh --stale` must report converged.
 
-All three secrets must be **org-level Actions secrets** available to each consuming repo.
+The wave writes every kit file whole from `templates/`, stubs included, so a deployed stub ends up
+byte-identical to the kit whatever SHA it held before. It never patches a file in place; the one merge is `.claude/settings.json`, where it writes only the
+kit's `attribution` keys.
 
-## The Dependabot security split (load-bearing)
+**A kit-only change needs no tag and no wave.** If no reusable changed and no pin moved, nothing
+deployed has to move, and the change rides with the next release. Cutting a tag is what creates the
+obligation to wave, because the audit compares every stub against the latest tag. The audit also
+compares each deployed kit file against `templates/`, so between a kit-only merge and the next wave
+it reports content drift on the changed files; that is expected and clears with the wave.
 
-`dependabot-validate` runs untrusted Dependabot code (install + PR-modifiable build) but holds **no
-secrets** — three independent layers: Dependabot forces a read-only token + no Actions secrets; the caller
-stub passes no `secrets:`; this reusable declares no `workflow_call.secrets`. `dependabot-report` holds the
-secrets but **never checks out PR head and never runs PR code** — its agent reads ONLY the inert artifact
-(`build.log`/`result.json`, never interpolated into a `run:` line) with a read/write-file-only tool surface
-(no `gh`), after a **provenance assertion** (event `pull_request`, actor `dependabot[bot]`, non-empty PR
-number, same-repo head). **Never use `pull_request_target`.**
+## Action refs
 
-## Consuming it (caller stubs)
+Nothing bumps a pin inside `templates/` (Dependabot scans only `.github/workflows/`), while a fleet
+repo's Dependabot bumps its deployed copy. So the reusables and the kit's whole-file workflows
+reference third-party actions by **major tag** (`actions/checkout@v7`,
+`anthropics/claude-code-action@v1`): each run resolves the latest minor and patch, and the only action
+bump that ever gets a PR is a new major. When one ships, bump the kit's major to match.
 
-Install the matching stubs from **this repo's `templates/github/`** into a repo's `.github/workflows/`.
-Pin every `uses:` of this repo's reusables to an **immutable commit SHA** (decided 2026-06-17); the wave repins them after
-each tag, with Dependabot as the backstop. The `dependabot-validate` stub's `name:` MUST stay byte-identical (`Dependabot validate`) across all
-repos — the `dependabot-report` stub's `workflow_run` trigger name-matches it exactly, and a drift silently
-disables the human-ping.
+Three refs stay manual: the `DriverDigital/workflows` stub pins (the wave), `DRIVER_AGENTS_REF` (a raw
+SHA in `env:`, identical in the reusable `claude.yml` and `shopify-tool-smoke.yml`), and the actionlint
+`VERSION` + `SHA256` pair in `lint.yml`, which move together.
 
-### Per-repo validation override (target repo: `.github/agent-validate.json`)
+## Identities and secrets
+
+- **`claude[bot]`** (the Claude GitHub App, installed org-wide) implements: it authors branches,
+  commits and PRs.
+- **`driver-digital-agents`** (`AGENTS_GH_PAT`) dispatches: it authors the dispatcher's issues and
+  revise-loop `@claude` comments, `dependabot-report`'s verdict and reviewer request, and
+  `dependabot-keep-current`'s rebase requests. The implementer uses it only in its store-provisioning step, to clone driver-agents and read the
+  issue for the audit's ticket context.
+  The implementer's actor gate keys on this split, so keep the two apart.
+- **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
+  is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, and
+  this repo's `dependabot-auto-merge.yml`.
+
+Org-level Actions secrets, visible to every repo, so a new repo needs no secret setup:
+`CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET`,
+`SHOPIFY_ALERT_WEBHOOK` and `BONSAI_API_KEY` (the dispatcher's). Store repos add their own store
+secrets and the `SHOPIFY_STORE_NAME` variable (kit README, install step 2). **Never set
+`anthropic_api_key`**: it overrides the OAuth token and bills at API rates.
+
+## The Dependabot security split
+
+`dependabot-validate` runs untrusted Dependabot code (install and a PR-modifiable build) and holds **no
+secrets**, by three independent layers: Dependabot forces a read-only token and no Actions secrets, the
+stub passes no `secrets:`, and the reusable declares none.
+
+`dependabot-report` holds the secrets and **never checks out or runs PR code**. It first asserts
+provenance (event `pull_request`, actor `dependabot[bot]`, a PR number, a same-repo head, and a
+validate run that succeeded or failed rather than cancelled), then its agent reads only the inert
+artifact (`build.log`, `result.json`, `registry.json`) with `Read`, `Glob`, `Grep` and `Write` and no
+`gh`. Artifact content is never interpolated into a `run:` line. **Never use `pull_request_target`.**
+
+The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
+`dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the reviewer
+request. The reviewer is `mcarter-astronautdev` unless the repo sets the `PR_REVIEWER_HANDLE` variable.
+
+### Per-repo validation override (`.github/agent-validate.json`)
 
 ```json
 {
@@ -608,32 +205,21 @@ disables the human-ping.
 }
 ```
 
-All keys optional. Defaults: Node from `.nvmrc`, else `package.json` (`volta.node`, then `engines.node`),
-else the runner's default; package manager from the lockfile (**npm** is the house default);
-`build`/`test` run only if those `package.json` scripts exist; `themeCheck`/`dev` run only if configured.
+All keys are optional. Node comes from `.nvmrc`, else `package.json` (`volta.node`, then
+`engines.node`), else the runner's default. The package manager comes from the lockfile (`pnpm`,
+`yarn`, else npm, the house default). `build` and `test` run only if those `package.json` scripts
+exist unless the override sets them; `themeCheck` and `dev` run only if configured.
 
-## Reviewer handoff
+## Required checks
 
-Retired with the review rails at v1.12.0 — nothing here reassigns a Bonsai task or requests a reviewer
-*on review completion* any more; the status moves are a PM's job until the Macroscope→Bonsai
-integration lands. The implementer requests no GitHub reviewer: since 2026-09-11 the dispatcher
-(driver-agents) assigns the reviewer in Bonsai when the PR reaches Internal Review, and that assignment is
-the review request.
-The bridge server that carried `/tasks/reviewer-handoff` is retired too; what replaces it for that
-build — the Bonsai public API, and the reviewer read off the issue body instead of the Reviewer
-field — is in [`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
-`dependabot-report` still requests a human reviewer on Dependabot PRs (default `mcarter-astronautdev`,
-per-repo override via the `PR_REVIEWER_HANDLE` Actions **variable**).
+The `dependabot-validate` job **always runs and branches internally**; never `if:`-skip it. A caller
+job skipped by `if:` never starts the reusable, so the nested `validate / validate` context is never
+created, and a required context with no check run for the head commit blocks the merge forever.
+GitHub does accept a check run that concludes `skipped`; what matters is whether a check run exists for
+the head SHA.
 
-## First-run / required-check
-
-The `dependabot-validate` job **always runs and branches internally** (non-Dependabot PRs no-op green), and
-must never be `if:`-skipped. The mechanism is worth stating precisely, because the intuitive version is
-wrong: GitHub *does* accept a check run whose conclusion is `skipped`. The problem is that `if:`-skipping
-the **caller** job means the reusable never starts, so the nested `validate / validate` context is never
-created at all — and a required context with **no check run** for the head commit blocks forever. Reason
-about whether a check run exists for the head SHA, not about the word "skipped".
-After the first run on a test PR: pin the **exact required-check context GitHub reports** — for a
-reusable-workflow job it is `<caller-job-id> / <reusable-job-id>`, expected **`validate / validate`** (the
-workflow display name is NOT part of the context; copy the literal string from the first run's checks list).
-Require a **human** approver (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
+After the first run on a test PR, require the **exact context GitHub reports**: a reusable job reports
+`<caller-job-id> / <reusable-job-id>` (`validate / validate`), and the workflow's display name is never
+part of it. Turn on **require branches to be up to date before merging** with it: every repo
+requires it, and strict only applies against required checks. Also require a **human** approver (e.g. CODEOWNERS),
+so no bot signal satisfies the merge gate. Which checks a partial install should require: kit README, install step 5.

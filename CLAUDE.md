@@ -7,46 +7,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Read first
 
 - `docs/HANDOFF.md` — state of play, open decisions, what the next session should do.
-- The open `todo` issues on this repo — the to-dos (the driver-skills hook lists them at session
-  start; `gh issue list --label todo`). Re-list before a wave; another session may have filed since.
-- `README.md` — the full conventions and the dated release history. This file is the subset an
-  agent breaks by accident; README is the authority where they overlap.
+- The open `todo` issues on this repo (`gh issue list --label todo`; the driver-skills hook lists
+  them at session start). Re-list before a wave; another session may have filed since.
+- `README.md` — what this repo is, where it sits in the pipeline, how the kit and releases work.
+  This file is the subset an agent breaks by accident; README is the authority where they overlap.
+  The kit's install steps: `templates/github/README.md`.
 
 ## What this is
 
-The public home of Driver's Bonsai→GitHub pipeline workflows and platform CI/CD standards. Two products
-live here:
+The GitHub side of Driver's agentic pipeline: the reusable workflows in `.github/workflows/` (the
+implementer `claude.yml`, three Dependabot rails, one rail per hosting platform) and the onboarding
+kit in `templates/github/` that fleet repos install. `driver-agents` (private) holds the dispatcher
+that feeds the implementer and the canonical Shopify instructions it runs with. README,
+*Where it sits in the pipeline*, has the whole picture.
 
-- **Reusables** in `.github/workflows/` — `workflow_call`-only: `claude.yml` (the implementer), the
-  three Dependabot rails (`dependabot-validate` / `-report` / `-keep-current`), and one per platform:
-  `shopify-theme.yml` and `vercel-deploy.yml`. The two review rails
-  retired at v1.12.0 were deleted 2026-09-30; any tag through `v1.16.0` still holds them.
-- **The onboarding kit** in `templates/github/` — what fleet repos copy into `.github/workflows/`:
-  six caller stubs pinning a reusable by immutable SHA (`claude.yml`, the Dependabot three, and the
-  platform stubs `shopify-theme.yml` and `vercel-deploy.yml`), plus
-  three whole-file workflows (`shopify-tool-smoke.yml` on `shopify-theme` repos only, `lint.yml`,
-  `pr-bonsai-link.yml` beside `claude.yml`) and `pull_request_template.md` and `claude-standards.md`
-  (both live at `.github/`; the wave carries them and installs `claude-standards.md` beside `claude.yml`; the `@` import in each repo's `CLAUDE.md` is by hand), `claude-settings.json` (its attribution keys merged into the repo's `.claude/settings.json` beside `claude.yml`; the repo owns every other key) and `dependabot/` (whole-file variants of `.github/dependabot.yml`; the wave writes one to every target, picked per repo by `tools/kit-platforms.sh`).
-  Kit install conventions: `templates/github/README.md`. Repo topics decide who gets what:
-  `driver-kit` opts a repo in, `shopify-theme` / `vercel-site` add that platform's files, `wordpress-site` adds none
-  (`tools/kit-platforms.sh`; the standards and the per-repo cutover: `docs/branch-model.md`).
-
-PR review is Macroscope's, org-wide (Maria, 2026-09-12): Claude reviews a PR only when a person `@claude`s it
-(optionally naming `/code-review`). The implementer's own `/code-review` pass before it opens a PR is
-implementing, not PR review — keep it. Never add an automatic Claude review of an opened PR —
-`docs/macroscope-integration-scope.md`.
-
-Two more files in `.github/workflows/` are this repo's own CI, not products: `lint.yml` and
+Two files in `.github/workflows/` are this repo's own CI, not products: `lint.yml` and
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
 different files** with the same name and the same job id `actionlint` (the required-check context).
 
-The Macroscope revise loop lives in the driver-agents dispatcher, which summons the implementer with a
-plain tag-mode `@claude` (driver-agents spec 2026-09-18 §3, §9). The actor carve-out that admits
-`driver-digital-agents` is what the loop runs through — keep it.
-
-Sibling repo: `driver-agents` (private; the dispatcher, plus the canonical Shopify instructions
-pinned by `DRIVER_AGENTS_REF`) — README, *How the repos fit together*. `driver-bonsai-mcp`, the
-dispatcher until 2026-09-10, was archived 2026-09-11 — every mention of it is history.
+PR review is Macroscope's, org-wide. Claude reviews a PR only when a person `@claude`s it. The
+implementer's own `/code-review` pass before it opens a PR is implementing — keep it. Never add an
+automatic Claude review of an opened PR.
 
 ## Commands
 
@@ -57,16 +38,16 @@ brew install actionlint shellcheck jq         # CI pins actionlint 1.7.12 (VERSI
 SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color                         # globs .github/workflows/
 SHELLCHECK_OPTS='--exclude=SC2015' actionlint -color templates/github/*.yml  # kit; the dependabot/ variants are not workflows
 grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/              # must print nothing (placeholder-pin guard)
+pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/github/dependabot/*.yml
 ```
 
-Two more CI checks: the prompt survives tokenization (the python step at
+`lint.yml` also checks that the prompt survives tokenization (the python step at
 `.github/workflows/lint.yml:74`; run it verbatim, needs PyYAML, after any edit to the reusable
-`claude.yml`'s `claude_args` or `prompt:`), and `DRIVER_AGENTS_REF` matches in the reusable and
-`shopify-tool-smoke.yml` (the step after it). Those check the first and third invariants below; the rest
-are unenforced, and the blockquote parity check in particular is by hand at release time.
+`claude.yml`'s `claude_args` or `prompt:`) and that `DRIVER_AGENTS_REF` matches in the reusable and
+`shopify-tool-smoke.yml`. The blockquote parity check is by hand at release time.
 
-Fleet tools (both work through `gh api`, no clones; the audit needs only authenticated `gh`, the wave
-also `jq` + `actionlint`):
+Fleet tools (both work through `gh api`, no clones; both need authenticated `gh` and `jq`, the wave
+also `actionlint`):
 
 ```sh
 tools/fleet-pin-audit.sh            # full drift report; --stale for drifted rows only; non-zero on any drift
@@ -76,21 +57,16 @@ tools/fleet-wave.sh                 # every driver-kit repo — only from a clea
 tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commit message
 ```
 
-## Releasing — the order is load-bearing
+## Releasing
 
-1. Merge to `main`, cut the tag **and push it** — the wave reads the tag locally (`git describe`),
-   the audit reads it from GitHub, so an unpushed tag waves clean and then reports everything stale.
-   If `DRIVER_AGENTS_REF` moved, run the blockquote parity check first (README, release-order
-   step 1) — nothing else re-checks it.
-2. Repin every stub in `templates/github/` to the tag's SHA **and** its `# vX.Y.Z` trailer (one sed;
-   they are one pin). `lint.yml` fails on a placeholder pin; `fleet-wave.sh` refuses an unrepinned kit.
-3. `fleet-wave.sh --dry-run`, then for real — one direct `[skip ci]` commit per branch, not PRs —
-   then `fleet-pin-audit.sh --stale` must report converged.
+Follow README *Release + repin order*; the order is load-bearing. The two traps:
 
-A kit-only change (no reusable touched, no pin moved) needs no tag and no wave; it rides with the next
-release. Cutting a tag is what creates the obligation to wave. A new reusable's stub lands in step 2 of
-the release that tags it, not in the PR that adds the reusable. Full detail and the v1.11.0 stub-conversion
-caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/fleet-operations.md`.
+- **Push the tag.** The wave reads it locally (`git describe`) and the audit reads it from GitHub, so
+  an unpushed tag waves clean and then audits as stale everywhere.
+- **If `DRIVER_AGENTS_REF` moved, run the blockquote parity check first.** Nothing else checks it.
+
+A new reusable's stub lands in step 2 of the release that tags it, never in the PR that adds the
+reusable. A kit-only change needs no tag and no wave. Wave mechanics: `docs/fleet-operations.md`.
 
 ## Invariants that fail silently
 
@@ -104,20 +80,24 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   `All Shopify Admin API calls go through`; everything before it (conduct block, quality standard, and
   the lead-in that un-scopes the tripwire from them) is ours and must survive the re-copy. Parity
   is checked with whitespace collapsed (the copy flattens one paragraph break).
-- `DRIVER_AGENTS_REF` lives in the reusable `claude.yml` **and** the kit's `shopify-tool-smoke.yml`; same
-  SHA in both (lint-checked), or the smoke test verifies a revision the implementer never runs. The
-  store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store tooling.
-  Dependabot cannot bump the ref: a raw SHA in `env:`, and it scans only `.github/workflows/`, never `templates/`. That is also why the kit's
-  whole-file workflows reference third-party actions by major tag (`@v1`, `@v7`) — a SHA there is a
-  pin nothing bumps while a fleet repo's Dependabot bumps its copy when the action releases. The
-  reusables float the same way; majors are the only action bumps that get a PR anywhere.
+- `DRIVER_AGENTS_REF` is a raw SHA in `env:` that no bot bumps, identical in the reusable `claude.yml`
+  and the kit's `shopify-tool-smoke.yml`, or the smoke test verifies a revision the implementer never
+  runs. The store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no
+  store tooling.
+- Third-party actions float on their major tag in the reusables and the kit (README, *Action refs*).
+  A SHA in `templates/` is a pin nothing bumps.
+- Stubs pin this repo's reusables by immutable SHA, never a moving `@v1`: a moved tag would reach every
+  store-secret repo with no canary, and the audit's convergence check and `--only` canaries depend on
+  the pin.
 - `dependabot-validate` stub `name:` stays byte-identical (`Dependabot validate`) — `-report`'s
   `workflow_run` name-matches it. The job always runs and branches internally; never `if:`-skip it.
 - `templates/github/claude-standards.md` is style only — never permissions, tool rules or hooks. On a PR
   run claude-code-action restores `CLAUDE.md` and `.claude/` from the base branch but not `.github/`, so
-  the `@` import resolves to the PR head's copy and a collaborator's branch can change what the protected
-  file loads (Avara #226, 2026-10-01; accepted by decision). Load-bearing rules go in `CLAUDE.md` or `.claude/`.
+  the `@` import resolves to the PR head's copy and a collaborator's branch can change what it loads.
+  Load-bearing rules go in `CLAUDE.md` or `.claude/`.
 - Never `pull_request_target`. Never set `anthropic_api_key` (overrides OAuth, bills at API rates).
+- Never pass the action a `github_token` as a fallback for a failed App token exchange: the PR author
+  becomes `driver-digital-agents` instead of `claude[bot]`, and the identity split below breaks.
 - The `claude.yml` reusable's `actions/checkout` keeps `persist-credentials` at default —
   claude-code-action's early fetch 403s on a private repo without it. The Dependabot reusables' checkouts
   set it `false` on purpose.
@@ -126,7 +106,8 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
 - The `claude.yml` stub grants all five permissions and passes `secrets: inherit`. The reusable can
   only narrow permissions (without `id-token: write` no App token mints), and an explicit secrets map that forgot
   the org-level `SHOPIFY_ALERT_WEBHOOK` switches destructive-call alerts off on a green run. The
-  reusable's job-level `if:` is the actor gate; the stub's is a coarse `@claude` filter that keeps
+  reusable's job-level `if:` is the actor gate, with its logins and ids literal in the reusable, never
+  `workflow_call` inputs a caller could widen; the stub's is a coarse `@claude` filter that keeps
   a fork PR's comments from loading the reusable (a call is validated before its gate runs) and
   keeps skipped runs out of the job-level concurrency group.
 - The reusable's "Trusted authors" step is the prompt-injection defense: only collaborators,
@@ -136,23 +117,24 @@ caveats: README "Release + repin order"; wave mechanics and fleet counts: `docs/
   the run when the collaborator list cannot be read — never fall back to an empty filter, which
   includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
-  default token: `claude.yml`'s failed-run notice (posts as github-actions[bot] so it cannot re-trigger
-  the workflow) and its no-PR check, and this repo's `dependabot-auto-merge.yml`.
+  default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
+  as github-actions[bot] so it cannot re-trigger the workflow), and this repo's
+  `dependabot-auto-merge.yml`.
 - The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
   `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`
   re-runs it on itself.
 - Two identities, and the split is load-bearing: `claude[bot]` implements and authors PRs,
   `driver-digital-agents` dispatches, summons and authors issues. The actor gate and driver-agents'
-  `dispatch.sh` guards both key on it.
+  `dispatch.sh` guards both key on it, and the dispatcher's revise loop runs through the gate's
+  `driver-digital-agents` carve-out — keep it.
 - Never write the skip-ci token in a commit message that isn't meant to skip CI — GitHub scans the
   whole message, and a PR with *no* check runs looks healthy.
 - Branch protection: `PATCH` the subresource; a `PUT` replaces the whole object and drops the
-  approval rule. This repo keeps `enforce_admins: false` and is pushed to directly on purpose.
+  approval rule (creating a missing status-check rule needs one: carry every field over and diff). This repo keeps `enforce_admins: false` and is pushed to directly on purpose.
 - A platform file (`tools/kit-platforms.sh`) never goes to a repo whose topic names another platform
   or none, nothing goes to a repo without `driver-kit`, and a repo with more than one platform topic
-  blocks the wave. The wave enforces all three; the audit reports a misplaced platform file as drift
-  and lists an unenrolled repo's kit files apart, never failing on them. A new platform file must be
-  added to the list there, or neither sees it.
+  blocks the wave. A new platform file must be added to the list there, or neither the wave nor the
+  audit sees it.
 - No wave runs while a Shopify repo is mid-cutover: the wave reads `default_branch` live.
 - A new fleet rail that shares `claude.yml`'s trigger wakes a real implementer run on a client repo;
   pilot on the PR leg (`docs/fleet-operations.md` → "Piloting a cross-repo reusable").
