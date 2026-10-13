@@ -6,6 +6,12 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
+- **This session's PR** (branch `readme-present-tense`) rewrites every doc in the present tense, deletes
+  the three finished scope docs, and fixes `dependabot-auto-merge.yml` (squash is off here, so it merges
+  with a merge commit). The `claude.yml` change is a comment only.
+- **#95** is narrowed to one Figma paragraph in the implementer prompt; navigation facts live in
+  driver-agents#64. Ship it, and #96 once its claims are verified, with the tag #94 needs.
+
 - **Unreleased on `main`, riding the next wave:** the `templates/github/dependabot/` variants (the
   wave writes `.github/dependabot.yml` fleet-wide for the first time) and #94's validate change once
   it merges. `fleet-pin-audit.sh --stale` shows the `dependabot.yml` rows, plus driver-agents' stale
@@ -28,6 +34,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Blocked or gated
 
+- **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge,
+  driver-agents and driver-engineering-app enforce it today. First confirm every targeted branch
+  reports the required check; a required context with no run blocks every merge.
+
 - **LittleMe's cutover pilot** waits on driver-agents #53 (point its map entry at `main`).
 - **Driver-Horizon's cutover** waits on Driver-Horizon #10 (a theme check error).
 - **Driver-Digital-Website's Vercel install** needs `VERCEL_TEAM_LOGINS` set first.
@@ -42,13 +52,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Open decisions
 
-- **Require branches to be up to date before merging, fleet-wide.** Every repo should, and most kit
-  branches do not. Strict only bites with at least one required check: classic protection stores
-  `strict` with no contexts but enforces nothing, and a ruleset's `required_status_checks` rule needs
-  at least one check. Today only workflows, indie-ridge, driver-agents and driver-engineering-app
-  enforce it. Decide between an org ruleset (no org rulesets exist; it adds to classic protection, and
-  repos without the shared check block until they carry it) and per-repo `PATCH`es
-  ([`fleet-operations.md`](fleet-operations.md#branch-protection)).
 - **Shared workflows on driver-agents.** It carries a partial kit, for separation of concerns only.
   Recommendation: add `dependabot-report` so its Dependabot PRs can qualify for #85 auto-merge. Add
   `claude.yml` + `pr-bonsai-link.yml` only if tickets should reach driver-agents.

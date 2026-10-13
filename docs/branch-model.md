@@ -50,7 +50,7 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 Every long-lived branch, on every platform, requires branches to be up to date before merging
 (`required_status_checks.strict: true`). Strict compares only against required checks, so it does
 nothing on a branch with none: set it together with at least one required check (kit README, install
-step 5). Enforcing it with an org ruleset or per repo is an open decision. How to set it per repo:
+step 5). One org ruleset will enforce it (#99). Until then, how to set it per repo:
 [fleet operations](fleet-operations.md#branch-protection).
 
 An enrolled repo with no platform topic gets the shared kit only, as the tool repos do. The-Gathery

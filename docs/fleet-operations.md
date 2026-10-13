@@ -157,5 +157,5 @@ check still blocks everyone else, and puts a red X in front of the admin.
 This repo's `main` meets the standard (`actionlint`, strict, one approval).
 
 **The gap:** most kit branches lack strict with a required check, and a few have no protection or no
-human approver. Enforcing the standard fleet-wide, by org ruleset or per repo, is an open decision;
+human approver. One org ruleset will enforce the up-to-date rule fleet-wide (#99);
 the current state is in [`HANDOFF.md`](HANDOFF.md).
