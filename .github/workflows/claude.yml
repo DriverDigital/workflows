@@ -467,9 +467,9 @@ jobs:
           # (bearer FIGMA_MCP_SECRET), proven by driver-agents figma-mcp-smoke.yml. Inline JSON, never
           # a file path — tag mode prepends its own inline --mcp-config and drops a path. It reads node
           # JSON from Driver-plan files only (client-owned files 403) and never offers writes. No
-          # rendered image reaches the model until a canary proves figma_get_image does, so triage
-          # still puts what the implementer needs in the issue body (docs/figma-mcp-in-ci.md). With
-          # the secret unset the server rejects the call and the run proceeds without Figma.
+          # rendered image reaches the model until a canary proves figma_get_image does; the issue
+          # links the ready-for-dev frame (docs/figma-mcp-in-ci.md). With the secret unset the
+          # server rejects the call and the run proceeds without Figma.
           # MODEL/EFFORT: `fable` ALIAS (not a pinned id) so the implementer drifts to the latest Fable
           # with the CLI; `--effort xhigh` (valid: low/medium/high/xhigh/max). The issue-path prompt
           # also DIRECTS the implementer to decompose large/multi-file tasks and dispatch parallel
