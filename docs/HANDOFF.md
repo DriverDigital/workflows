@@ -79,7 +79,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
   `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether
   a Sanity publish fires a deploy hook on any site: if one does, published content waits for a
-  promotion. Confirm auto-assign is still off after the first promotion and the first rollback.
+  promotion. Confirm auto-assign stays off after the first promotion, and turn it off again after undoing a
+  rollback.
 
 ## Next steps
 

@@ -36,7 +36,7 @@ A repo takes the kit only with the `driver-kit` topic. Its platform topic, `shop
 `vercel-site` or `wordpress-site` (no platform files), decides which of these it may carry; the
 wave never writes one to a repo of another platform or of none (`tools/kit-platforms.sh`). The wave
 refreshes a platform stub only where a repo already carries it; the first copy comes from the repo's
-cutover or install commit. The standards, the cutover and the install steps:
+canary or cutover commit. The standards and the cutover steps:
 [`../../docs/branch-model.md`](../../docs/branch-model.md).
 
 | File | Platform | Rail |
@@ -139,7 +139,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
    it replaces what a branch already carries, and installs `pr-bonsai-link.yml`, `claude-standards.md`
    and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
-   it cannot do). A platform's stubs come from its cutover or install commit (`../../docs/branch-model.md`).
+   it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
    skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
    Palmers' country branches carry it too ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)

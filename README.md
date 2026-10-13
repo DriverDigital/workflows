@@ -100,8 +100,8 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
   carries, installs `pr-bonsai-link.yml`, `claude-standards.md` and the `.claude/settings.json`
   attribution keys wherever `claude.yml` is, and writes `.github/dependabot.yml` from the variant
-  `tools/kit-platforms.sh` picks. It never adds a platform stub; that arrives with the repo's cutover or
-  install commit.
+  `tools/kit-platforms.sh` picks. It never adds a platform stub; that arrives with the repo's canary or
+  cutover commit.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
   Dependabot also bumps the stub pins on a repo the wave skipped. It scans the default branch only.
 - **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit

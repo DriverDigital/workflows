@@ -44,7 +44,7 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
 | Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
 | Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | `vercel-deploy.yml` → reusable `vercel-deploy.yml` |
-| What it deploys | PR preview `DRIVER/<head branch>`: checked while draft, pushed when ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. PR previews come from Vercel's GitHub app. |
+| What it deploys | PR preview `DRIVER/<head branch>`: checked while draft, pushed when ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. PR previews come from Vercel's GitHub app, for authors on the Vercel team only, so the implementer's PRs get none. |
 | Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | `VERCEL_DEPLOY_HOOK_MAIN` |
 | Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | `VERCEL_TEAM_LOGINS`, per repo: space-separated GitHub logins with a seat on that project's Vercel team. When it's unset, `mcarter-astronautdev` alone is used |
 
@@ -52,8 +52,8 @@ On Vercel, `main` stays the project's production branch with "Auto-assign Custom
 Domains" off (Settings → Environments → Production). A push builds with production environment
 variables and data, which is what staging should show, and its own deployment URL is the staging
 link. Promoting it (the deployment's Promote action, or `vercel promote <url>`) puts that exact build
-live without rebuilding. An Instant Rollback and its undo both change the auto-assign setting, so
-confirm it is still off after either.
+live without rebuilding. Undoing an Instant Rollback (Undo Rollback, or `vercel promote` during a
+rollback) turns auto-assign back on; turn it off again right after.
 
 Every long-lived branch, on every platform, requires branches to be up to date before merging
 (`required_status_checks.strict: true`). Strict compares only against required checks, so it does
@@ -159,11 +159,16 @@ have its own.
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
      no `CLAUDE.md` (Kissy-Kissy, LittleMe, R-Finds) has its own to-do
 7. **Check that it worked, and set protection.**
-   - Shopify: the push run updated `DRIVER/main`, and a ready PR deploys its preview.
+   - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
+     deploys its preview.
    - Vercel: the push staged a build and the production domain still serves the previous
-     deployment. Promote once, then confirm auto-assign is still off.
+     deployment. A push by a login in `VERCEL_TEAM_LOGINS` skips the hook, so fire
+     `VERCEL_DEPLOY_HOOK_MAIN` once by hand and confirm Vercel stages that build too. Promote once,
+     then confirm auto-assign is still off.
    - The open PRs target `main`.
-   - `main` requires one review, the rule `develop`/`staging` carried.
+   - `main` requires one review. The rename carries `develop`'s or `staging`'s rule over; set it
+     where none came across (Team-Laird, whose `develop` is unprotected, and every repo already on
+     `main` that lacks it, Palmers' `main*` branches included).
    - `main` requires at least one check and up-to-date branches ([The standards](#the-standards)).
      The rename carries `develop`'s protection over, so a branch that lacked strict still lacks it.
      On Palmers, set it on every `main*` branch.
@@ -173,7 +178,7 @@ have its own.
    `-M` replaces it:
    `git fetch --prune origin && git branch -M <develop|staging> main && git branch -u origin/main main && git remote set-head origin -a`
 
-**foundrae-blackridge also needs:**
+**foundrae-blackridge also needs,** all before step 6 and the integration disconnect before step 3:
 - Its store secrets exist both at repo level and in the `staging` and `dev-staging` environments.
   Confirm the repo-level values point at the same store as `staging`'s, then leave
   `SHOPIFY_ENVIRONMENT_PER_BRANCH` unset. If they don't match, create a `main` environment holding
