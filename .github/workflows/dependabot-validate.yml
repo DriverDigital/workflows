@@ -117,7 +117,9 @@ jobs:
                     fi;;
             esac
           fi
-          runstep install "$INSTALL"
+          # A theme with no package.json has nothing to install; its PRs bump only workflow actions.
+          if [ -n "$(cfg install)" ] || [ -f package.json ]; then runstep install "$INSTALL"
+          else echo "no package.json — skipping install" | tee -a "$LOG"; fi
 
           BUILD="$(cfg build)"
           if [ -n "$BUILD" ]; then runstep build "$BUILD"
