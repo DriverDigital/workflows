@@ -94,7 +94,7 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   file against the latest tag and `templates/`, and exits non-zero on any drift.
 - **Partial installs are normal.** A repo off the ticket pipeline can carry just `lint.yml` and the
   standards (driver-engineering-app does). driver-agents carries no `claude.yml`, `dependabot-report`
-  or `pr-bonsai-link.yml`, because its repo secrets must never reach a shared workflow; the wave only
+  or `pr-bonsai-link.yml`, to keep the dispatcher's repo separate from the rails it drives; the wave only
   refreshes what a repo carries, so it never adds them.
 
 Install steps, the required checks and the multi-branch (Palmers) setup:

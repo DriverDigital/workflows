@@ -10,8 +10,8 @@ name: Dependabot auto-merge (GitHub-owned actions)
 # Uses only the built-in `gh` CLI (no external action) so it is not subject to
 # the allowed-actions allowlist. The approval counts because the repo has
 # "Allow GitHub Actions to create and approve pull requests" enabled; auto-merge
-# completes because the repo has auto-merge enabled (there are no required status
-# checks to wait on).
+# lands the PR once the required `actionlint` check passes. A merge commit, since
+# the repo allows no squash.
 
 on: pull_request
 
@@ -33,4 +33,4 @@ jobs:
           PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
           gh pr review --approve "$PR_URL"
-          gh pr merge --auto --squash "$PR_URL"
+          gh pr merge --auto --merge "$PR_URL"

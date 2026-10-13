@@ -157,8 +157,8 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    the rest is inert weight. `driver-engineering-app` runs both; the wave finds a branch by either
    file. Add Dependabot stubs if and when such a repo turns Dependabot on. `driver-agents` carries
    `lint.yml`, the standards, `dependabot-validate.yml` and `dependabot-keep-current.yml`, and
-   deliberately no `dependabot-report.yml`, `claude.yml` or `pr-bonsai-link.yml`: its repo secrets
-   must never reach a shared workflow. The wave never adds them, since it only refreshes what a repo
+   no `dependabot-report.yml`, `claude.yml` or `pr-bonsai-link.yml`, to keep the dispatcher's repo
+   separate from the rails it drives. The wave never adds them, since it only refreshes what a repo
    carries (and installs beside `claude.yml`, which it lacks).
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
@@ -205,10 +205,10 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   Palmers India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The
   dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
   dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. A Repo
-  directive in the ticket can override the map's repo, but only for a repo that has `claude.yml`; it
-  takes the branch that repo's map entries agree on (`main` for a repo with none). Where the entries
-  disagree (Palmers), the ticket must name the branch itself (`branch: main-ca`), or the dispatcher
-  hands it to a person.
+  directive in the ticket can override the map's repo, but only for a repo that has `claude.yml`.
+  On a repo with several entries, the client picks the branch: a Palmers Morocco ticket is
+  `main-ma`. A `branch:` line on the ticket overrides it, and the dispatcher hands a ticket to a
+  person only when nothing pins the branch.
 - **Don't flag a project whose branch doesn't exist yet.** A `branch` must be a real branch in the
   repo before the project is `"pipeline": "github"` — otherwise the implementer can't branch from it.
 
