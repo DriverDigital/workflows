@@ -1,9 +1,16 @@
-# Handoff — 2026-10-09
+# Handoff — 2026-10-12
 
 State of play for the next session. Conventions, how-tos and release history live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md).
 
 ## Where things stand
+
+2026-10-12: **indie-ridge and savannahfriedkin carry the shared kit** (#93): one direct commit to each
+`main` at v1.19.0, topics `driver-kit` + `shopify-theme`. Their Shopify cutover (stub in, `Feature-*` and
+`Staging-Deploy` out) rides with #91. Neither has a root `package.json`, so Dependabot validate failed
+on their first PRs until this branch's fix ships; it needs a tag and a wave. indie-ridge's own
+`Feature-Deploy` and `Staging-Deploy` carry three info-level SC2086 findings, so its `lint.yml` reads
+red until the cutover deletes them.
 
 2026-10-09, later: **#89 and #63 are merged, unreleased and unwaved.** The wave now writes
 `.github/dependabot.yml` from a `templates/github/dependabot/` variant (actions, npm,
@@ -13,7 +20,7 @@ the next wave carries both (run it with `--message`, since the default names v1.
 the audit shows every target on its variant. #64 (close-on-merge off the default branch) is
 deferred: Palmers' country branches are separate live sites and nobody else needs it. #83: the
 import PRs are open on LaPointe #149, Palmers #124, Driver-Digital-Website #179, studio-sulzer #65,
-client-workspaces #7, savannahfriedkin #16 and Driver-Horizon #11; the six repos without a
+client-workspaces #7 and Driver-Horizon #11 (savannahfriedkin's landed in its kit install); the six repos without a
 `CLAUDE.md` each have a to-do (Maria runs `/init` there). Close #83 once those land.
 
 2026-10-09: **v1.19.0 is released and waved** (#87; 22 targets, then driver-agents as the 23rd once

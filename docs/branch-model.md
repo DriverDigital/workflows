@@ -29,7 +29,7 @@ Set 2026-10-09:
 
 | Topics | Repos |
 |---|---|
-| `driver-kit` + `shopify-theme` | Avara, foundrae-blackridge, LaPointe, Kissy-Kissy, LittleMe, Palmers, R-Finds, savannahfriedkin, Driver-Horizon, Anduril-Gear |
+| `driver-kit` + `shopify-theme` | Avara, foundrae-blackridge, LaPointe, Kissy-Kissy, LittleMe, Palmers, R-Finds, savannahfriedkin, Driver-Horizon, Anduril-Gear, indie-ridge (2026-10-12) |
 | `driver-kit` + `vercel-site` | Team-Laird, Driver-Digital-Website, studio-sulzer |
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
@@ -83,7 +83,7 @@ Elsewhere:
 **Repos to cut over:** Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds (from `develop`), and
 foundrae-blackridge (from `staging`).
 
-**Already on `main`:** Palmers, savannahfriedkin, Driver-Horizon and Anduril-Gear. They take steps 1,
+**Already on `main`:** Palmers, savannahfriedkin, indie-ridge, Driver-Horizon and Anduril-Gear. They take steps 1,
 5 and 6 only: step 5's commit deletes their `Feature-*` and `Staging-Deploy` files, and on Palmers it
 lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first.
 
