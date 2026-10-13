@@ -9,7 +9,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 
 | File | Goes to | Does |
 |---|---|---|
-| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body. A PR that never mentions `hellobonsai.com` is skipped (grey, never red — most human PRs have no ticket); one that does must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
+| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, branches and PRs, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
@@ -33,7 +33,7 @@ place the version is recorded.
 ### Platform stubs (one platform each)
 
 A repo takes the kit only with the `driver-kit` topic. Its platform topic, `shopify-theme`,
-`vercel-site` or `wordpress-site` (no platform files yet), decides which of these it may carry; the
+`vercel-site` or `wordpress-site` (no platform files), decides which of these it may carry; the
 wave never writes one to a repo of another platform or of none (`tools/kit-platforms.sh`). The wave
 refreshes a platform stub only where a repo already carries it; the first copy comes from the repo's
 cutover or install commit. The standards, the cutover and the install steps:
@@ -48,8 +48,8 @@ cutover or install commit. The standards, the cutover and the install steps:
 **PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org,
 and the dispatcher's revise loop answers its findings. Claude reviews a PR only when a person
 `@claude`s it (optionally naming `/code-review`); the implementer's own `/code-review` pass before it
-opens a PR is part of implementing. A repo outside the org gets no automatic review. See
-[`../../docs/macroscope-integration-scope.md`](../../docs/macroscope-integration-scope.md).
+opens a PR is part of implementing. A repo outside the org gets no automatic review. How Macroscope
+behaves on a PR: [`../../README.md`](../../README.md#macroscope-on-a-pr).
 
 Three rules that fail **silently** if broken:
 
@@ -141,8 +141,8 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
    it cannot do). A platform's stubs come from its cutover or install commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
-   skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach
-   yet. Palmers' country branches carry it too but get no Dependabot updates (Dependabot reads the
+   skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
+   Palmers' country branches carry it too but get no Dependabot updates (Dependabot reads the
    default branch only).
    **Re-copying into a repo that already has the kit?** Let the wave do it
    (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
@@ -162,7 +162,9 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    carries (and installs beside `claude.yml`, which it lacks).
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
-   workflow display **name** is never part of it. Two shapes:
+   workflow display **name** is never part of it. Turn on **require branches to be up to date
+   before merging** at the same time: every repo requires it, and it applies only against required checks.
+   Two shapes:
    - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
      that is **`validate / validate`** (`dependabot-validate`).
    - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml`
@@ -206,9 +208,11 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
   dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. A Repo
   directive in the ticket can override the map's repo, but only for a repo that has `claude.yml`.
-  On a repo with several entries, the client picks the branch: a Palmers Morocco ticket is
-  `main-ma`. A `branch:` line on the ticket overrides it, and the dispatcher hands a ticket to a
-  person only when nothing pins the branch.
+  On a repo with several entries, the client identifies the branch (a Palmers Morocco ticket is
+  `main-ma`) and the dispatcher resolves it to the map entry's branch. A `branch:` line on the ticket
+  is optional.
+- **`Closes #n` does not close the issue on a merge into `main-*`.** GitHub closes linked issues only
+  on merges into the default branch, so a person closes it (todo #64).
 - **Don't flag a project whose branch doesn't exist yet.** A `branch` must be a real branch in the
   repo before the project is `"pipeline": "github"` — otherwise the implementer can't branch from it.
 

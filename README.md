@@ -44,8 +44,22 @@ How a ticket becomes a merged change:
    forwarded to the PR as `@claude`; the task returns to Internal Review after the push. People own
    merging and every status after Internal Review.
 
-The flow end to end, and Macroscope's behaviour on a PR:
-[`docs/macroscope-integration-scope.md`](docs/macroscope-integration-scope.md).
+### Macroscope on a PR
+
+- Its bot is `macroscopeapp[bot]`. It posts two non-blocking check runs (Approvability and
+  Correctness), an approvability verdict comment, and one review carrying its inline findings.
+- The verdict comment is edited in place as the PR changes, so read its current body. It reads
+  `Approved at <sha>` once nothing is left.
+- It resolves its own threads when a push addresses them.
+- Approval follows risk, not file type: a low-risk code change can get a formal `APPROVED`, while a
+  behaviour-changing PR or a fleet-changing kit release gets "not approved" with zero findings. Read
+  the verdict, not the diff, and gate any status mapping on the actor.
+- It runs at most three automatic correctness reviews per PR. Later pushes get a skipped check reading
+  "Maximum runs reached" with no findings, which looks like a clean pass. Post
+  `@macroscope-app review this PR` to run one more on the current head.
+- A spending-limit stall ("Monthly spending limit reached") looks identical to a refusal on the code.
+  Tell the two apart before treating "not approved" as a verdict.
+- Answer an accepted residual once in its thread, with the decision, and leave it.
 
 ## What's here
 
@@ -98,7 +112,7 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   refreshes what a repo carries, so it never adds them.
 
 Install steps, the required checks and the multi-branch (Palmers) setup:
-[`templates/github/README.md`](templates/github/README.md). Wave mechanics, fleet counts and what the
+[`templates/github/README.md`](templates/github/README.md). Wave mechanics and what the
 audit cannot see: [`docs/fleet-operations.md`](docs/fleet-operations.md).
 
 ## Release + repin order
@@ -121,7 +135,8 @@ Do the steps in order. A wave is safe only once all three are done.
    per branch. Then `tools/fleet-pin-audit.sh --stale` must report converged.
 
 The wave writes every kit file whole from `templates/`, stubs included, so a deployed stub ends up
-byte-identical to the kit whatever SHA it held before. It never patches a file in place.
+byte-identical to the kit whatever SHA it held before. It never patches a file in place; the one merge is `.claude/settings.json`, where it writes only the
+kit's `attribution` keys.
 
 **A kit-only change needs no tag and no wave.** If no reusable changed and no pin moved, nothing
 deployed has to move, and the change rides with the next release. Cutting a tag is what creates the
@@ -147,7 +162,8 @@ SHA in `env:`, identical in the reusable `claude.yml` and `shopify-tool-smoke.ym
   commits and PRs.
 - **`driver-digital-agents`** (`AGENTS_GH_PAT`) dispatches: it authors the dispatcher's issues and
   revise-loop `@claude` comments, `dependabot-report`'s verdict and reviewer request, and
-  `dependabot-keep-current`'s rebase requests. The implementer uses it only to clone driver-agents.
+  `dependabot-keep-current`'s rebase requests. The implementer uses it only in its store-provisioning step, to clone driver-agents and read the
+  issue for the audit's ticket context.
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
   is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, and
@@ -204,5 +220,6 @@ the head SHA.
 
 After the first run on a test PR, require the **exact context GitHub reports**: a reusable job reports
 `<caller-job-id> / <reusable-job-id>` (`validate / validate`), and the workflow's display name is never
-part of it. Also require a **human** approver (e.g. CODEOWNERS), so no bot signal satisfies the merge
-gate. Which checks a partial install should require: kit README, install step 5.
+part of it. Turn on **require branches to be up to date before merging** with it: every repo
+requires it, and strict only applies against required checks. Also require a **human** approver (e.g. CODEOWNERS),
+so no bot signal satisfies the merge gate. Which checks a partial install should require: kit README, install step 5.
