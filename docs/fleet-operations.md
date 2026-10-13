@@ -1,325 +1,161 @@
 # Fleet operations — waves, pilots, and what the audit cannot see
 
-How kit changes actually reach the fleet, and the traps that have bitten. The **authoritative
-release sequence is [`README.md`](../README.md) → *Release + repin order*** — this document does not
-restate it. What lives here is the operational knowledge around it: how a wave is executed, what a
-pilot can and cannot prove, and where the drift detector is blind.
-
-Written 2026-08-02 from the v1.7.0 → v1.11.0 waves; kept current through the v1.18.0 wave.
-
----
-
-## The fleet
-
-**22 repo@branch pairs** are wave targets after the v1.18.0 wave (2026-10-01; verified by the audit the
-same night — **69 pins at `85f15787`, 127 content matches, zero drift**). Since v1.17.0 the wave also
-discovers a branch by `.github/claude-standards.md`, which is how driver-engineering-app (lint + standards)
-and driver-onboarding (standards only) became the 21st and 22nd. Since 2026-10-09 a repo is a target
-only if it carries the `driver-kit` topic ([`branch-model.md`](branch-model.md#which-repos-get-what)
-owns the topics and the repo list), and `lint.yml` is a discovery file too; driver-agents is the
-23rd pair. The split matters because two different numbers are correct depending on the question:
-
-| Set | Size | What it is |
-|---|---|---|
-| **Repin-wave targets** | **20** (+1 content-only) | Every pair carrying any kit caller stub — the pairs `tools/fleet-pin-audit.sh` finds pins on (it walks all 22) and `tools/fleet-wave.sh` discovers (see *Execution shape*), and what a pin-only wave must cover — miss one and `--stale` never reads clean. |
-| **Full-kit targets** | **18** | Pairs carrying `claude.yml`. (Through v1.12.0 they were also the pairs carrying `bonsai-status-sync.yml`, which the v1.13.0 wave deleted — verified branch-by-branch across all 618 org branches beforehand: zero rows where one was present without the other.) |
-| **Difference** | **2** | `Team-Laird@develop`, `The-Gathery@develop` — Dependabot stubs only, neither full workflow. They still need the pin repin. |
-
-Three pairs left the repin-target set at the v1.12.0 wave because their **only** pinned stub was
-`pr-first-review.yml`: `driver-agents@main`, `driver-engineering-app@main` (repin targets only between
-2026-08-02 and the wave), and `driver-bonsai-mcp@main` — archived 2026-09-11, no longer scanned.
-The two live ones carry no caller stub — **no pin rows, but still content-checked** (the audit
-compares any fleet file whose basename exists in `templates/`), so drift in what remains (e.g. the
-kit `lint.yml`) is still visible.
-
-Palmers contributes **8** of the 18 (one per country branch: `main`, `-au`, `-ca`, `-in`, `-ma`,
-`-me`, `-sa`, `-uk`); the other 10 are single-branch repos including Avara.
-
-**Avara is the only provisioned store repo** — the only pair carrying `shopify-tool-smoke.yml`, and
-the only repo that sets the `SHOPIFY_STORE_NAME` repository variable.
+How kit changes reach the fleet, and the traps around it. The release sequence lives in
+[`README.md`](../README.md#release--repin-order); this doc does not restate it. Which repos and
+branches are targets is decided by topic ([`branch-model.md`](branch-model.md)); for the current
+target list, run `tools/fleet-wave.sh --dry-run`.
 
 ---
 
 ## Waves are direct pushes, not PRs
 
-Decided at the v1.7.0 wave (2026-07-31) and used for every wave since. A mechanical,
-centrally-reviewed kit change is pushed **straight to each branch with `skip-ci` in the commit
-message**, rather than opening one PR per target.
+A wave pushes one commit straight to each target branch, with the CI-skip token in the message.
 
-Why:
+- **No review spend.** A PR per target would spend a Macroscope review in every repo on a change
+  already reviewed here.
+- **No deploys.** Theme and Vercel deploy workflows fire on push to the branches a wave touches; the
+  skip-ci token suppresses them.
+- **No round-trip.** `enforce_admins` is `false` on every protected kit branch, so the push lands as an
+  admin without approval.
 
-- **Zero review runs.** One PR per target would have fired `pr-first-review` in each repo and
-  burned quota on a change that was already reviewed centrally. (That rail retired at v1.12.0 —
-  Macroscope now reviews PRs instead, so the PR-noise argument still holds.)
-- **Zero theme deploys.** Recon found `develop`/`staging` deploy workflows on ~10 fleet branches that
-  a bare push *would* have fired. `skip-ci` suppresses them.
-- Branch protection does not enforce for admins (`enforce_admins: false` fleet-wide), so the push
-  lands as Maria without a review round-trip.
+Use a PR wave only for a change that wants per-repo review. A byte-identical kit change does not.
 
-**Reserve PR waves for changes that genuinely want per-repo review.** A kit change that is
-byte-identical everywhere does not.
+The skip-ci token does not stop GitHub's "Dependabot Updates" scheduler, so a run of it after a wave
+is expected.
 
-`skip-ci` suppresses workflow triggers but **not** GitHub's own "Dependabot Updates" scheduler —
-seeing one of those fire after a wave is expected and benign.
-
-> **Never write the literal token in a commit message that is not itself a wave.** GitHub scans the
-> **whole** commit message, not just the subject line, so a commit that merely *describes* the
-> technique suppresses its own CI. This bit the commit that first added this document: it explained
-> the wave pattern in its body, and the resulting PR came back with **zero check runs** — not failed,
-> not queued, simply absent, which reads exactly like a healthy PR whose checks have not started yet.
-> Write it as `skip-ci` in prose, and if a PR ever reports no checks at all, grep the commit message
-> before looking anywhere else.
+**Never write the literal token in a commit message that is not a wave.** GitHub scans the whole
+message, body included, so a commit that only describes the technique skips its own CI. The PR then
+shows no check runs at all, which looks like checks that have not started yet. Write `skip-ci` in
+prose. If a PR reports no checks, grep its commit messages first.
 
 ### Execution shape
 
-One atomic commit per branch via the Git Data API (blobs → tree → commit → ref patch), not one
-commit per file. Per target:
+`tools/fleet-wave.sh`'s header owns discovery, what each target receives and the guards; read it
+before a wave. What it cannot say:
 
-1. Every kit file the branch carries ← kit version verbatim (since v1.15.0 the stubs too: a pin-line
-   sed let per-repo stub edits survive, but the audit reports any such edit as drift). No kit file
-   carries a per-repo value — the store handle is the `SHOPIFY_STORE_NAME` repository variable — and
-   the wave aborts a target whose deployed file still carries a handle the variable does not hold.
-   The PR template and `claude-standards.md` are written under `.github/`, `claude-settings.json` to
-   `.claude/settings.json`, the rest under `.github/workflows/`. The one exception to verbatim is
-   `.claude/settings.json`: the repo owns that file, so the kit's keys are merged into it. A platform
-   file goes only to a repo whose topic names that platform; one found elsewhere blocks the wave.
-2. `pr-bonsai-link.yml`, `claude-standards.md` and `.claude/settings.json` ← written wherever
-   `claude.yml` is, present or not. The `@.github/claude-standards.md` import in `CLAUDE.md` stays a
-   per-repo edit: the wave never writes outside `.github/` and `.claude/`.
-3. Delete by presence anything the kit no longer ships (`bonsai-status-sync.yml` since v1.13.0).
-4. `actionlint` every file about to be written, then one atomic commit (CI-skip token in the
-   message) and patch the ref.
+- **One atomic commit per branch** through the Git Data API (blobs, tree, commit, ref patch), never
+  one commit per file.
+- **Deletes go in the same commit.** A tree entry with `sha: null` removes a path. Delete by
+  presence (list the branch's files first), never from an assumed install list: partial installs are
+  normal. Retire a rail by deleting its files the same way, never with `gh workflow disable`: the
+  audit compares files and cannot see a disabled workflow.
+- **Pass `--message` when no new tag is being waved.** The default message names the tag
+  (`chore(kit): repin to <tag>`), which misdescribes a wave that carries only kit-file changes.
+- **Plan from anywhere, push from `main`.** A dry run works from the branch that builds the change; a
+  real wave runs only from a clean `main` that contains the tag.
 
-This is what `tools/fleet-wave.sh` does; run it with `--dry-run` first. On an enrolled repo it discovers a
-branch by the presence of `claude.yml`, `dependabot-validate.yml`, `claude-standards.md` or a
-platform stub, and simply skips the files a target does not have. It refuses to run if the kit's own stubs are not
-pinned to the latest tag (the reference-drift trap). A real (non-dry) wave only runs from a clean
-`main` that already contains the tag; dry runs work from anywhere, which is how a wave is planned
-from the branch that builds it.
+### Three traps
 
-A wave can also **delete** — the Git Data API tree op takes `sha: null` for a path. The v1.12.0
-wave removed `pr-first-review.yml` + `ticketed-review.yml` from every pair carrying them in the
-same atomic commit as the repin; delete by presence (enumerate the repo's files first), not by an
-assumed install list — the partial-install pairs never had both.
-
-Guards worth keeping in any wave script: assert no destination path is written twice, refuse to
-overwrite per-repo state nothing else holds, assert no stale pin remains, and dry-run the whole
-fleet before writing anything.
+1. **Same basename in both halves of a diff.** A reusable and its stub share a name
+   (`.github/workflows/<name>.yml` and `templates/github/<name>.yml`). Both map to the same
+   destination, and the reusable landing in a client repo is `workflow_call`-only, fires on nothing
+   and looks green. The wave asserts no path is written twice; keep that guard in any script that
+   moves kit files.
+2. **Never patch a pin.** A diff patches from a base the fleet may never have held, so its `-` line
+   matches nothing. Write the file whole from `templates/`, as the wave does.
+3. **No per-repo state in a kit file.** The store handle is the `SHOPIFY_STORE_NAME` repository
+   variable, and the wave refuses a target whose deployed file holds a handle the variable does not.
+   A repo's Dependabot moving a kit action to a new major is drift for the wave to roll back, not
+   state to keep.
 
 ---
 
 ## Dependabot and the wave
 
-**Dependabot does bump the `DriverDigital/workflows` stub pins.** Palmers #93 and
-`vite-plugin-shopify-clean` #72 (2026-07-02, 19:27Z) each rewrote the SHA *and* its `# vX.Y.Z`
-trailer five minutes after the `v1.5.4` tag landed at 19:22Z. The mechanism works; it rarely gets a
-turn. Two reasons: the wave repins every target within minutes of a tag, so a monthly check finds
-nothing stale — and on 2026-10-08 five kit repos had no `github-actions` block for it to act on
-(`plugins` and `client-workspaces` carry no `dependabot.yml`; `studio-sulzer`,
-`Driver-Digital-Website` and `The-Gathery` have one without the block). The kit ships the stubs
-that only a bot can bump and had never shipped the updater that maintains them; the wave now
-writes it to every target. `DRIVER_AGENTS_REF`
-is out of reach either way — a raw SHA in an `env:` block, not a `uses:` reference. A third failure
-is repo-local: Avara has had a valid `github-actions` block since 2025-04-25 and zero Dependabot
-PRs in 16 months (its SBOM resolves all three reusables), so the sequencing fix will not reach it;
-the cause is only visible under Insights → Dependency graph → Dependabot.
+**The wave is the primary path; Dependabot is the backstop.** The wave repins every target within
+minutes of a tag. Dependabot bumps the `DriverDigital/workflows` stub pins (SHA and `# vX.Y.Z`
+trailer together) on a repo the wave skipped or could not reach, and between waves.
 
-*(The claim this replaces — that it never happens in practice, "verified 2026-07-16" — sampled open
-PRs, two weeks after the two that disprove it had already merged.)*
+The kit's `dependabot.yml` variants (`templates/github/dependabot/`, picked by
+`tools/kit-platforms.sh`) carry a daily `github-actions` block (weekly on driver-agents), and exempt `DriverDigital/workflows*`
+from GitHub's default 3-day cooldown; each file's header says why. Three limits apply:
 
-**The kit's Dependabot config: `templates/github/dependabot/`** — whole-file variants of
-`.github/dependabot.yml`, a daily `github-actions` block and, where the root has a `package.json`, a
-monthly npm block, each group taking only minor and patch so every major arrives as its own PR; each
-file's header says the rest. The exception is `driver-agents.yml`, that repo's own weekly config
-carried verbatim (no root `package.json`, SHA-pinned workflows), whose groups still bundle majors.
-The wave writes the variant `tools/kit-platforms.sh` picks to every target that has one. Two facts found while shipping it bound what "sequence the wave after Dependabot" can
-actually buy:
+- **`DRIVER_AGENTS_REF` is out of reach.** It is a raw SHA in an `env:` block, not a `uses:` ref.
+- **Only the default branch is updated.** The variants set no `target-branch`, so Palmers' country
+  branches take pin moves from the wave alone.
+- **A Dependabot PR needs a merge.** A wave is one direct push; a bump waits on a person.
 
-- Every existing fleet block is **monthly**, so on schedule Dependabot sees a new tag up to a month
-  late. The five-minute bumps of 2026-07-02 were not the schedule: Maria posted `@dependabot
-  recreate` on each open PR at 19:26Z and the superseding PR appeared a minute later. The kit file
-  is daily for that reason — and `@dependabot recreate` on any open Dependabot PR remains the
-  fastest manual trigger.
-- The other half of the latency is a human: Palmers #93 merged 5 minutes after it opened,
-  `vite-plugin-shopify-clean` #72 took 6 days. A wave is one direct push; waiting on Dependabot is a
-  PR someone has to merge.
+To trigger a check by hand, comment `@dependabot recreate` on an open Dependabot PR, or use Insights →
+Dependency graph → Dependabot → *Check for updates*. Read the job logs with
+`gh run list --workflow "Dependabot Updates"`, then `gh run view <id> --log`. They show what
+Dependabot saw and why it held a version.
 
-- **A third latency floor, found closing the v1.14.0 proof (2026-08-24): GitHub now applies a
-  default 3-day cooldown to `github-actions` version updates.** The 2026-08-23 job on
-  `vite-plugin-shopify-clean` saw the new tag ("Available release version/ref is 1.14.0") and held
-  it: "Days since release : 1 (cooldown days 3) … All versions are in cooldown period". The
-  2026-07-02 job log has no cooldown at all — the platform grew it between those dates, with no
-  `cooldown` key in either repo's config. So even a daily schedule bumps a stub pin at earliest
-  three days after the tag — which is why the kit `dependabot.yml` carries a `cooldown:` block
-  excluding `DriverDigital/workflows*` (our own tags need no bake time). The job logs themselves are
-  fetchable — `gh run list --workflow "Dependabot Updates"`, then `gh run view <id> --log` — no UI
-  digging needed.
-
-So the wave stays the primary path — it repins every target within minutes of the tag, one atomic
-commit per branch. Dependabot earns its keep as the backstop:
-the five repos that had no updater, drift between waves, and a reusable-only tag where no whole-file
-copy is needed. Palmers' seven country branches get no Dependabot updates (the variants set no `target-branch`), so
-they stay on the wave. The proof is still worth running once, at the next tag:
-`tools/fleet-wave.sh --skip vite-plugin-shopify-clean`, then watch for the PR — if its
-`dependabot.yml` is not its daily variant yet, wave that first, or trigger a check by hand (Insights → Dependency graph →
-Dependabot → *Check for updates*, or `@dependabot recreate` on an open Dependabot PR there).
+To prove the backstop on a tag, wave with `--skip <repo>` on a repo whose `dependabot.yml` is
+already its kit variant, then watch for the bump PR.
 
 ---
 
-## Three traps
+## What the pin audit cannot see
 
-**1. Same basename in both halves of the diff.** When a full workflow becomes a stub, the kit diff
-carries `templates/github/<name>.yml` *and* `.github/workflows/<name>.yml`. The wave rewrites
-`templates/github/` → `.github/workflows/`, so both collapse onto one destination. Apply them
-blindly and the *reusable* can land in a client repo **as** the workflow — where it is
-`workflow_call`-only, fires on nothing, and looks green. Assert no destination is touched twice.
+`tools/fleet-pin-audit.sh`'s header owns its three checks (reference, pins, content) and what it
+normalizes. Run it after every wave; `--stale` must report converged. When the reference check
+fires, nothing below it means anything: fix the kit repin first.
 
-**2. Pin hunks patch from a base the fleet was never on.** At v1.11.0 the kit diff patched from
-`80c35fe` (v1.8.0) while every deployed stub held `a54c91e` (v1.9.0) — because v1.9.0 shipped
-without a kit repin commit even though the wave repinned the fleet. No kit revision had *ever*
-carried `a54c91e` in a pin line, so no diff base produced a matching `-` line and `git apply` would
-have rejected all five files on target #1. **Sed the pin; don't patch it.**
+Two things it does not compare:
 
-**3. Per-repo state that must survive.** None lives in a kit file any more: the store handle moved to
-the `SHOPIFY_STORE_NAME` repository variable, and the kit's third-party actions float on major tags,
-so a repo's Dependabot moving one to a new major is drift for the wave to roll back, not state to
-keep. The wave still refuses a target whose deployed file carries a handle the variable does not
-hold.
+- **This repo.** Its `.github/workflows/` holds the reusables, which share basenames with the stubs,
+  so the audit skips it.
+- **The Shopify blockquote parity.** Nothing checks that the reusable `claude.yml`'s
+  `--append-system-prompt` blockquote matches driver-agents `docs/agent-instructions-shopify.md` at
+  `DRIVER_AGENTS_REF`. Check it by hand when the ref moves (README, release order step 1).
 
----
-
-## What the pin audit checks — and the one thing it still cannot see
-
-`tools/fleet-pin-audit.sh` used to grep only
-`DriverDigital/workflows/.github/workflows/<name>@<sha>` and compare that SHA to the latest tag,
-which left three holes. Two of them let the v1.9.0 gap read green for a day. All three are now
-checked; the script runs them in this order and exits non-zero if any fires:
-
-1. **Reference** — every `uses:` pin in `templates/github/*.yml` equals the latest tag's SHA.
-   Checks 2 and 3 measure the fleet *against* `templates/`, so a stale reference makes both of them
-   lie. This is the v1.9.0 failure exactly: the wave repinned the fleet to `a54c91e` while the kit's
-   own stubs still said `80c35fe`, and an audit that only ever compared deployed pins to the latest
-   tag called the fleet uniform throughout. When this fires, nothing below it means anything —
-   fix step 2 of the README's release order first.
-2. **Pins** — each deployed caller stub's `uses:` SHA vs that tag. The original check, unchanged.
-3. **Content** — the whole waved file vs its `templates/github/` source, line for line. This is
-   what closes the other two holes: a file with **no `uses:` line at all** (a full-workflow copy of
-   what should be a thin stub) is no longer invisible, and `DRIVER_AGENTS_REF` — a raw SHA in an
-   `env:` block that no bot can bump — is now compared like any other line.
-
-Three things worth knowing about check 3:
-
-- **Exactly one thing is normalized away:** trailing blank lines and the final newline (except in
-  `.claude/settings.json`, where only the kit's `attribution` keys are compared). The two
-  pairs waved without a final newline are otherwise identical, and permanently-red rows for a byte
-  nobody can act on is how a detector stops being read. Internal blank lines *are* compared.
-  Everything else that differs is reported, third-party action refs included: a repo whose
-  Dependabot moved `actions/checkout@v7` to `@v8` ahead of the kit is drift worth seeing, and it
-  means the kit is behind, not that the repo is wrong.
-- **`DriverDigital/workflows` itself is skipped.** Its `.github/workflows/` holds the *reusables*,
-  which share basenames with the stubs that call them — so comparing it against `templates/` would
-  report a phantom drift for every stub plus `lint.yml`, whose kit copy is a trimmed version
-  of this repo's own CI file of the same name.
-- **A pair carrying `claude.yml` without `pr-bonsai-link.yml`, `claude-standards.md` or
-  `.claude/settings.json` is drift** (`missing`) — the wave installs them beside it.
-- **A platform file on a repo whose topic names another platform, or none, is drift** whatever its
-  bytes say. A repo without `driver-kit` is still scanned, but its kit files are listed under
-  `unenrolled` and never fail the audit.
-
-**Still unchecked: the tripwire parity between the reusable and canonical.** Nothing proves
-`.github/workflows/claude.yml`'s `--append-system-prompt` blockquote still matches driver-agents
-`docs/agent-instructions-shopify.md` at the pinned `DRIVER_AGENTS_REF`. That comparison is by hand, at
-release time — step 1 of the release order.
+Between a kit-only merge and the next wave, the audit reports content drift on the changed files.
+That is expected and clears with the wave.
 
 ---
 
 ## Piloting a cross-repo reusable
 
-The v1.11.0 pilot proved `vars.BONSAI_URL` resolves against the **caller**, so a per-repo tunnel
-override still works after conversion. Two things made it harder than expected, both worth knowing
-before designing the next one.
+A new rail that shares `claude.yml`'s trigger wakes a real implementer run on a client repo. Before
+it ships fleet-wide, pilot it with these rules:
 
-**The `issues` leg was not pilotable.** `bonsai-status-sync` (retired at v1.13.0) grepped the issue
-body for `@claude` exactly as `claude.yml`'s issues gate does — deliberately mirrored — so any issue
-that tripped the status flip also woke a real implementer run on a client repo. Expect the same
-collision from any future rail sharing `claude.yml`'s trigger: pilot on the PR leg.
-
-**`closingIssuesReferences` only populates for PRs targeting the default branch.** A PR into a
-scratch base dodges the theme-deploy workflows (at the time they filtered on `branches: [staging, dev-staging]`)
-but resolves `uuid=<none>`, so the run never reaches the `curl` and passes green having tested
-nothing. If the assertion needs the network call, the PR must target the default branch.
-
-**Split the legs by what each can actually prove.** Leg 1 on a private consumer
-(`foundrae-blackridge@staging`) proves a private repo resolves the public cross-repo reusable and
-reads the caller's event payload — that is the visibility question. Variable resolution is
-repo-agnostic, so leg 2 belongs wherever it is cheapest: `vite-plugin-shopify-clean` is public,
-single-branch, and has no Shopify store attached, so nothing but node tests fire.
-
-**Assert on the log line, not the colour.** Setting `BONSAI_URL` to a bogus host and checking for a
-red run is not sufficient — a wrong-way resolution falls back to the hardcoded default and *also*
-fails. The discriminator is which host the log names:
-
-```
-BONSAI_URL: https://pilot-bogus-host.invalid
-curl: (6) Could not resolve host: pilot-bogus-host.invalid
-```
-
-Clean up afterwards: delete the variable, close the issue and PR, delete the scratch branches. Leave
-the installed stub — the wave covers it anyway.
+- **Pilot on the PR leg.** An issue that trips the new rail also trips the implementer's issues gate.
+- **Target the default branch when the run needs the linked issue.** `closingIssuesReferences`
+  resolves only for PRs into the default branch. A PR into a scratch base avoids deploy workflows but
+  resolves no issue, so the run can skip its real work and pass green having tested nothing.
+- **Split the legs by what each can prove.** A private consumer proves a private repo resolves the
+  public reusable and reads the caller's event payload. Variable resolution is repo-agnostic, so run
+  that leg wherever it is cheapest: a public, single-branch repo with no store attached
+  (`vite-plugin-shopify-clean`).
+- **Assert on the log line, not the colour.** A bogus variable value makes a wrong-way resolution
+  fail too, because it falls back to a default. Check which value the log names, e.g.
+  `curl: (6) Could not resolve host: pilot-bogus-host.invalid`.
+- **Clean up.** Delete the pilot variable, close the issue and PR, and delete the scratch branches.
+  Leave the installed stub; the wave covers it.
 
 ---
 
 ## Branch protection
 
-`enforce_admins` is `false` fleet-wide, which is what makes direct-push waves work. `Team-Laird@develop`
-has **no protection at all** (404 on the protection endpoint). Every other kit branch has a protection object — but **having one is not the
-same as requiring a human**, and the gap is wider than that one. Surveyed across all pairs
-2026-08-02; `driver-bonsai-mcp@main` has since been archived and is dropped from the counts, and
-studio-sulzer (kit branch `develop`, its default) gained a 1-review rule by 2026-10-08:
+**The standard, on every kit branch:**
 
-| Pairs | `required_approving_review_count` | |
-|---|---|---|
-| 13 | `1` | Avara, Driver-Digital-Website, Kissy-Kissy, LaPointe, LittleMe, The-Gathery, client-workspaces, driver-agents, driver-engineering-app, foundrae-blackridge, plugins, studio-sulzer, vite-plugin-shopify-clean |
-| **8** | **`0`** | **every Palmers branch** — `main`, `-au`, `-ca`, `-in`, `-ma`, `-me`, `-sa`, `-uk` |
-| **1** | **no protection at all** | **`Team-Laird@develop`** |
+- **A human approver.** `required_approving_review_count` of at least 1.
+- **Branches up to date before merging.** `required_status_checks.strict: true`. Strict applies only
+  against required checks, so it needs at least one: a check that runs on every PR: `validate / validate` where the repo carries `dependabot-validate`, else `actionlint` where it carries `lint.yml`. Never require a context the branch
+  does not run; it blocks every merge.
+- **`enforce_admins: false`.** Waves and this repo's releases are direct admin pushes.
 
-The kit's onboarding steps assume a human-approver rule exists. On **9** of the 22 pairs it does
-not, so a bot signal alone could satisfy a merge — not the 2 this section used to name.
-
-On this repo, `main` requires **`actionlint`** (set 2026-08-02; before that `required_status_checks`
-had `strict: true` but empty `contexts`, so `lint.yml` could report red without being able to block).
-The context is the **job id** at `.github/workflows/lint.yml:26` — the workflow-level `name:` is not
-part of it. Applied through the narrow sub-resource, never a whole-object `PUT`:
+**Edit an existing rule through its subresource with `PATCH`.** `PUT /branches/{branch}/protection`
+replaces the whole object and silently drops every field left out of the body, the review rule
+included:
 
 ```bash
-gh api -X PATCH repos/DriverDigital/workflows/branches/main/protection/required_status_checks \
-  -f 'contexts[]=actionlint'
+gh api -X PATCH repos/DriverDigital/<repo>/branches/<branch>/protection/required_status_checks \
+  -F strict=true -f 'contexts[]=validate / validate'
 ```
 
-`PUT /branches/{branch}/protection` **replaces** the entire protection object, so any field left out
-of the body is silently deleted — the 1-approval review rule included. The `PATCH` above touches
-`required_status_checks` and nothing else; diffing the full object before and after confirmed only
-`contexts`/`checks` moved. GitHub bound the context to the Actions app (`app_id: 15368`) on its own,
-which is the stricter outcome: only a check run from Actions can satisfy it.
+`PATCH` only edits a status-check rule that exists; a branch with none returns 404. Creating one takes
+a `PUT` of the whole protection object, so read it first, carry every field into the body, and diff
+it after.
 
-**`enforce_admins` stays `false` here — deliberately, and know what that buys.** With it `false`, an
-admin can merge past *everything*: a red `actionlint`, no approval, `strict` or not. So requiring the
-check does not make it unbypassable for Maria — it makes it unbypassable for everyone else, and it
-puts a red X in front of an admin who would otherwise have had nothing to override. That is the
-actual value, and it was worth having either way.
+The context is the job id, not the workflow's `name:`. GitHub binds it to the Actions app, so only an
+Actions check run satisfies it. Diff the full protection object before and after any change.
 
-Flipping it to `true` was considered and rejected, and the reason is stronger than uniformity: **this
-repo is itself pushed to directly.** No repin *wave* targets it, but six commits on `main` have no
-associated PR — including `a54c91e`, the v1.9.0 release commit, pushed 2026-08-01:
+`enforce_admins: false` means an admin can merge past a red check and a missing approval. A required
+check still blocks everyone else, and puts a red X in front of the admin.
 
-```
-a54c91e  feat(kit): rename store app secrets to DRIVER_ENGINEERING_APP_* (v1.9.0)
-5bee8c4  Onboarding kit moves here from driver-bonsai-mcp (repo-split Stage 0)
-34826c9  fix: dependabot-validate falls back to npm install when no lockfile — v1.5.4
-c960ec1  fix: allowed_bots claude[bot] so round-1 actually reviews — v1.5.2
-69bd828  fix: drop the gh-based author re-check — v1.5.1
-499a51e  feat: ticketed-review reusable (Phase 3 ticketed-rail auto-review loop) — v1.5.0
-```
+This repo's `main` meets the standard (`actionlint`, strict, one approval).
 
-`enforce_admins: true` would have blocked every one of those. Releases here have repeatedly gone out
-as direct pushes, so the flag stays `false` until that stops being true.
+**The gap:** most kit branches lack strict with a required check, and a few have no protection or no
+human approver. Enforcing the standard fleet-wide, by org ruleset or per repo, is an open decision;
+the current state is in [`HANDOFF.md`](HANDOFF.md).
