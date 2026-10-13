@@ -8,7 +8,7 @@
 # its releases usually need migration work.
 #
 # No `target-branch`: Dependabot reads this file from the default branch and opens pull requests
-# against it, which is `main` on Shopify sites and `develop` on Vercel sites.
+# against it.
 version: 2
 updates:
   - package-ecosystem: "github-actions"

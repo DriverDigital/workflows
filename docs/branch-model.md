@@ -41,11 +41,19 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | | Shopify sites | Vercel sites |
 |---|---|---|
 | Topic | `shopify-theme` | `vercel-site` |
-| Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `develop` (default, preview) and `main` (production) |
+| Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
+| Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
 | Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | `vercel-deploy.yml` → reusable `vercel-deploy.yml` |
-| What it deploys | PR preview `DRIVER/<head branch>`: checked while draft, pushed when ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` or `develop` fires that branch's Vercel deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already deployed their push) |
-| Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | `VERCEL_DEPLOY_HOOK_MAIN`, `VERCEL_DEPLOY_HOOK_DEVELOP` |
+| What it deploys | PR preview `DRIVER/<head branch>`: checked while draft, pushed when ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. PR previews come from Vercel's GitHub app. |
+| Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | `VERCEL_DEPLOY_HOOK_MAIN` |
 | Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | `VERCEL_TEAM_LOGINS`, per repo: space-separated GitHub logins with a seat on that project's Vercel team. When it's unset, `mcarter-astronautdev` alone is used |
+
+On Vercel, `main` stays the project's production branch with "Auto-assign Custom Production
+Domains" off (Settings → Environments → Production). A push builds with production environment
+variables and data, which is what staging should show, and its own deployment URL is the staging
+link. Promoting it (the deployment's Promote action, or `vercel promote <url>`) puts that exact build
+live without rebuilding. An Instant Rollback and its undo both change the auto-assign setting, so
+confirm it is still off after either.
 
 Every long-lived branch, on every platform, requires branches to be up to date before merging
 (`required_status_checks.strict: true`). Strict compares only against required checks, so it does
@@ -62,58 +70,73 @@ only, so a branch rename never touches a live storefront.
 
 ## Where branch names are hard-coded
 
-This repo names branches only where a standard does. The two platform stubs filter on their
-standard's branches (`main`/`main-*`; `main`/`develop`), `vercel-deploy.yml` tells production from
-preview by `refs/heads/main` and `refs/heads/develop`, and `templates/github/lint.yml` runs on `push: [main]`.
-Nothing else does: the implementer takes its base from the dispatcher's `Target branch:` line or the
-repo default, the Dependabot reusables follow the PR, and the wave and the audit follow each repo's
-default branch, plus every Palmers branch named `main*`. On a multi-branch repo (Palmers) the client
-identifies the branch (a Palmers Morocco ticket is `main-ma`), and the dispatcher resolves it to the
-map entry's branch; a `branch:` line on the ticket is
-optional.
+This repo names branches only where a standard does. The Shopify stub filters on `main`/`main-*`,
+the Vercel stub on `main`, and `templates/github/lint.yml` runs on `push: [main]`. Nothing else does:
+the implementer bases its branch and PR on the repo's default branch, or on the `Target branch:` line
+the dispatcher writes for Palmers alone; the Dependabot reusables follow the PR; and the wave and the
+audit follow each repo's default branch, plus every Palmers branch named `main*`. On Palmers the
+client identifies the branch (a Palmers Morocco ticket is `main-ma`), and the dispatcher resolves it
+to the map entry's branch; a `branch:` line on the ticket is optional.
 
 Elsewhere:
 
 | Where | What names a branch |
 |---|---|
-| driver-agents `pipeline/project-repo-map.json` | `develop` for studio-sulzer, Avara, Driver-Digital-Website, LaPointe, LittleMe and Kissy-Kissy; `staging` for foundrae. The dispatcher writes the entry's branch on line 1 of every issue, and the implementer bases its branch and PR on it. driver-agents #55 moves the Shopify entries to `main`. Open issues filed before a cutover keep the old name. |
-| Theme deploy workflows | Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds: `Feature-*` on PRs to `develop`, `Develop-Deploy` on push to `develop` → `DRIVER/develop` (Kissy-Kissy: `Kissy-2.0/develop`), and `Production-Deploy` on push to `main` (Avara, LaPointe, R-Finds; never run). foundrae: `Feature-*` and `Staging-Deploy` on `staging`/`dev-staging` → `DRIVER/<branch>`. The repos already on `main` carry `Feature-*` and `Staging-Deploy`. |
+| driver-agents `pipeline/project-repo-map.json` | Palmers only: `main` and each `main-<country>`. The dispatcher writes that branch on line 1 of the issue. No other entry names a branch, so a rename needs no map change. An open issue whose first line names `develop` or `staging` (foundrae #193) keeps it until edited. |
+| Theme deploy workflows | Avara, Kissy-Kissy, LittleMe, R-Finds: `Feature-*` on PRs to `develop`, `Develop-Deploy` on push to `develop` → `DRIVER/develop` (Kissy-Kissy: `Kissy-2.0/develop`), and `Production-Deploy` on push to `main` (Avara, R-Finds). LaPointe has the same set in lowercase: `feature-deploy`, `feature-build-test`, `development-deploy`, `production-deploy`. foundrae: `Feature-*` and `Staging-Deploy` on `staging`/`dev-staging` → `DRIVER/<branch>`. The repos already on `main` carry `Feature-*` and `Staging-Deploy`. |
 | Vercel `deploy.yml` | Team-Laird, Driver-Digital-Website: `refs/heads/main` → production hook, `refs/heads/develop` → preview hook, skipped for the Vercel team's logins (`mcarter-astronautdev`; Driver-Digital-Website also `jadewang425`). studio-sulzer has none. |
-| Vercel project settings | Production branch and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
+| Vercel project settings | Production branch `main`, with production domains auto-assigned, and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
 | `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. The waved file sets none. |
-| GitHub environments | foundrae: `staging`, `dev-staging`, `testparty/06-2026` hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
+| GitHub environments | foundrae: `staging`, `dev-staging` and the `testparty/*` branches hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
 | Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Driver-Horizon `main` and Team-Laird `develop` are unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge; foundrae `staging` and `main`, savannahfriedkin, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
 
-## Shopify cutover, one repo at a time
+## Cutover, one repo at a time
 
-**Repos to cut over:** Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds (from `develop`), and
-foundrae-blackridge (from `staging`).
+The same steps serve both platforms: tag and delete the old `main`, then rename the working branch to
+`main`, which keeps its open PRs and its protection. Merging it into `main` instead would close every
+PR based on it.
 
-**Already on `main`:** Palmers, savannahfriedkin, indie-ridge, Driver-Horizon and Anduril-Gear. They
-take steps 1, 5 and 6 only. Step 5's commit deletes their `Feature-*` and `Staging-Deploy` files;
-until it does, indie-ridge's `lint.yml` reads red on their shellcheck findings. On Palmers the commit
-lands on every `main*` branch, with `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first. The store handle
-the implementer and the smoke test use is the `SHOPIFY_STORE_NAME` repository variable, one per repo,
-so a Palmers country branch cannot have its own.
+**Shopify repos to cut over:** Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds (from `develop`),
+and foundrae-blackridge (from `staging`).
+
+**Vercel repos to cut over:** Driver-Digital-Website, studio-sulzer and Team-Laird (from `develop`).
+
+**Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge, Driver-Horizon and
+Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and
+`Staging-Deploy` files; until it does, indie-ridge's `lint.yml` reads red on their shellcheck
+findings. On Palmers the commit lands on every `main*` branch, with
+`SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first. The store handle the implementer and the smoke test
+use is the `SHOPIFY_STORE_NAME` repository variable, one per repo, so a Palmers country branch cannot
+have its own.
 
 **Before each cutover:**
-- driver-agents' map names `main` for the repo.
-- A repo with no build script passes `shopify theme check --fail-level error`, which its build job
-  runs on every PR and push. Driver-Horizon fails it (`sections/header.liquid`, Driver-Horizon #10).
+- The repo carries the shared kit. R-Finds does not yet.
+- The kit's platform stub pins a release whose reusable matches it. The main-only Vercel stub needs
+  the release that carries the main-only reusable.
+- A Shopify repo with no build script passes `shopify theme check --fail-level error`, which its build
+  job runs on every PR and push. Driver-Horizon fails it (`sections/header.liquid`, Driver-Horizon #10).
 - No wave is running. The wave reads `default_branch` live, so one that runs mid-cutover commits to
   whichever branch is the default at that moment.
+- No merges into the repo from step 2 to step 6, and those steps run back to back. In between, the old
+  deploy workflows push to a theme that has been renamed or fire on the new `main`.
 
 **Steps:**
 
 1. **Read the repo's state before changing anything.**
-   - Open PRs by base branch.
+   - Open PRs by base branch. Merge or close a PR from the working branch into `main`
+     (Driver-Digital-Website #170): the rename closes a PR whose head is the renamed branch.
    - The commits only on `main`: `compare/<default>...main`. They are usually old "Update main with
      stable develop" promotions; read them anyway.
-   - Open issues whose first line names the old branch.
+   - Open issues whose first line names the old branch. Delete that line.
    - Protection on both branches and environments.
-2. **Rename the preview theme in the Shopify admin** from `DRIVER/develop` (or `Kissy-2.0/develop`,
-   `DRIVER/staging`) to `DRIVER/main`. The first push then updates it in place instead of creating
-   a new theme.
+2. **Prepare the platform.**
+   - Shopify: in the admin, confirm the exact name of the preview theme (`DRIVER/develop`,
+     `Kissy-2.0/develop` or `DRIVER/staging`), that no `DRIVER/main` exists, that the store is under
+     its theme limit, and that none of these is the live theme. Then rename the preview theme to
+     `DRIVER/main`. The reusable creates a new theme when no theme carries the name, so a mismatch
+     fails silently.
+   - Vercel: turn off "Auto-assign Custom Production Domains" on the project. On Team-Laird, delete
+     the custom `staging` environment.
 3. **Tag the old `main` and delete it.**
    - Tag it as `archive/main-<yyyy-mm>` through the API.
    - Retarget any PR whose base is `main` first, because GitHub closes PRs whose base branch is deleted.
@@ -122,24 +145,32 @@ so a Palmers country branch cannot have its own.
 4. **Rename the working branch to `main`:** `POST repos/DriverDigital/<repo>/branches/<develop|staging>/rename`
    with `new_name=main`. GitHub retargets its open PRs, moves its protection rule and makes it the
    default. It does not touch workflow branch filters, Vercel or Dependabot settings, or rulesets
-   (fix studio-sulzer-style rulesets by hand).
-5. **Push one direct commit to `main`.** Leave `skip-ci` out, so the push deploys `DRIVER/main` and
-   proves the stub. The commit:
-   - deletes the old theme workflows (`Feature-*`, `Develop-Deploy`, `Staging-Deploy`, `Production-Deploy`,
-     any lowercase variants)
-   - adds the `shopify-theme.yml` stub
+   (fix studio-sulzer's ruleset by hand). Remove any `target-branch: develop` the wave has not.
+5. **Vercel only: swap the hooks.** In Vercel, delete the `develop` hook and create a `main` hook
+   where there is none (studio-sulzer). On the repo, set `VERCEL_DEPLOY_HOOK_MAIN`, delete
+   `VERCEL_DEPLOY_HOOK_DEVELOP`, and set `VERCEL_TEAM_LOGINS` to the logins the old `deploy.yml`
+   skips: `mcarter-astronautdev jadewang425` on Driver-Digital-Website; the others can stay on the
+   fallback. A login left out deploys twice.
+6. **Push one direct commit to `main`.** Leave `skip-ci` out, so the push deploys and proves the
+   stub. The commit:
+   - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
+     `deploy.yml`
+   - adds the platform stub
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
-   - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing
-6. **Check that it worked, and set protection.**
-   - The push run created or updated `DRIVER/main`.
-   - The open PRs now target `main`, and a ready PR deploys its preview.
+   - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
+     no `CLAUDE.md` (Kissy-Kissy, LittleMe, R-Finds) has its own to-do
+7. **Check that it worked, and set protection.**
+   - Shopify: the push run updated `DRIVER/main`, and a ready PR deploys its preview.
+   - Vercel: the push staged a build and the production domain still serves the previous
+     deployment. Promote once, then confirm auto-assign is still off.
+   - The open PRs now target `main`.
    - `main` requires one review, the rule `develop`/`staging` carried.
    - `main` requires at least one check and up-to-date branches ([The standards](#the-standards)).
      The rename carries `develop`'s protection over, so a branch that lacked strict still lacks it.
      On Palmers, set it on every `main*` branch.
    - `tools/fleet-pin-audit.sh` shows the repo's row.
    - Close the repo's cutover to-do.
-7. **Every clone,** each engineer's included. Check a local `main` for unpushed work first, since
+8. **Every clone,** each engineer's included. Check a local `main` for unpushed work first, since
    `-M` replaces it:
    `git fetch --prune origin && git branch -M <develop|staging> main && git branch -u origin/main main && git remote set-head origin -a`
 
@@ -148,41 +179,21 @@ so a Palmers country branch cannot have its own.
   Confirm the repo-level values point at the same store as `staging`'s, then leave
   `SHOPIFY_ENVIRONMENT_PER_BRANCH` unset. If they don't match, create a `main` environment holding
   `staging`'s secrets and set the variable.
-- Decide whether `dev-staging` (stale) and `testparty/06-2026` stay or go.
+- Decide whether `dev-staging` and the `testparty/*` branches stay or go. Tag any you delete;
+  `dev-staging` holds commits that were never merged.
 - `main` is connected to the unpublished `foundrae/main` theme through Shopify's GitHub integration.
-  Folding `staging` in syncs all of its commits to that theme, so look at the theme first.
-
-## Vercel install, per site
-
-No branch changes:
-
-1. Confirm the repo carries `driver-kit` and `vercel-site`.
-2. Confirm both hook secrets exist. studio-sulzer has no `deploy.yml`, so create its two hooks in
-   Vercel first.
-3. Set `VERCEL_TEAM_LOGINS` on the repo to the logins its current `deploy.yml` skips. That's
-   `mcarter-astronautdev jadewang425` on Driver-Digital-Website; Team-Laird can stay on the
-   fallback. A login left out deploys twice.
-4. Push one direct commit to `develop`:
-   - add the `vercel-deploy.yml` stub
-   - delete `deploy.yml`
-   - add `.claude/settings.json` where the wave has not (repos without `claude.yml`)
-   - add the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing
-
-   `main` picks the commit up at the next promotion. Until then, `main`'s own `deploy.yml` keeps
-   working.
-5. Require at least one check and up-to-date branches on both `develop` and `main`
-   ([The standards](#the-standards)). Team-Laird's `develop` needs protection first.
+  Disconnect it in the Shopify admin before step 3 deletes `main`.
 
 driver-agents also deploys through Vercel, from `main` only. It is a tool, not a site, so it stays
 outside this standard until it needs one.
 
 ## Order
 
-1. Wave the shared kit first, with `--message`, because the default names the last tag. HANDOFF
-   lists what rides it.
-2. Canary the `shopify-theme.yml` stub on savannahfriedkin (steps 1, 5 and 6) and read its push job
-   log. Then pilot the Shopify cutover on LittleMe: `main` is a strict ancestor
-   of `develop`, it has few open PRs and two deploy files, and there is no production workflow. Then
-   the rest, one at a time.
-3. Vercel installs.
+1. Release the next tag and wave it (README, *Release + repin order*). It carries the main-only Vercel
+   reusable and writes `dependabot.yml`, which drops the Vercel repos' `target-branch: develop`.
+2. Canary the `shopify-theme.yml` stub on savannahfriedkin (steps 1, 6 and 7) and read its push job
+   log. Then pilot the Shopify cutover on LittleMe: `main` is a strict ancestor of `develop`, it has
+   few open PRs and two deploy files, and there is no production workflow. Then the rest, one at a
+   time.
+3. The Vercel cutovers, one at a time.
 4. `tools/fleet-pin-audit.sh --stale` reads converged.

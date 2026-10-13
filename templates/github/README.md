@@ -43,7 +43,7 @@ cutover or install commit. The standards, the cutover and the install steps:
 |---|---|---|
 | `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (checked while draft, pushed when ready, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
-| `vercel-deploy.yml` | Vercel | Fires the branch's deploy hook on push to `main` (production) or `develop` (preview) when the pusher is not in `VERCEL_TEAM_LOGINS`. The wave and the audit reach a repo's default branch, `develop`; `main` takes kit changes at its next promotion. |
+| `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
 **PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org,
 and the dispatcher's revise loop answers its findings. Claude reviews a PR only when a person
@@ -187,9 +187,10 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
    (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
 
-6. **Route tickets to it.** Once `claude.yml` is live on the target branch, add the client's Bonsai
-   project to driver-agents `pipeline/project-repo-map.json` with its `repo`, `branch` and
-   `"pipeline": "github"`. Until then the dispatcher opens no issues there.
+6. **Route tickets to it.** Once `claude.yml` is live on the default branch, add the client's Bonsai
+   project to driver-agents `pipeline/project-repo-map.json` with its `repo` and
+   `"pipeline": "github"`. Only a Palmers entry names a `branch`. Until then the dispatcher opens no
+   issues there.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 

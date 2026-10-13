@@ -12,8 +12,7 @@
 # are discovered by presence: every enrolled non-archived DriverDigital repo whose branch carries
 # claude.yml, dependabot-validate.yml, the house standards, lint.yml or a platform stub — the stub-only pairs
 # never took the full kit but still carry pins to move. Branches: each repo's default branch, plus
-# every main* branch of Palmers. A Vercel site's main is never a target; it takes kit changes from
-# develop at its next promotion.
+# every main* branch of Palmers.
 # Per target, in one commit:
 #   every kit file the branch already carries  <- kit version; the PR template and the house
 #                                                 standards live at .github/, claude-settings.json
