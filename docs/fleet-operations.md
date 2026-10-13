@@ -99,9 +99,6 @@ Two things it does not compare:
   `--append-system-prompt` blockquote matches driver-agents `docs/agent-instructions-shopify.md` at
   `DRIVER_AGENTS_REF`. Check it by hand when the ref moves (README, release order step 1).
 
-Between a kit-only merge and the next wave, the audit reports content drift on the changed files.
-That is expected and clears with the wave.
-
 ---
 
 ## Piloting a cross-repo reusable

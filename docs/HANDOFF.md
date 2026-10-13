@@ -1,4 +1,4 @@
-# Handoff — 2026-10-13
+# Handoff
 
 State of play: what is in flight, blocked, open and next. Conventions and how-tos live in
 [`README.md`](../README.md); the agent-facing subset is [`CLAUDE.md`](../CLAUDE.md). To-dos are the
@@ -6,21 +6,17 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **This session's PR** (branch `readme-present-tense`) rewrites every doc in the present tense, deletes
-  the three finished scope docs, and fixes `dependabot-auto-merge.yml` (squash is off here, so it merges
-  with a merge commit). The `claude.yml` change is a comment only.
-- **#95** is narrowed to one Figma paragraph in the implementer prompt; navigation facts live in
-  driver-agents#64. Ship it, and #96 once its claims are verified, with the tag #94 needs.
-
-- **Unreleased on `main`, riding the next wave:** the `templates/github/dependabot/` variants (the
-  wave writes `.github/dependabot.yml` fleet-wide for the first time) and #94's validate change once
-  it merges. `fleet-pin-audit.sh --stale` shows the `dependabot.yml` rows, plus driver-agents' stale
-  `claude-standards.md`, until then.
-- **PR #94** is approved and waits on the owner's merge. It makes `dependabot-validate` skip install
-  when a repo has no root `package.json`. It touches a reusable, so it needs a tag, a repin and a wave
-  (README, "Release + repin order").
-- **The wave's default message names the latest tag** (`chore(kit): repin to <tag>`; the latest tag is v1.19.0).
-  Pass `--message` whenever the wave runs without a new tag.
+- **This branch (`vercel-main-staging`)** makes Vercel sites main-only: the `vercel-deploy` reusable
+  and stub fire the main deploy hook on push to `main`, and production is a promotion in Vercel
+  ([`branch-model.md`](branch-model.md#the-standards)). It changes a reusable, so it ships with the
+  next tag. Close #101 with it.
+- **#95** adds one Figma paragraph to the implementer prompt; navigation lives in driver-agents#64.
+  Ship it, and #96 once its claims are verified, with the next tag.
+- **Unreleased, riding the next tag and wave:** the main-only `vercel-deploy` reusable, the
+  `templates/github/dependabot/` variants (the wave writes `.github/dependabot.yml` to every target),
+  and the `dependabot-validate` change that skips install without a root `package.json`.
+  `fleet-pin-audit.sh --stale` shows the `dependabot.yml` rows, plus driver-agents' stale
+  `claude-standards.md`, until that wave.
 - **#62:** close it once the audit shows every target on its `dependabot.yml` variant.
 - **#83:** the house-standards import PRs are open on LaPointe #149, Palmers #124,
   Driver-Digital-Website #179, studio-sulzer #65, client-workspaces #7 and Driver-Horizon #11. The repos
@@ -30,37 +26,36 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   `Staging-Deploy` carry info-level SC2086 findings, so its `lint.yml` reads red until the cutover
   deletes them.
 - **Platform standards rollout (#91):** no repo carries a platform stub. Each stub arrives with
-  that repo's canary, cutover or install commit ([`branch-model.md`](branch-model.md#order)).
+  that repo's canary or cutover commit ([`branch-model.md`](branch-model.md#order)).
 
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge,
-  driver-agents and driver-engineering-app enforce it today. First confirm every targeted branch
-  reports the required check; a required context with no run blocks every merge.
-
-- **LittleMe's cutover pilot** waits on driver-agents #53 (point its map entry at `main`).
+  driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  the required check; a required context with no run blocks every merge.
+- **The Vercel cutovers** wait on the release that carries the main-only `vercel-deploy` reusable.
 - **Driver-Horizon's cutover** waits on Driver-Horizon #10 (a theme check error).
-- **Driver-Digital-Website's Vercel install** needs `VERCEL_TEAM_LOGINS` set first.
-- **No wave runs while a cutover is in progress** (CLAUDE.md invariant).
+- **R-Finds' cutover** waits on its shared kit install.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **`.macroscope/check-run-agents/` in the wave (#61)** waits on the first real Avara design ticket to
   tune the rubric. Add the root in `dest()`, which already maps `.claude/settings.json`.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
-- **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the new
-  `dependabot.yml` standard run for a while first. `dependabot-report` stays either way.
+- **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the
+  `dependabot.yml` standard run for a while after its first wave. `dependabot-report` stays either way.
 
 ## Open decisions
 
 - **Shared workflows on driver-agents.** It carries a partial kit, for separation of concerns only.
   Recommendation: add `dependabot-report` so its Dependabot PRs can qualify for #85 auto-merge. Add
   `claude.yml` + `pr-bonsai-link.yml` only if tickets should reach driver-agents.
-- **foundrae's `dev-staging` and `testparty/06-2026`:** retire them at its cutover, or keep them.
+- **foundrae's `dev-staging` and `testparty/*` branches:** retire them at its cutover, or keep them.
+- **The-Gathery** (WordPress) keeps `develop` + `main`: move it to `main` with the others, or leave it.
 
 ## Watch-items
 
-- **The first `shopify-theme.yml` canary** (savannahfriedkin). Every repo but Palmers takes the
-  `environment: ''` arm of the push and cleanup jobs. Read the push job log first: the job must run
+- **The first `shopify-theme.yml` canary** (savannahfriedkin). Every repo but Palmers (and foundrae,
+  if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push and cleanup jobs. Read the push job log first: the job must run
   with no environment, and `vars.` must resolve in `jobs.<id>.environment`. If either fails, split the
   job into two variants rather than documenting around it.
 - **The first fleet-wide `dependabot.yml` wave.** Canary it with `--only` on one npm repo: each npm
@@ -76,21 +71,25 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **`claude-standards.md` on the comment path** is unverified (the issues path loads it). Have a
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
-- **The first real ticket on the current implementer.** The guard steps should stay quiet; if one
+- **The first real ticket through the implementer.** The guard steps should stay quiet; if one
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
+- **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
+  `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether
+  a Sanity publish fires a deploy hook on any site: if one does, published content waits for a
+  promotion. Confirm auto-assign is still off after the first promotion and the first rollback.
 
 ## Next steps
 
-1. Merge #94 (owner), then tag, repin and wave (README, "Release + repin order"). Canary the wave
+1. Merge this branch's PR, then tag, repin and wave (README, "Release + repin order"). Canary the wave
    with `--only` first (watch-items), then run `fleet-pin-audit.sh --stale` until it reads converged.
 2. After that wave, comment `@dependabot rebase` on indie-ridge #3 and #4 and savannahfriedkin #18.
    A wave is a direct push, not a merged PR, so keep-current never runs for it.
 3. Roll out the platform standards (#91, [`branch-model.md`](branch-model.md#order)): canary
-   savannahfriedkin's stub, pilot LittleMe once unblocked, then the remaining cutovers one at a time,
-   then the Vercel installs.
+   savannahfriedkin's stub, pilot LittleMe, then the remaining Shopify cutovers one at a time,
+   then the Vercel cutovers.
 4. Settle the open decisions above.
 
 ## Pointers
@@ -99,9 +98,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   [Macroscope on a PR](../README.md#macroscope-on-a-pr).
 - [`fleet-operations.md`](fleet-operations.md): wave mechanics, what the pin audit cannot see, branch
   protection.
-- [`branch-model.md`](branch-model.md): the platform standards, the topics, the Shopify cutover and
-  Vercel install runbooks.
-- `driver-agents`: the dispatcher, the ticket map and the canonical Shopify instructions. On a
-  multi-branch repo (Palmers) the client identifies the branch and the dispatcher infers it from the
-  map; a `branch:` line on a ticket is optional (driver-agents #62 aligns its docs).
+- [`branch-model.md`](branch-model.md): the platform standards, the topics, and the cutover runbook
+  for both platforms.
+- `driver-agents`: the dispatcher, the ticket map and the canonical Shopify instructions.
 - The optional `repository_dispatch` trigger for the revise loop is #98.

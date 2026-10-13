@@ -142,8 +142,8 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    it cannot do). A platform's stubs come from its cutover or install commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
    skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
-   Palmers' country branches carry it too but get no Dependabot updates (Dependabot reads the
-   default branch only).
+   Palmers' country branches carry it too ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)
+   on what Dependabot updates).
    **Re-copying into a repo that already has the kit?** Let the wave do it
    (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
    `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It
@@ -204,7 +204,7 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   repo's default branch — that's a hard GitHub rule for `issues` events; installing it on every
   branch means no one has to reason about which event resolves from where.)
 - **The map decides the branch.** Branch routing lives in driver-agents
-  `pipeline/project-repo-map.json`: each pipeline project carries an explicit `branch` (e.g. the
+  `pipeline/project-repo-map.json`: each Palmers project carries an explicit `branch` (e.g. the
   Palmers India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The
   dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
   dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. A Repo

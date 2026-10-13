@@ -73,7 +73,7 @@ only, so a branch rename never touches a live storefront.
 This repo names branches only where a standard does. The Shopify stub filters on `main`/`main-*`,
 the Vercel stub on `main`, and `templates/github/lint.yml` runs on `push: [main]`. Nothing else does:
 the implementer bases its branch and PR on the repo's default branch, or on the `Target branch:` line
-the dispatcher writes for Palmers alone; the Dependabot reusables follow the PR; and the wave and the
+the dispatcher writes when the ticket or its map entry names a branch (only Palmers' entries do); the Dependabot reusables follow the PR; and the wave and the
 audit follow each repo's default branch, plus every Palmers branch named `main*`. On Palmers the
 client identifies the branch (a Palmers Morocco ticket is `main-ma`), and the dispatcher resolves it
 to the map entry's branch; a `branch:` line on the ticket is optional.
@@ -103,8 +103,7 @@ and foundrae-blackridge (from `staging`).
 
 **Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge, Driver-Horizon and
 Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and
-`Staging-Deploy` files; until it does, indie-ridge's `lint.yml` reads red on their shellcheck
-findings. On Palmers the commit lands on every `main*` branch, with
+`Staging-Deploy` files. On Palmers the commit lands on every `main*` branch, with
 `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first. The store handle the implementer and the smoke test
 use is the `SHOPIFY_STORE_NAME` repository variable, one per repo, so a Palmers country branch cannot
 have its own.
@@ -163,7 +162,7 @@ have its own.
    - Shopify: the push run updated `DRIVER/main`, and a ready PR deploys its preview.
    - Vercel: the push staged a build and the production domain still serves the previous
      deployment. Promote once, then confirm auto-assign is still off.
-   - The open PRs now target `main`.
+   - The open PRs target `main`.
    - `main` requires one review, the rule `develop`/`staging` carried.
    - `main` requires at least one check and up-to-date branches ([The standards](#the-standards)).
      The rename carries `develop`'s protection over, so a branch that lacked strict still lacks it.

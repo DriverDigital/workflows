@@ -27,12 +27,12 @@ subset of these conventions: [`CLAUDE.md`](CLAUDE.md).
 How a ticket becomes a merged change:
 
 1. A Bonsai task assigned to **Agents** and set to *Ready for Dev / Design* enters the pipeline.
-2. The **dispatcher** (driver-agents `pipeline-dispatch.yml`, hourly) triages it, picks the repo and
-   branch from driver-agents' project-repo map, opens a GitHub issue as `driver-digital-agents` with
+2. The **dispatcher** (driver-agents `pipeline-dispatch.yml`, hourly) triages it, picks the repo (and,
+   on Palmers, the branch) from driver-agents' project-repo map, opens a GitHub issue as `driver-digital-agents` with
    `@claude` in the body, and moves the task to *In Progress*. Anything it cannot route goes to a
    person with a `⚠️ Needs a human:` comment.
 3. The repo's **`claude.yml`** (the implementer) branches `issue-<n>` from the issue's
-   `Target branch:`, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
+   `Target branch:` line, else the repo's default branch, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
    body carries `Closes #n`, `Bonsai task: <url>` and a `Pre-review:` line.
 4. **Macroscope** reviews every PR in the org. It is the only automatic reviewer; Claude reviews a PR
    only when a person `@claude`s it.
@@ -85,7 +85,7 @@ Two files in `.github/workflows/` are **this repo's own CI** and never ship:
 - `dependabot-auto-merge.yml`: auto-merges this repo's `github-owned` Dependabot bumps.
   `claude-code-action` majors land by hand.
 
-`main` here requires `actionlint` and one approval, with `enforce_admins: false`: release commits are
+`main` here requires `actionlint`, up-to-date branches and one approval, with `enforce_admins: false`: release commits are
 pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fleet-operations.md#branch-protection).
 
 ## How a repo takes the kit
@@ -163,7 +163,7 @@ SHA in `env:`, identical in the reusable `claude.yml` and `shopify-tool-smoke.ym
 - **`driver-digital-agents`** (`AGENTS_GH_PAT`) dispatches: it authors the dispatcher's issues and
   revise-loop `@claude` comments, `dependabot-report`'s verdict and reviewer request, and
   `dependabot-keep-current`'s rebase requests. The implementer uses it only in its store-provisioning step, to clone driver-agents and read the
-  issue for the audit's ticket context.
+  issue for the audit's ticket context; `shopify-tool-smoke.yml` uses it for the same clone.
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
   is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, and
@@ -218,8 +218,4 @@ created, and a required context with no check run for the head commit blocks the
 GitHub does accept a check run that concludes `skipped`; what matters is whether a check run exists for
 the head SHA.
 
-After the first run on a test PR, require the **exact context GitHub reports**: a reusable job reports
-`<caller-job-id> / <reusable-job-id>` (`validate / validate`), and the workflow's display name is never
-part of it. Turn on **require branches to be up to date before merging** with it: every repo
-requires it, and strict only applies against required checks. Also require a **human** approver (e.g. CODEOWNERS),
-so no bot signal satisfies the merge gate. Which checks a partial install should require: kit README, install step 5.
+Which exact context to require, with up-to-date branches and a human approver: kit README, install step 5.

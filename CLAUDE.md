@@ -135,6 +135,6 @@ reusable. A kit-only change needs no tag and no wave. Wave mechanics: `docs/flee
   or none, nothing goes to a repo without `driver-kit`, and a repo with more than one platform topic
   blocks the wave. A new platform file must be added to the list there, or neither the wave nor the
   audit sees it.
-- No wave runs while a Shopify repo is mid-cutover: the wave reads `default_branch` live.
+- No wave runs while a repo is mid-cutover: the wave reads `default_branch` live.
 - A new fleet rail that shares `claude.yml`'s trigger wakes a real implementer run on a client repo;
   pilot on the PR leg (`docs/fleet-operations.md` → "Piloting a cross-repo reusable").
