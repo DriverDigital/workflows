@@ -6,6 +6,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
+- **The implementer runs Opus with Fable as advisor** (branch `implementer-opus-advisor`, draft PR):
+  `--model opus --advisor fable`, plus model tiers for subagents in the quality standard. It touches
+  the reusable `claude.yml`, so it needs a tag, a repin and a wave (README, "Release + repin order").
+  First live proof is the first implementer run after the wave.
 - **This session's PR** (branch `readme-present-tense`) rewrites every doc in the present tense, deletes
   the three finished scope docs, and fixes `dependabot-auto-merge.yml` (squash is off here, so it merges
   with a merge commit). The `claude.yml` change is a comment only.
