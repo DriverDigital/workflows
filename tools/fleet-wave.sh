@@ -24,6 +24,7 @@
 #                                                 templates/github/dependabot/ variant (picked by
 #                                                 tools/kit-platforms.sh; none = not written)
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
+#   Production-Deploy.yml, production-deploy.yml <- deleted if present (a pre-kit theme workflow, unused)
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -103,7 +104,7 @@ FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.ym
             pr-bonsai-link.yml dependabot-keep-current.yml dependabot-report.yml
             dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json
             dependabot.yml)
-DELETE_FILES=(bonsai-status-sync.yml)
+DELETE_FILES=(bonsai-status-sync.yml Production-Deploy.yml production-deploy.yml)
 # Where a kit file lives in a target repo: the PR template, the house standards and the Dependabot
 # config sit in .github/, and the shared Claude Code project settings are the repo's .claude/settings.json.
 dest() {
