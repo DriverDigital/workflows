@@ -14,7 +14,9 @@ VERCEL_FILES=(vercel-deploy.yml)
 # Macroscope check-run agents, written to .macroscope/check-run-agents/ on Shopify repos that run the
 # pipeline (claude.yml on the branch). The wave and the audit read them from driver-agents main;
 # this repo holds no copy. The agents are stack-specific, so a Vercel one needs its own list here.
-AGENT_FILES=(figma-design-fidelity.md)
+AGENT_FILES=(figma-design-fidelity-shopify.md)
+# Agent files the wave deletes where present.
+RETIRED_AGENT_FILES=(figma-design-fidelity.md)
 
 # The platform a kit file belongs to, or nothing for the shared kit.
 file_platform() {
@@ -23,7 +25,7 @@ file_platform() {
 }
 
 agent_platform() { [ "$1" = shopify ]; }
-is_agent() { case " ${AGENT_FILES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
+is_agent() { case " ${AGENT_FILES[*]} ${RETIRED_AGENT_FILES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 
 # Fetch every check-run agent from driver-agents main into directory $1; non-zero if any read fails.
 fetch_agents() {

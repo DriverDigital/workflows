@@ -39,8 +39,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Driver-Horizon's cutover** waits on Driver-Horizon #10 (a theme check error).
 - **R-Finds' cutover** waits on its shared kit install.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
-- **The next wave** waits on driver-agents #68, so it carries the updated Figma check-run agent to the
-  pipeline Shopify repos.
+- **The next wave, and any audit run,** wait on driver-agents #68: it renames the Figma check-run agent
+  to `figma-design-fidelity-shopify.md`, and until it merges neither tool can read that file from
+  driver-agents `main`. The wave then installs it on the pipeline Shopify repos and deletes the old
+  `figma-design-fidelity.md` from Avara.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
 - **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the

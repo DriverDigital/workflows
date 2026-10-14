@@ -27,7 +27,8 @@
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (a pre-kit theme workflow, unused)
 #   AGENT_FILES (tools/kit-platforms.sh)       <- Shopify repos only: written to
 #                                                 .macroscope/check-run-agents/ wherever claude.yml
-#                                                 is, from driver-agents main
+#                                                 is, from driver-agents main; RETIRED_AGENT_FILES
+#                                                 deleted there if present
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -330,6 +331,9 @@ plan_and_push() {
       if grep -qxF "$(dest "$f")" <<<"$existing"; then raw "$repo" "$branch" "$f" > "$cur"; fi
       cp "$TMP/agents/$f" "$tmp/$f"
       cmp -s "$cur" "$tmp/$f" || { tree+=("$f"); changes=1; echo "  write  $f"; }
+    done
+    for f in "${RETIRED_AGENT_FILES[@]}"; do
+      if grep -qxF "$(dest "$f")" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi
     done
   fi
 
