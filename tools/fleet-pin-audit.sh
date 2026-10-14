@@ -12,7 +12,7 @@
 #      lines are normalized away (see `kit_normalize` for why), and claude-settings.json is
 #      compared on its attribution keys alone; anything else that differs is drift.
 #
-# Scans every non-archived DriverDigital repo's .github/, .claude/settings.json and, on site repos,
+# Scans every non-archived DriverDigital repo's .github/, .claude/settings.json and, on Shopify repos,
 # .macroscope/check-run-agents/, whose files are compared with driver-agents main (default branch,
 # plus every main* branch of Palmers — the kit is installed per country branch there). Kit files on
 # a repo without the driver-kit topic are listed apart as unenrolled and never count as drift; a
@@ -145,7 +145,7 @@ scan_ref() {  # repo ref platform
   done
   local root dotclaude="" variant
   root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
-  # Check-run agents, on site repos: the wave installs them beside claude.yml from driver-agents main.
+  # Check-run agents, on Shopify repos: the wave installs them beside claude.yml from driver-agents main.
   # A failed listing skips the check rather than reading as missing.
   local macro="" agents="" listed=1
   if agent_platform "$plat" && grep -qx "dir .macroscope" <<<"$root"; then
