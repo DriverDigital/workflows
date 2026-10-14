@@ -3,9 +3,10 @@
 # DriverDigital/workflows (templates/github/dependabot/), never in place.
 #
 # The kit's github-actions entry, minus its minor/patch ignore: this repo's own workflows pin
-# actions by SHA, so a patch reaches them only through a Dependabot PR. lint.yml is a kit file on a
-# floating major tag that the wave owns, so it is left to the wave. Weekly, since
-# claude-code-action ships several patches a week. The MCP servers' npm blocks are this repo's own.
+# actions by SHA, so a patch reaches them only through a Dependabot PR. claude-code-action floats on
+# its major tag for the newest Claude Code, so its next major (v2) arrives as a Dependabot PR too.
+# lint.yml is a kit file on a floating major tag that the wave owns, so it is left to the wave. The
+# MCP servers' npm blocks are this repo's own.
 version: 2
 updates:
   - package-ecosystem: "github-actions"

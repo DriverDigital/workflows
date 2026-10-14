@@ -15,8 +15,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **#95** adds one Figma paragraph to the implementer prompt. The server's MCP instructions already
   carry file navigation (driver-agents#68); check #95's wording against them. Ship it, and #96 once
   its claims are verified, with the next tag.
-- **#105** (draft) moves the implementer to Opus with Fable as advisor. It changes the reusable, so
-  it needs a tag and a wave; decide whether it rides this branch's tag.
+- **The implementer runs Opus with Fable as advisor** (#105): `--model opus --advisor fable`, plus
+  model tiers for subagents in the quality standard. It touches the reusable `claude.yml`, so it needs
+  a tag, a repin and a wave. First live proof is the first implementer run after the wave.
 - **Unreleased, riding the next tag and wave:** the main-only `vercel-deploy` reusable, the
   `templates/github/dependabot/` variants (the wave writes `.github/dependabot.yml` to every target),
   and the `dependabot-validate` change that skips install without a root `package.json`.
