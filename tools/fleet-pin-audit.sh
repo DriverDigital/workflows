@@ -7,13 +7,13 @@
 #      2 and 3 measure the fleet against `templates/`, so a stale reference makes both of them lie.
 #   2. PINS — every deployed caller stub's `uses: DriverDigital/workflows/...@SHA` vs that tag.
 #   3. CONTENT — the whole waved file vs its templates/github/ source. The pin is one line of it:
-#      `DRIVER_AGENTS_REF` is a raw SHA in an `env:` block, the implementer's system prompt is just
-#      text, and a full-workflow copy of what should be a thin stub has no `uses:` line at all
-#      — so a pin grep sees none of them. Only trailing blank lines are normalized away (see
-#      `kit_normalize` for why), and claude-settings.json is compared on its attribution keys
-#      alone; anything else that differs is drift.
+#      the implementer's system prompt is just text, and a full-workflow copy of what should be a
+#      thin stub has no `uses:` line at all — so a pin grep sees neither. Only trailing blank
+#      lines are normalized away (see `kit_normalize` for why), and claude-settings.json is
+#      compared on its attribution keys alone; anything else that differs is drift.
 #
-# Scans every non-archived DriverDigital repo's .github/ and .claude/settings.json (default branch,
+# Scans every non-archived DriverDigital repo's .github/, .claude/settings.json and, on Shopify repos,
+# .macroscope/check-run-agents/, whose files are compared with driver-agents main (default branch,
 # plus every main* branch of Palmers — the kit is installed per country branch there). Kit files on
 # a repo without the driver-kit topic are listed apart as unenrolled and never count as drift; a
 # platform file on a repo whose topic names another platform, or none, is drift (tools/kit-platforms.sh).
@@ -69,6 +69,9 @@ reference="$(
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
+mkdir "$TMP/agents"
+fetch_agents "$TMP/agents" \
+  || { echo "FATAL: could not read the check-run agents from driver-agents main — this run proves nothing." >&2; exit 2; }
 
 content_row() {  # repo ref file [kit source, default $KIT/file] — $TMP/raw holds the deployed bytes
   local repo="$1" ref="$2" f="$3" src="${4:-$KIT/$3}"
@@ -142,6 +145,26 @@ scan_ref() {  # repo ref platform
   done
   local root dotclaude="" variant
   root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
+  # Check-run agents, on Shopify repos: the wave installs them beside claude.yml from driver-agents main.
+  # A failed listing skips the check rather than reading as missing.
+  local macro="" agents="" listed=1
+  if agent_platform "$plat" && grep -qx "dir .macroscope" <<<"$root"; then
+    macro="$(gh api "repos/$ORG/$repo/contents/.macroscope?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || listed=0
+    if [ "$listed" = 1 ] && grep -qx "dir check-run-agents" <<<"$macro"; then
+      agents="$(gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents?ref=$ref" --jq '.[].name' 2>/dev/null)" || listed=0
+    fi
+  fi
+  if agent_platform "$plat" && [ "$listed" = 1 ]; then
+    for f in "${AGENT_FILES[@]}"; do
+      if grep -qx "$f" <<<"$agents"; then
+        gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents/$f?ref=$ref" \
+          -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
+          && content_row "$repo" "$ref" "$f" "$TMP/agents/$f"
+      elif grep -qx claude.yml <<<"$files"; then
+        echo "CONTENT $repo@$ref $f DRIFT missing"
+      fi
+    done
+  fi
   # The wave writes .github/dependabot.yml on every branch it targets, so only those are compared:
   # an enrolled repo the wave never reaches keeps its own file.
   if grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \

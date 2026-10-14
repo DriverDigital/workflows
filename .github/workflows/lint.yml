@@ -119,17 +119,37 @@ jobs:
           PY
 
 
-      - name: DRIVER_AGENTS_REF matches in the reusable and the smoke test
-        # The smoke test is a copied kit file and the implementer is a reusable, so nothing else keeps
-        # their driver-agents pins together — and a smoke test at a different revision verifies code
-        # the implementer never runs.
+      - name: The Shopify blockquote matches driver-agents main
+        # The blockquote in claude.yml's --append-system-prompt is a copy of driver-agents
+        # docs/agent-instructions-shopify.md, and the implementer clones that repo's main for the
+        # tool it describes. Compared with whitespace collapsed, since the copy flattens one
+        # paragraph break. PRs only; one without the secret (Dependabot, a fork) skips the check.
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
         run: |
           set -euo pipefail
-          ref() { grep -oE 'DRIVER_AGENTS_REF: [0-9a-f]{40}' "$1" | sort -u || true; }
-          a=$(ref .github/workflows/claude.yml); b=$(ref templates/github/shopify-tool-smoke.yml)
-          [ "$(wc -l <<<"$a")" -eq 1 ] && [ -n "$a" ] || { echo "::error::expected one DRIVER_AGENTS_REF in .github/workflows/claude.yml, got: $a"; exit 1; }
-          [ "$a" = "$b" ] || { echo "::error::DRIVER_AGENTS_REF differs: claude.yml has '${a#* }', shopify-tool-smoke.yml has '${b#* }'"; exit 1; }
-          echo "both pin ${a#* }"
+          if [ -z "$GH_TOKEN" ]; then echo "::notice::AGENTS_GH_PAT unavailable to this run; blockquote check skipped"; exit 0; fi
+          gh api repos/DriverDigital/driver-agents/contents/docs/agent-instructions-shopify.md \
+            -H 'Accept: application/vnd.github.raw' > "$RUNNER_TEMP/canon.md"
+          python3 - "$RUNNER_TEMP/canon.md" <<'PY'
+          import re, sys, unicodedata, yaml
+          d = yaml.safe_load(open(".github/workflows/claude.yml"))
+          args = [s["with"]["claude_args"] for s in d["jobs"]["claude"]["steps"] if "claude_args" in (s.get("with") or {})][0]
+          prompt = re.search(r"--append-system-prompt '(.*?)'(?:\s|$)", args, re.S).group(1)
+          start = "All Shopify Admin API calls go through"
+          if start not in prompt:
+              sys.exit(f"::error::claude.yml system prompt has no line starting {start!r}")
+          norm = lambda t: re.sub(r"\s+", " ", unicodedata.normalize("NFC", t)).strip()
+          ours = norm(prompt[prompt.index(start):])
+          canon = norm("\n".join(re.sub(r"^> ?", "", l) for l in open(sys.argv[1]).read().splitlines() if l.startswith(">")))
+          if ours != canon:
+              i = next((k for k, (x, y) in enumerate(zip(ours, canon)) if x != y), min(len(ours), len(canon)))
+              sys.exit("::error::the Shopify blockquote in claude.yml differs from driver-agents main "
+                       f"docs/agent-instructions-shopify.md at char {i}:\n  ours:  ...{ours[max(0, i - 60):i + 80]}\n"
+                       f"  main:  ...{canon[max(0, i - 60):i + 80]}\nRe-copy the blockquote from driver-agents.")
+          print(f"blockquote matches driver-agents main ({len(ours)} chars)")
+          PY
 
       - name: The kit's dependabot.yml variants match Dependabot's schema
         # The wave writes these to every target, and Dependabot rejects a bad config only once it
