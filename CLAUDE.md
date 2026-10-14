@@ -42,7 +42,7 @@ pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/g
 ```
 
 `lint.yml` also checks that the prompt survives tokenization (the python step at
-`.github/workflows/lint.yml:74`; run it verbatim, needs PyYAML, after any edit to the reusable
+the `lint.yml` step "claude.yml system prompt survives tokenization"; run it verbatim, needs PyYAML, after any edit to the reusable
 `claude.yml`'s `claude_args` or `prompt:`) and that the Shopify blockquote matches driver-agents
 `main` (it reads driver-agents with `AGENTS_GH_PAT`, and also runs daily).
 
@@ -64,7 +64,9 @@ wave reads it locally (`git describe`) and the audit reads it from GitHub, so an
 clean and then audits as stale everywhere.
 
 A new reusable's stub lands in step 2 of the release that tags it, never in the PR that adds the
-reusable. A kit-only change needs no tag and no wave. Wave mechanics: `docs/fleet-operations.md`.
+reusable. A kit-only change needs no tag and no wave. A driver-agents change to a check-run agent
+reads as audit drift until a wave from `main` with `--message` carries it. Wave mechanics:
+`docs/fleet-operations.md`.
 
 ## Invariants that fail silently
 

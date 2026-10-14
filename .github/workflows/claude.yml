@@ -486,7 +486,7 @@ jobs:
           # and newlines out of the text.
           # The Shopify Admin API tripwire appended after the conduct text is COPIED VERBATIM from
           # driver-agents docs/agent-instructions-shopify.md (the canonical source — edit there
-          # first, then re-copy here on the kit bump that ships it). It rides this STATIC flag so it
+          # first; lint.yml goes red until it is re-copied here and released). It rides this STATIC flag so it
           # reaches every rail that can hold store credentials; the read-only review rails never
           # provision the tool. It extends the existing quoted string rather than adding a second
           # --append-system-prompt, so no repeated-flag last-wins behavior can drop either block.

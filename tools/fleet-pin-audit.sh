@@ -146,11 +146,15 @@ scan_ref() {  # repo ref platform
   local root dotclaude="" variant
   root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
   # Check-run agents, on Shopify repos: the wave installs them beside claude.yml from driver-agents main.
-  if [ "$plat" = shopify ]; then
-    local agents=""
-    if grep -qx "dir .macroscope" <<<"$root"; then
-      agents="$(gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents?ref=$ref" --jq '.[].name' 2>/dev/null)" || agents=""
+  # A failed listing skips the check rather than reading as missing.
+  local macro="" agents="" listed=1
+  if [ "$plat" = shopify ] && grep -qx "dir .macroscope" <<<"$root"; then
+    macro="$(gh api "repos/$ORG/$repo/contents/.macroscope?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || listed=0
+    if [ "$listed" = 1 ] && grep -qx "dir check-run-agents" <<<"$macro"; then
+      agents="$(gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents?ref=$ref" --jq '.[].name' 2>/dev/null)" || listed=0
     fi
+  fi
+  if [ "$plat" = shopify ] && [ "$listed" = 1 ]; then
     for f in "${AGENT_FILES[@]}"; do
       if grep -qx "$f" <<<"$agents"; then
         gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents/$f?ref=$ref" \

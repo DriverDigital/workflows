@@ -100,8 +100,9 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
   carries, installs `pr-bonsai-link.yml`, `claude-standards.md` and the `.claude/settings.json`
   attribution keys wherever `claude.yml` is, and writes `.github/dependabot.yml` from the variant
-  `tools/kit-platforms.sh` picks. It never adds a platform stub; that arrives with the repo's canary or
-  cutover commit.
+  `tools/kit-platforms.sh` picks. On Shopify repos with `claude.yml` it also writes the check-run
+  agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds a
+  platform stub; that arrives with the repo's canary or cutover commit.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
   Dependabot also bumps the stub pins on a repo the wave skipped. It scans the default branch only.
 - **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit
@@ -136,7 +137,9 @@ kit's `attribution` keys.
 deployed has to move, and the change rides with the next release. Cutting a tag is what creates the
 obligation to wave, because the audit compares every stub against the latest tag. The audit also
 compares each deployed kit file against `templates/`, so between a kit-only merge and the next wave
-it reports content drift on the changed files; that is expected and clears with the wave.
+it reports content drift on the changed files; that is expected and clears with the wave. The
+check-run agents are compared with driver-agents `main` instead, so a change merged there reads as
+drift until a wave from `main` with `--message` carries it; no tag is needed.
 
 ## Action refs
 
