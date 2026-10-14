@@ -10,7 +10,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   and stub fire the main deploy hook on push to `main`, and production is a promotion in Vercel
   ([`branch-model.md`](branch-model.md#the-standards)). It changes a reusable, so it ships with the
   next tag. It also drops `DRIVER_AGENTS_REF`: the implementer and the smoke test clone driver-agents
-  `main`, `lint.yml` checks the Shopify blockquote against it daily, and the wave and the audit read
+  `main`, `lint.yml` checks the Shopify blockquote against it on every PR, and the wave and the audit read
   the Figma check-run agent from it. Close #101, #61 and #104 with it.
 - **#95** adds one Figma paragraph to the implementer prompt; navigation lives in driver-agents#64.
   Ship it, and #96 once its claims are verified, with the next tag.
@@ -40,7 +40,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **R-Finds' cutover** waits on its shared kit install.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **The next wave** waits on driver-agents #68, so it carries the updated Figma check-run agent to the
-  eight pipeline theme repos.
+  pipeline site repos (Shopify and Vercel).
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
 - **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the
@@ -77,9 +77,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
-- **Figma check-run agent spend.** It runs on every PR in the eight pipeline theme repos. A run with no
-  design cost $0.27–$1.31 on Avara, more for bigger diffs; a run with a design is unmeasured (capped
-  at $6 a run, $24 a PR).
+- **Figma check-run agent spend.** It runs on every PR in the pipeline site repos (Shopify and
+  Vercel). A run with no design cost $0.27–$1.31 on Avara, more for bigger diffs; a run with a
+  design is unmeasured (capped at $6 a run, $24 a PR).
+- **The Figma agent on a Vercel site.** Its instructions read Shopify theme sources for design
+  tokens; watch its first Next.js runs and take any gap to driver-agents.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
 - **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
   `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether

@@ -79,7 +79,7 @@ Two files in `.github/workflows/` are **this repo's own CI** and never ship:
 
 - `lint.yml` (job `actionlint`, the required check on `main`): actionlint and shellcheck over the
   reusables and the kit, the placeholder-pin guard, the `claude_args` tokenization and `prompt:` brace
-  checks, the Shopify blockquote against driver-agents `main` (also daily), and a schema check of
+  checks, the Shopify blockquote against driver-agents `main` (on PRs), and a schema check of
   the `dependabot/` variants. It is a different file from the kit's `templates/github/lint.yml`, which
   lints only the installing repo's own workflows; both use the job id `actionlint`.
 - `dependabot-auto-merge.yml`: auto-merges this repo's `github-owned` Dependabot bumps.
@@ -100,9 +100,9 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
   carries, installs `pr-bonsai-link.yml`, `claude-standards.md` and the `.claude/settings.json`
   attribution keys wherever `claude.yml` is, and writes `.github/dependabot.yml` from the variant
-  `tools/kit-platforms.sh` picks. On Shopify repos with `claude.yml` it also writes the check-run
-  agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds a
-  platform stub; that arrives with the repo's canary or cutover commit.
+  `tools/kit-platforms.sh` picks. On Shopify and Vercel repos with `claude.yml` it also writes the
+  check-run agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds
+  a platform stub; that arrives with the repo's canary or cutover commit.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
   Dependabot also bumps the stub pins on a repo the wave skipped. It scans the default branch only.
 - **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit

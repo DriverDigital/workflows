@@ -14,9 +14,6 @@ on:
   pull_request:
   push:
     branches: [main]
-  # Daily, for the blockquote check below: driver-agents changes without a PR here.
-  schedule:
-    - cron: "17 9 * * *"
 
 permissions:
   contents: read
@@ -126,7 +123,8 @@ jobs:
         # The blockquote in claude.yml's --append-system-prompt is a copy of driver-agents
         # docs/agent-instructions-shopify.md, and the implementer clones that repo's main for the
         # tool it describes. Compared with whitespace collapsed, since the copy flattens one
-        # paragraph break. A PR without the secret (Dependabot, a fork) skips the check.
+        # paragraph break. PRs only; one without the secret (Dependabot, a fork) skips the check.
+        if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
         run: |

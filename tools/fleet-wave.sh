@@ -25,7 +25,7 @@
 #                                                 tools/kit-platforms.sh; none = not written)
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (a pre-kit theme workflow, unused)
-#   AGENT_FILES (tools/kit-platforms.sh)       <- Shopify repos only: written to
+#   AGENT_FILES (tools/kit-platforms.sh)       <- Shopify and Vercel repos: written to
 #                                                 .macroscope/check-run-agents/ wherever claude.yml
 #                                                 is, from driver-agents main
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
@@ -247,7 +247,7 @@ plan_and_push() {
   fi
   root=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list the repo root" >&2; exit 3; }
-  if [ "$plat" = shopify ] && grep -qxF "dir .macroscope" <<<"$root"; then
+  if agent_platform "$plat" && grep -qxF "dir .macroscope" <<<"$root"; then
     local macro agents
     macro=$(api "repos/$ORG/$repo/contents/.macroscope?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
       || { echo "  $repo@$branch: cannot list .macroscope" >&2; exit 3; }
@@ -322,8 +322,8 @@ plan_and_push() {
     fi
   done
 
-  # Check-run agents: Shopify repos only, installed beside claude.yml and refreshed where present.
-  if [ "$plat" = shopify ]; then
+  # Check-run agents: Shopify and Vercel repos, installed beside claude.yml and refreshed where present.
+  if agent_platform "$plat"; then
     for f in "${AGENT_FILES[@]}"; do
       grep -qxF "$(dest "$f")" <<<"$existing" || grep -qxF .github/workflows/claude.yml <<<"$existing" || continue
       cur="$tmp/deployed-$f"; : > "$cur"

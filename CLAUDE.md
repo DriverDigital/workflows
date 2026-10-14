@@ -44,7 +44,7 @@ pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/g
 `lint.yml` also checks that the prompt survives tokenization (the python step at
 the `lint.yml` step "claude.yml system prompt survives tokenization"; run it verbatim, needs PyYAML, after any edit to the reusable
 `claude.yml`'s `claude_args` or `prompt:`) and that the Shopify blockquote matches driver-agents
-`main` (it reads driver-agents with `AGENTS_GH_PAT`, and also runs daily).
+`main` (on PRs only; it reads driver-agents with `AGENTS_GH_PAT`).
 
 Fleet tools (both work through `gh api`, no clones; both need authenticated `gh` and `jq`, the wave
 also `actionlint`):
