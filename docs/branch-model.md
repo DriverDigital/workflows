@@ -44,7 +44,7 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
 | Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
 | Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | `vercel-deploy.yml` → reusable `vercel-deploy.yml` |
-| What it deploys | PR preview `DRIVER/<head branch>`: checked while draft, pushed when ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. PR previews come from Vercel's GitHub app, for authors on the Vercel team only, so the implementer's PRs get none. |
+| What it deploys | PR preview `DRIVER/<head branch>`: checked while draft, pushed when ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. PR previews come from Vercel's GitHub app, which builds PRs by team members and by bots (the implementer, Dependabot). |
 | Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | `VERCEL_DEPLOY_HOOK_MAIN` |
 | Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | `VERCEL_TEAM_LOGINS`, per repo: space-separated GitHub logins with a seat on that project's Vercel team. When it's unset, `mcarter-astronautdev` alone is used |
 
@@ -62,7 +62,7 @@ step 5). One org ruleset will enforce it (#99). Until then, how to set it per re
 [fleet operations](fleet-operations.md#branch-protection).
 
 An enrolled repo with no platform topic gets the shared kit only, as the tool repos do. The-Gathery
-is a WordPress theme with `develop` + `main`; `wordpress-site` adds no files, so it too gets the
+is a WordPress theme with no deploy automation; `wordpress-site` adds no files, so it too gets the
 shared kit only.
 
 No repo branch is ever connected to a store's live theme. Repos back unpublished preview themes
@@ -100,6 +100,9 @@ PR based on it.
 and foundrae-blackridge (from `staging`).
 
 **Vercel repos to cut over:** Driver-Digital-Website, studio-sulzer and Team-Laird (from `develop`).
+
+**WordPress repo to cut over:** The-Gathery (from `develop`). Nothing in GitHub deploys it, so it
+takes steps 1, 3, 4, 7 and 8 only.
 
 **Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge, Driver-Horizon and
 Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and

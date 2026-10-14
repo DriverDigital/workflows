@@ -50,7 +50,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Recommendation: add `dependabot-report` so its Dependabot PRs can qualify for #85 auto-merge. Add
   `claude.yml` + `pr-bonsai-link.yml` only if tickets should reach driver-agents.
 - **foundrae's `dev-staging` and `testparty/*` branches:** retire them at its cutover, or keep them.
-- **The-Gathery** (WordPress) keeps `develop` + `main`: move it to `main` with the others, or leave it.
 
 ## Watch-items
 
