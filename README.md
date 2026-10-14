@@ -21,7 +21,7 @@ subset of these conventions: [`CLAUDE.md`](CLAUDE.md).
 | Repo | Role |
 |---|---|
 | **workflows** (this repo, public) | The GitHub rails every fleet repo runs: the implementer, Dependabot, platform deploys. |
-| [**driver-agents**](https://github.com/DriverDigital/driver-agents) (private) | The pipeline dispatcher, the Shopify admin-tool wrapper and the canonical Shopify instructions (cloned by the implementer at the pinned `DRIVER_AGENTS_REF`), the read-only Figma and Bonsai MCP servers, the Macroscope Check Run agent prompts and the nightly audit publisher. |
+| [**driver-agents**](https://github.com/DriverDigital/driver-agents) (private) | The pipeline dispatcher, the Shopify admin-tool wrapper and the canonical Shopify instructions (the implementer clones its `main`), the read-only Figma and Bonsai MCP servers, the Macroscope Check Run agent prompts and the nightly audit publisher. |
 | [**driver-engineering-app**](https://github.com/DriverDigital/driver-engineering-app) (private) | The "Driver Engineering" Shopify app installed in each client org. Its client id and secret are the credentials the implementer's store tooling mints Admin API tokens from, and its app home shows clients what the agents did. |
 
 How a ticket becomes a merged change:
@@ -79,8 +79,8 @@ Two files in `.github/workflows/` are **this repo's own CI** and never ship:
 
 - `lint.yml` (job `actionlint`, the required check on `main`): actionlint and shellcheck over the
   reusables and the kit, the placeholder-pin guard, the `claude_args` tokenization and `prompt:` brace
-  checks, `DRIVER_AGENTS_REF` parity with `shopify-tool-smoke.yml`, and a schema check of the
-  `dependabot/` variants. It is a different file from the kit's `templates/github/lint.yml`, which
+  checks, the Shopify blockquote against driver-agents `main` (also daily), and a schema check of
+  the `dependabot/` variants. It is a different file from the kit's `templates/github/lint.yml`, which
   lints only the installing repo's own workflows; both use the job id `actionlint`.
 - `dependabot-auto-merge.yml`: auto-merges this repo's `github-owned` Dependabot bumps.
   `claude-code-action` majors land by hand.
@@ -121,12 +121,6 @@ Do the steps in order. A wave is safe only once all three are done.
 
 1. **Merge to `main`, cut the tag and push it.** The wave reads the tag locally and the audit reads it
    from GitHub, so an unpushed tag waves clean and then audits as stale everywhere.
-   - **If `DRIVER_AGENTS_REF` moved**, run the blockquote parity check first. Extract the `>` lines
-     from driver-agents `docs/agent-instructions-shopify.md` at the new pin, strip the `> ` prefixes,
-     NFC-normalize, **collapse whitespace**, and diff against the blockquote in the reusable
-     `claude.yml`'s `--append-system-prompt`. The collapse is required because the copy flattens one
-     paragraph break. Nothing else checks this: `lint.yml` proves only that the reusable and
-     `shopify-tool-smoke.yml` carry the same ref.
 2. **Repin every stub in `templates/github/`** to the tag's SHA and its `# vX.Y.Z` trailer in one sed,
    then commit. A reusable added in this release gets its stub here: its tag is cut in step 1, so it
    cannot be pinned earlier. `lint.yml` fails on a placeholder pin and `fleet-wave.sh` refuses an
@@ -152,9 +146,8 @@ reference third-party actions by **major tag** (`actions/checkout@v7`,
 `anthropics/claude-code-action@v1`): each run resolves the latest minor and patch, and the only action
 bump that ever gets a PR is a new major. When one ships, bump the kit's major to match.
 
-Three refs stay manual: the `DriverDigital/workflows` stub pins (the wave), `DRIVER_AGENTS_REF` (a raw
-SHA in `env:`, identical in the reusable `claude.yml` and `shopify-tool-smoke.yml`), and the actionlint
-`VERSION` + `SHA256` pair in `lint.yml`, which move together.
+Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the actionlint
+`VERSION` + `SHA256` pair in `lint.yml`, which move together. driver-agents is read at `main`.
 
 ## Identities and secrets
 

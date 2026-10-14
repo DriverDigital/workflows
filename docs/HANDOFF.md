@@ -9,7 +9,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **This branch (`vercel-main-staging`)** makes Vercel sites main-only: the `vercel-deploy` reusable
   and stub fire the main deploy hook on push to `main`, and production is a promotion in Vercel
   ([`branch-model.md`](branch-model.md#the-standards)). It changes a reusable, so it ships with the
-  next tag. Close #101 with it.
+  next tag. It also drops `DRIVER_AGENTS_REF`: the implementer and the smoke test clone driver-agents
+  `main`, `lint.yml` checks the Shopify blockquote against it daily, and the wave and the audit read
+  the Figma check-run agent from it. Close #101, #61 and #104 with it.
 - **#95** adds one Figma paragraph to the implementer prompt; navigation lives in driver-agents#64.
   Ship it, and #96 once its claims are verified, with the next tag.
 - **Unreleased, riding the next tag and wave:** the main-only `vercel-deploy` reusable, the
@@ -37,8 +39,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Driver-Horizon's cutover** waits on Driver-Horizon #10 (a theme check error).
 - **R-Finds' cutover** waits on its shared kit install.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
-- **`.macroscope/check-run-agents/` in the wave (#61)** waits on the first real Avara design ticket to
-  tune the rubric. Add the root in `dest()`, which already maps `.claude/settings.json`.
+- **The next wave** waits on driver-agents #68, so it carries the updated Figma check-run agent to the
+  eight pipeline theme repos.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
 - **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the
@@ -54,8 +56,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Watch-items
 
 - **The first `shopify-theme.yml` canary** (savannahfriedkin). Every repo but Palmers (and foundrae,
-  if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push and cleanup jobs. Read the push job log first: the job must run
-  with no environment, and `vars.` must resolve in `jobs.<id>.environment`. If either fails, split the
+  if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push
+  and cleanup jobs. Read the push job log first: the job must run with no environment, and `vars.`
+  must resolve in `jobs.<id>.environment`. If either fails, split the
   job into two variants rather than documenting around it.
 - **The first fleet-wide `dependabot.yml` wave.** Canary it with `--only` on one npm repo: each npm
   repo gets a burst of single-major PRs (capped at 5 open), each with a validate run and a Macroscope
@@ -74,6 +77,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
+- **Figma check-run agent spend.** It runs on every PR in the eight pipeline theme repos. A run with no
+  design cost $0.27–$1.31 on Avara, more for bigger diffs; a run with a design is unmeasured (capped
+  at $6 a run, $24 a PR).
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
 - **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
   `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether

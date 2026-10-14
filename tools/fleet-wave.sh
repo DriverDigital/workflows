@@ -25,6 +25,9 @@
 #                                                 tools/kit-platforms.sh; none = not written)
 #   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (a pre-kit theme workflow, unused)
+#   AGENT_FILES (tools/kit-platforms.sh)       <- Shopify repos only: written to
+#                                                 .macroscope/check-run-agents/ wherever claude.yml
+#                                                 is, from driver-agents main
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -108,6 +111,7 @@ DELETE_FILES=(bonsai-status-sync.yml Production-Deploy.yml production-deploy.yml
 # Where a kit file lives in a target repo: the PR template, the house standards and the Dependabot
 # config sit in .github/, and the shared Claude Code project settings are the repo's .claude/settings.json.
 dest() {
+  if is_agent "$1"; then echo ".macroscope/check-run-agents/$1"; return; fi
   case "$1" in
     pull_request_template.md|claude-standards.md|dependabot.yml) echo ".github/$1" ;;
     claude-settings.json) echo ".claude/settings.json" ;;
@@ -117,6 +121,8 @@ dest() {
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
+mkdir "$TMP/agents"
+fetch_agents "$TMP/agents" || { echo "could not read the check-run agents from driver-agents main" >&2; exit 2; }
 
 api() { gh api "$@"; }
 # A typo in --skip would skip nothing and wave the repo it was meant to spare — the one outcome the
@@ -241,6 +247,16 @@ plan_and_push() {
   fi
   root=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list the repo root" >&2; exit 3; }
+  if [ "$plat" = shopify ] && grep -qxF "dir .macroscope" <<<"$root"; then
+    local macro agents
+    macro=$(api "repos/$ORG/$repo/contents/.macroscope?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
+      || { echo "  $repo@$branch: cannot list .macroscope" >&2; exit 3; }
+    if grep -qxF "dir .macroscope/check-run-agents" <<<"$macro"; then
+      agents=$(api "repos/$ORG/$repo/contents/.macroscope/check-run-agents?ref=$branch" --jq '.[].path') \
+        || { echo "  $repo@$branch: cannot list .macroscope/check-run-agents" >&2; exit 3; }
+      existing="$existing"$'\n'"$agents"
+    fi
+  fi
   variant=$(dependabot_variant "$repo" "$(grep -qxF "file package.json" <<<"$root" && echo 1 || echo 0)" \
     "$(grep -qxF "dir .github/workflows" <<<"$dotgithub" && echo 1 || echo 0)")
   if grep -qxF "dir .claude" <<<"$root"; then
@@ -258,7 +274,8 @@ plan_and_push() {
   # Three files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
   # check, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
   # Code project settings. dependabot.yml is installed on every target that has a variant
-  # (dependabot_variant). Nothing outside .github/ and .claude/ is ever written.
+  # (dependabot_variant). Nothing outside .github/, .claude/ and
+  # .macroscope/check-run-agents/ is ever written.
   for f in "${FULL_FILES[@]}"; do
     # Guard 9, per file: a platform file is never written to a repo of another platform, and one
     # already there blocks the wave instead of being refreshed into place.
@@ -304,6 +321,17 @@ plan_and_push() {
       tree+=("$f"); changes=1; echo "  write  $f$([ "$f" != dependabot.yml ] || echo " ($variant)")"
     fi
   done
+
+  # Check-run agents: Shopify repos only, installed beside claude.yml and refreshed where present.
+  if [ "$plat" = shopify ]; then
+    for f in "${AGENT_FILES[@]}"; do
+      grep -qxF "$(dest "$f")" <<<"$existing" || grep -qxF .github/workflows/claude.yml <<<"$existing" || continue
+      cur="$tmp/deployed-$f"; : > "$cur"
+      if grep -qxF "$(dest "$f")" <<<"$existing"; then raw "$repo" "$branch" "$f" > "$cur"; fi
+      cp "$TMP/agents/$f" "$tmp/$f"
+      cmp -s "$cur" "$tmp/$f" || { tree+=("$f"); changes=1; echo "  write  $f"; }
+    done
+  fi
 
   for f in "${DELETE_FILES[@]}"; do
     if grep -qxF "$(dest "$f")" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi

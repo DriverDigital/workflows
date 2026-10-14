@@ -68,9 +68,8 @@ trailer together) on a repo the wave skipped or could not reach, and between wav
 
 The kit's `dependabot.yml` variants (`templates/github/dependabot/`, picked by
 `tools/kit-platforms.sh`) carry a daily `github-actions` block (weekly on driver-agents), and exempt `DriverDigital/workflows*`
-from GitHub's default 3-day cooldown; each file's header says why. Three limits apply:
+from GitHub's default 3-day cooldown; each file's header says why. Two limits apply:
 
-- **`DRIVER_AGENTS_REF` is out of reach.** It is a raw SHA in an `env:` block, not a `uses:` ref.
 - **Only the default branch is updated.** The variants set no `target-branch`, so Palmers' country
   branches take pin moves from the wave alone.
 - **A Dependabot PR needs a merge.** A wave is one direct push; a bump waits on a person.
@@ -91,13 +90,8 @@ already its kit variant, then watch for the bump PR.
 normalizes. Run it after every wave; `--stale` must report converged. When the reference check
 fires, nothing below it means anything: fix the kit repin first.
 
-Two things it does not compare:
-
-- **This repo.** Its `.github/workflows/` holds the reusables, which share basenames with the stubs,
-  so the audit skips it.
-- **The Shopify blockquote parity.** Nothing checks that the reusable `claude.yml`'s
-  `--append-system-prompt` blockquote matches driver-agents `docs/agent-instructions-shopify.md` at
-  `DRIVER_AGENTS_REF`. Check it by hand when the ref moves (README, release order step 1).
+It does not compare **this repo**: its `.github/workflows/` holds the reusables, which share
+basenames with the stubs, so the audit skips it. The Shopify blockquote is `lint.yml`'s job.
 
 ---
 

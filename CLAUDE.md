@@ -43,8 +43,8 @@ pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/g
 
 `lint.yml` also checks that the prompt survives tokenization (the python step at
 `.github/workflows/lint.yml:74`; run it verbatim, needs PyYAML, after any edit to the reusable
-`claude.yml`'s `claude_args` or `prompt:`) and that `DRIVER_AGENTS_REF` matches in the reusable and
-`shopify-tool-smoke.yml`. The blockquote parity check is by hand at release time.
+`claude.yml`'s `claude_args` or `prompt:`) and that the Shopify blockquote matches driver-agents
+`main` (it reads driver-agents with `AGENTS_GH_PAT`, and also runs daily).
 
 Fleet tools (both work through `gh api`, no clones; both need authenticated `gh` and `jq`, the wave
 also `actionlint`):
@@ -59,11 +59,9 @@ tools/fleet-wave.sh --message "chore(kit): … [skip ci]"   # override the commi
 
 ## Releasing
 
-Follow README *Release + repin order*; the order is load-bearing. The two traps:
-
-- **Push the tag.** The wave reads it locally (`git describe`) and the audit reads it from GitHub, so
-  an unpushed tag waves clean and then audits as stale everywhere.
-- **If `DRIVER_AGENTS_REF` moved, run the blockquote parity check first.** Nothing else checks it.
+Follow README *Release + repin order*; the order is load-bearing. The trap: **push the tag.** The
+wave reads it locally (`git describe`) and the audit reads it from GitHub, so an unpushed tag waves
+clean and then audits as stale everywhere.
 
 A new reusable's stub lands in step 2 of the release that tags it, never in the PR that adds the
 reusable. A kit-only change needs no tag and no wave. Wave mechanics: `docs/fleet-operations.md`.
@@ -78,12 +76,14 @@ reusable. A kit-only change needs no tag and no wave. Wave mechanics: `docs/flee
 - The Shopify blockquote inside `--append-system-prompt` is a verbatim copy of driver-agents
   `docs/agent-instructions-shopify.md` — edit there first, then re-copy. Canonical begins at
   `All Shopify Admin API calls go through`; everything before it (conduct block, quality standard, and
-  the lead-in that un-scopes the tripwire from them) is ours and must survive the re-copy. Parity
-  is checked with whitespace collapsed (the copy flattens one paragraph break).
-- `DRIVER_AGENTS_REF` is a raw SHA in `env:` that no bot bumps, identical in the reusable `claude.yml`
-  and the kit's `shopify-tool-smoke.yml`, or the smoke test verifies a revision the implementer never
-  runs. The store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no
-  store tooling.
+  the lead-in that un-scopes the tripwire from them) is ours and must survive the re-copy.
+  `lint.yml` compares it with driver-agents `main`, whitespace collapsed (the copy flattens one
+  paragraph break); a red check there means re-copy, then release.
+- The implementer and the kit's `shopify-tool-smoke.yml` clone driver-agents `main` for the Shopify
+  admin tool, and the wave and the audit read the check-run agents (`AGENT_FILES` in
+  `tools/kit-platforms.sh`) from it too: driver-agents' PR review is the only gate on that code. The
+  store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store
+  tooling.
 - Third-party actions float on their major tag in the reusables and the kit (README, *Action refs*).
   A SHA in `templates/` is a pin nothing bumps.
 - Stubs pin this repo's reusables by immutable SHA, never a moving `@v1`: a moved tag would reach every

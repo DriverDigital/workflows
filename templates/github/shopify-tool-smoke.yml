@@ -1,6 +1,6 @@
 name: Shopify tool smoke test
 
-# Store repos only. A manual, read-only check of the Shopify admin tool's wiring: secrets, the pinned
+# Store repos only. A manual, read-only check of the Shopify admin tool's wiring: secrets, the
 # driver-agents clone, the token mint and the Admin API. It fails loudly where the implementer's
 # provisioning degrades quietly.
 
@@ -26,8 +26,6 @@ jobs:
           DRIVER_ENGINEERING_APP_CLIENT_SECRET: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_SECRET }}
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
-          # Must equal the claude.yml reusable's; DriverDigital/workflows lint.yml checks it.
-          DRIVER_AGENTS_REF: 0397630e19fd3ff3170beae35dbbe3367ce60784 # main @ 2026-09-30 (masks the minted token from a run: step)
           # Optional org secret; unset turns alerts off.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
         run: |
@@ -41,16 +39,13 @@ jobs:
           esac
           set +e
           for i in 1 2 3 4 5; do
-            # timeout lets the retries advance past a hung clone; a full clone keeps the pin reachable.
-            timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet &&
-              git -C "$RUNNER_TEMP/driver-agents" checkout -q "$DRIVER_AGENTS_REF" && break
+            # timeout lets the retries advance past a hung clone.
+            timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet --depth 1 && break
             echo "driver-agents clone attempt $i failed; retrying in $((i * 3))s"
             rm -rf "$RUNNER_TEMP/driver-agents"
             [ "$i" -lt 5 ] && sleep "$((i * 3))"
           done
           set -e
-          [ "$(git -C "$RUNNER_TEMP/driver-agents" rev-parse HEAD 2>/dev/null)" = "$DRIVER_AGENTS_REF" ] \
-            || { echo "::error::driver-agents is not at the pinned revision $DRIVER_AGENTS_REF after 5 attempts"; exit 1; }
           [ -x "$RUNNER_TEMP/driver-agents/tools/shopify/admin-graphql.sh" ] \
             || { echo "::error::driver-agents clone failed after 5 attempts"; exit 1; }
           umask 077
