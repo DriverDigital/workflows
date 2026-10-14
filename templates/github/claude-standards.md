@@ -39,12 +39,14 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   ones, including cross-repo handoffs with a `from:` line. Close the issue when done. A gitignored
   `CLAUDE.local.md` is for private to-dos and personal capture only, never for work the team should
   see.
-- **Branches and pull requests** — Macroscope reviews a pull request at most three times, and every
-  push to an open PR spends one. A session works on one feature branch, commits each piece of work
-  separately (even when they touch unrelated things) and pushes to the branch as often as it likes,
-  then opens one PR at the end, when the work is ready for review. A PR needed sooner is a draft
-  (Macroscope does not review drafts). Once a PR is open, collect fixes locally and push them
-  together. PRs land with a merge commit, never a squash, so each commit survives on `main`.
+- **Branches and pull requests** — Macroscope reviews a pull request at most three times, every
+  push to a published PR spends one, and it does not review drafts. A session works on one feature
+  branch, commits each piece of work separately (even when they touch unrelated things) and pushes
+  to the branch as often as it likes, then opens one PR at the end as a draft (`gh pr create
+  --draft`). It never marks the PR ready for review: the person running the session publishes it, or
+  says to, once they have reviewed it. Once a PR is published, collect fixes locally and push them
+  together. The implementer's issue runs open a published PR, since Macroscope's review and the
+  revise loop run unattended. PRs land with a merge commit, never a squash, so each commit survives on `main`.
   Deleting a head branch once its PR merges is preferred, but GitHub is not configured to do this on every repository, since some PR authors need to keep longer-lived branches in some repos: delete a branch you created for your own PR once it merges, and
   propose cleanup of other stale branches rather than deleting them.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
