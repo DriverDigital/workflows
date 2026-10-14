@@ -31,9 +31,8 @@ another platform or of none is drift, and the wave refuses to write one there.
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
 
-driver-agents carries a partial kit (`templates/github/README.md`, *Partial install*) to keep the
-dispatcher's repo separate from the rails it drives. Add a shared workflow there when it has a reason
-to run in that repo.
+driver-agents carries a partial kit (`templates/github/README.md`, *Partial install*): it is off
+the ticket pipeline and must not pass its secrets to a shared workflow.
 Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 
 ## The standards

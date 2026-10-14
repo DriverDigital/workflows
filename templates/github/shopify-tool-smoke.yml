@@ -33,8 +33,8 @@ jobs:
             [ -n "${!v}" ] || { echo "::error::$v is not set (repo secret missing, or the SHOPIFY_STORE_NAME repository variable unset?)"; exit 1; }
           done
           case "$SHOPIFY_STORE_NAME" in
-            *[!a-zA-Z0-9._-]*|.*)
-              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 . _ -, no leading dot)"
+            *[!a-zA-Z0-9_-]*)
+              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 _ -)"
               exit 1 ;;
           esac
           set +e

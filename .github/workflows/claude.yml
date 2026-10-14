@@ -18,7 +18,8 @@ name: Claude Code (reusable)
 # any node in the GitHub UI), implement on it, push, then open a REAL PR (`gh pr create`). The PR
 # is authored by the Claude App.
 # Bonsai status is polled by the pipeline dispatcher (driver-agents pipeline-dispatch.yml): In
-# Progress on issue creation, Internal Review once a non-draft PR is dev-linked. The dispatcher
+# Progress on issue creation, Internal Review once a dev-linked non-draft PR is open and the
+# dispatcher's Macroscope revise loop is done. The dispatcher
 # resolves the task through the linked issue's `(uuid=...)` line; the `Bonsai task:` line the
 # prompt writes into the PR body is for people and for the kit's pr-bonsai-link check. This
 # branch+PR flow is model-driven (claude-code-action has no native dev-link / no auto-PR); the
@@ -27,8 +28,8 @@ name: Claude Code (reusable)
 # TRIGGERS on `@claude` in: an issue body (the pipeline dispatcher opens issues and @claude's them to
 # start work), a standalone PR/issue comment, OR inside a PR review or an inline review comment (a
 # reviewer @claude's the PR to request revisions — the natural place to do it). A review-driven run
-# pushes new commits to the existing PR (synchronize -> Internal Review); it does NOT open a second
-# PR (the branch+PR prompt is gated to issue events). The triggers live in the stub; the gate that
+# pushes new commits to the existing PR (the dispatcher, not the push, moves the ticket); it does
+# NOT open a second PR (the branch+PR prompt is gated to issue events). The triggers live in the stub; the gate that
 # decides whether a trigger runs is the job-level `if:` below.
 #
 # REUSABLE CONSTRAINTS. A called workflow runs inside the caller's run: `github.event`, `vars` and
@@ -226,8 +227,8 @@ jobs:
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           # Optional: the #driver-agents-status Slack incoming-webhook URL (org-level secret, set
-          # org-wide — nothing per repo). When present, the tool's destructive/failed-call alerts
-          # fire from CI runs; absent = alerts off, nothing else
+          # org-wide — nothing per repo). When present, the tool's destructive, failed or refused-call
+          # alerts fire from CI runs; absent = alerts off, nothing else
           # changes — the same best-effort posture as the tool's own alerting.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
           # For SHOPIFY_AUDIT_CONTEXT below: the issue (issues/issue_comment rails) or PR number.
@@ -241,8 +242,8 @@ jobs:
           # not a transient blip, so it fails LOUD: never write a malformed env file the tool would
           # silently fail to find.
           case "$SHOPIFY_STORE_NAME" in
-            *[!a-zA-Z0-9._-]*|.*)
-              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 . _ -, no leading dot)"
+            *[!a-zA-Z0-9_-]*)
+              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 _ -)"
               exit 1 ;;
           esac
           set +e
@@ -455,9 +456,9 @@ jobs:
           # FIGMA MCP: the inline --mcp-config below points at driver-agents' Figma MCP server
           # (bearer FIGMA_MCP_SECRET), proven by driver-agents figma-mcp-smoke.yml. Inline JSON, never
           # a file path — tag mode prepends its own inline --mcp-config and drops a path. It reads node
-          # JSON from Driver-plan files only (client-owned files 403) and never offers writes. No
-          # rendered image reaches the model until a canary proves figma_get_image does; the issue
-          # links the ready-for-dev frame (docs/figma-mcp-in-ci.md). With the secret unset the
+          # JSON from Driver-plan files only (client-owned files 403) and never offers writes;
+          # figma_get_image renders reach the model (proven by the same smoke). The issue links the
+          # ready-for-dev frame (docs/figma-mcp-in-ci.md). With the secret unset the
           # server rejects the call and the run proceeds without Figma.
           # MODEL/EFFORT: `fable` ALIAS (not a pinned id) so the implementer drifts to the latest Fable
           # with the CLI; `--effort xhigh` (valid: low/medium/high/xhigh/max). The issue-path prompt

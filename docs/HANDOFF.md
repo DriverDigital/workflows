@@ -12,8 +12,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   next tag. It also drops `DRIVER_AGENTS_REF`: the implementer and the smoke test clone driver-agents
   `main`, `lint.yml` checks the Shopify blockquote against it on every PR, and the wave and the audit read
   the Figma check-run agent from it. Close #101, #61 and #104 with it.
-- **#95** adds one Figma paragraph to the implementer prompt; navigation lives in driver-agents#64.
-  Ship it, and #96 once its claims are verified, with the next tag.
+- **#95** adds one Figma paragraph to the implementer prompt. The server's MCP instructions already
+  carry file navigation (driver-agents#68); check #95's wording against them. Ship it, and #96 once
+  its claims are verified, with the next tag.
+- **#105** (draft) moves the implementer to Opus with Fable as advisor. It changes the reusable, so
+  it needs a tag and a wave; decide whether it rides this branch's tag.
 - **Unreleased, riding the next tag and wave:** the main-only `vercel-deploy` reusable, the
   `templates/github/dependabot/` variants (the wave writes `.github/dependabot.yml` to every target),
   and the `dependabot-validate` change that skips install without a root `package.json`.
@@ -27,6 +30,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   `shopify-theme`). Their Shopify cutover rides with #91. indie-ridge's own `Feature-Deploy` and
   `Staging-Deploy` carry info-level SC2086 findings, so its `lint.yml` reads red until the cutover
   deletes them.
+- **The next wave** installs `figma-design-fidelity-shopify.md` on the pipeline Shopify repos and
+  deletes `figma-design-fidelity.md` from Avara.
 - **Platform standards rollout (#91):** no repo carries a platform stub. Each stub arrives with
   that repo's canary or cutover commit ([`branch-model.md`](branch-model.md#order)).
 
@@ -39,10 +44,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Driver-Horizon's cutover** waits on Driver-Horizon #10 (a theme check error).
 - **R-Finds' cutover** waits on its shared kit install.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
-- **The next wave, and any audit run,** wait on driver-agents #68: it renames the Figma check-run agent
-  to `figma-design-fidelity-shopify.md`, and until it merges neither tool can read that file from
-  driver-agents `main`. The wave then installs it on the pipeline Shopify repos and deletes the old
-  `figma-design-fidelity.md` from Avara.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
 - **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the
@@ -50,9 +51,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Open decisions
 
-- **Shared workflows on driver-agents.** It carries a partial kit, for separation of concerns only.
-  Recommendation: add `dependabot-report` so its Dependabot PRs can qualify for #85 auto-merge. Add
-  `claude.yml` + `pr-bonsai-link.yml` only if tickets should reach driver-agents.
+- **Shared workflows on driver-agents.** It carries a partial kit. No `dependabot-report`: its stub's
+  `secrets: inherit` would hand a shared workflow driver-agents' Bonsai key, so it could qualify for
+  #85 only through a stub with an explicit secrets map. Add `claude.yml` + `pr-bonsai-link.yml` only
+  if tickets should reach driver-agents.
 - **foundrae's `dev-staging` and `testparty/*` branches:** retire them at its cutover, or keep them.
 
 ## Watch-items
@@ -79,9 +81,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
-- **Figma check-run agent spend.** It runs on every PR in the pipeline Shopify repos. A run with no
-  design cost $0.27–$1.31 on Avara, more for bigger diffs; a run with a design is unmeasured (capped
-  at $6 a run, $24 a PR).
+- **Figma check-run agent spend.** It runs on PRs that touch theme or front-end paths in the pipeline
+  Shopify repos, at most 4 runs a PR. A run with no design cost $0.27–$1.31 on Avara, more for bigger
+  diffs; a run with a design is unmeasured (capped at $6 a run, $24 a PR).
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
 - **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
   `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether

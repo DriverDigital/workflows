@@ -108,9 +108,10 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 - **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit
   file against the latest tag and `templates/`, and exits non-zero on any drift.
 - **Partial installs are normal.** A repo off the ticket pipeline can carry just `lint.yml` and the
-  standards (driver-engineering-app does). driver-agents carries no `claude.yml`, `dependabot-report`
-  or `pr-bonsai-link.yml`, to keep the dispatcher's repo separate from the rails it drives; the wave only
-  refreshes what a repo carries, so it never adds them.
+  standards (driver-engineering-app does). driver-agents carries no `claude.yml` or
+  `pr-bonsai-link.yml` (it is off the ticket pipeline) and no `dependabot-report` (its
+  `secrets: inherit` would hand a shared workflow the Bonsai key); the wave only refreshes what a
+  repo carries, so it never adds them.
 
 Install steps, the required checks and the multi-branch (Palmers) setup:
 [`templates/github/README.md`](templates/github/README.md). Wave mechanics and what the

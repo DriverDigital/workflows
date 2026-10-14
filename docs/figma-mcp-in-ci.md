@@ -14,11 +14,12 @@ What the implementer gets:
 
 - Node JSON from **Driver-plan files only**. A client-owned file returns 403.
 - Read access only.
-- No rendered image. The model sees structure, never pixels.
+- Rendered images of a node through `figma_get_image` (proven by driver-agents
+  `figma-mcp-smoke.yml`). The prompt does not ask for them.
 
 The issue links the ready-for-dev frame, and the implementer reads it from there. The system prompt
-gives it no Figma guidance; todo #95 adds a short paragraph, and driver-agents#64 gives the server
-its file-navigation instructions.
+gives it no Figma guidance. The server's MCP instructions carry file navigation (driver-agents#68),
+and todo #95's short paragraph must not repeat them.
 
 ## Wiring rules
 

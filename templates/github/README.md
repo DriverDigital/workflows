@@ -90,7 +90,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
      use the default token on purpose (central `README.md`, *Identities and secrets*).
    - `FIGMA_MCP_SECRET` — the bearer for driver-agents' Figma MCP server, which the implementer
      reads design files through (`../../docs/figma-mcp-in-ci.md`).
-   - `SHOPIFY_ALERT_WEBHOOK` — destructive or failed store-tool calls alert to
+   - `SHOPIFY_ALERT_WEBHOOK` — destructive, failed or refused store-tool calls alert to
      `#driver-agents-status` through it, labeled with the run URL. If it is ever absent, alerts are
      silently off and nothing else changes.
 
@@ -101,7 +101,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
      `DRIVER_ENGINEERING_APP_CLIENT_ID`, `DRIVER_ENGINEERING_APP_CLIENT_SECRET`, `SHOPIFY_STORE` (the
      myshopify domain) **and** the repository **variable** `SHOPIFY_STORE_NAME` to the store handle.
      Leave the variable unset and the provisioning step self-skips cleanly.
-     The handle must be a plain `[A-Za-z0-9._-]` string — it becomes a filename, and anything else
+     The handle must be a plain `[A-Za-z0-9_-]` string — it becomes a filename, and anything else
      fails the step loudly. Even on a store repo the step skips the read-only `/code-review` rail,
      so a review run never holds the app's long-lived credentials; and `driver-agents` is cloned from
      `main`, with the tool's presence checked before any credential is written to disk.
@@ -156,8 +156,9 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    the rest is inert weight. `driver-engineering-app` runs both; the wave finds a branch by either
    file. Add Dependabot stubs if and when such a repo turns Dependabot on. `driver-agents` carries
    `lint.yml`, the standards, `dependabot-validate.yml` and `dependabot-keep-current.yml`, and
-   no `dependabot-report.yml`, `claude.yml` or `pr-bonsai-link.yml`, to keep the dispatcher's repo
-   separate from the rails it drives. The wave never adds them, since it only refreshes what a repo
+   no `claude.yml` or `pr-bonsai-link.yml` (it is off the ticket pipeline) and no
+   `dependabot-report.yml` (its stub's `secrets: inherit` would hand a shared workflow the Bonsai
+   key). The wave never adds them, since it only refreshes what a repo
    carries (and installs beside `claude.yml`, which it lacks).
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
