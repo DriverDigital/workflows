@@ -18,8 +18,8 @@ What the implementer gets:
   `figma-mcp-smoke.yml`). The prompt does not ask for them.
 
 The issue links the ready-for-dev frame, and the implementer reads it from there. The system prompt
-gives it no Figma guidance. The server's MCP instructions carry file navigation (driver-agents#68),
-and todo #95's short paragraph must not repeat them.
+gives it no Figma guidance. The server's MCP instructions carry file navigation, and todo #95's
+short paragraph must not repeat them.
 
 ## Wiring rules
 

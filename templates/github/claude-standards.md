@@ -32,13 +32,20 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
     it stays diffable against the source.
   - *Disabled code is a code call.* Commented-out markup and debug blocks, with their reason line,
     stay until a code change removes them.
-  - *Say it once.* History and cross-cutting context live in `CLAUDE.md`; a mechanism is explained at
-    the code that implements it, never replaced by a pointer; a rationale repeated within a file goes.
+  - *Say it once.* Cross-cutting context lives in `CLAUDE.md`, and history in git and the PRs; a
+    mechanism is explained at the code that implements it, never replaced by a pointer; a rationale
+    repeated within a file goes.
 - **To-dos** — One-off to-dos are GitHub issues labelled `todo` on the repo they belong to. The
   driver-skills plugin lists a repo's open ones at session start, and its todo-capture skill files new
   ones, including cross-repo handoffs with a `from:` line. Close the issue when done. A gitignored
   `CLAUDE.local.md` is for private to-dos and personal capture only, never for work the team should
   see.
+- **`docs/HANDOFF.md`** — The current state only, rewritten in place each session, never a dated
+  log: what is in flight, what is blocked, what is next, and which decisions are open. It points at
+  open `todo` issues rather than repeating them. It never holds dated session entries, verification
+  records, run ids, completed work, or who decided what; git and the PRs keep that history. A fact
+  that stays true and needed (an account, a secret's home, an operating step) moves to the doc that
+  owns it, such as `CLAUDE.md` or `README.md`.
 - **Branches and pull requests** — Macroscope reviews a pull request at most three times, every
   push to a published PR spends one, and it does not review drafts. A session works on one feature
   branch, commits each piece of work separately (even when they touch unrelated things) and pushes

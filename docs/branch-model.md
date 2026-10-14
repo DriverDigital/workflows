@@ -91,7 +91,7 @@ Elsewhere:
 
 ## Cutover, one repo at a time
 
-The same steps serve both platforms: tag and delete the old `main`, then rename the working branch to
+The same steps serve every platform: tag and delete the old `main`, then rename the working branch to
 `main`, which keeps its open PRs and its protection. Merging it into `main` instead would close every
 PR based on it.
 
@@ -195,8 +195,8 @@ outside this standard until it needs one.
 
 ## Order
 
-1. Release the next tag and wave it (README, *Release + repin order*). It carries the main-only Vercel
-   reusable and writes `dependabot.yml`, which drops the Vercel repos' `target-branch: develop`.
+1. Release the tag that carries the main-only Vercel reusable and wave it (README, *Release + repin
+   order*); the wave's `dependabot.yml` drops the Vercel repos' `target-branch: develop`.
 2. Canary the `shopify-theme.yml` stub on savannahfriedkin (steps 1, 6 and 7) and read its push job
    log. Then pilot the Shopify cutover on LittleMe: `main` is a strict ancestor of `develop`, it has
    few open PRs and two deploy files, and there is no production workflow. Then the rest, one at a

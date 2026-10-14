@@ -11,7 +11,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 |---|---|---|
 | `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
-| `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, branches and PRs, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
+| `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, branches and PRs, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
 | `dependabot/<variant>.yml` | `.github/dependabot.yml` — wave targets with a variant | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (workflows but no root `package.json`), one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`), and none for a repo with neither. `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
@@ -107,13 +107,13 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
      `main`, with the tool's presence checked before any credential is written to disk.
      The implementer's system prompt carries the Shopify operator tripwire (never bypass the
      wrapper; never evade an exit-3 refusal) — the blockquote is copied verbatim from driver-agents
-     `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy into the
-     reusable (`../../.github/workflows/claude.yml`) at the next release, **preserving the scope
-     lead-in that precedes it** (it is not canonical text — it un-scopes the block from the conduct
-     rules above and tells the model how to report a trip on a rail with no exit code; see the
-     comment in the reusable). The whole value rides inside a **single-quoted** CLI token: **no
-     apostrophes anywhere in it** — one apostrophe silently truncates the prompt instead of
-     erroring. The central repo's `lint.yml` asserts the quote count.
+     `docs/agent-instructions-shopify.md`, which is canonical: edit there first, then re-copy into
+     the reusable (`../../.github/workflows/claude.yml`; the central `lint.yml` fails PRs until they
+     match) and release, **preserving the scope lead-in that precedes it** (it is not canonical
+     text — it un-scopes the block from the conduct and quality-standard blocks above and tells the
+     model how to report a trip on a rail with no exit code; see the comment in the reusable). The
+     whole value rides inside a **single-quoted** CLI token: **no apostrophes anywhere in it** — one
+     apostrophe silently truncates the prompt instead of erroring. The central repo's `lint.yml` asserts the quote count.
 3. **Issue creation:** the pipeline dispatcher (driver-agents, a scheduled Actions workflow)
    opens issues as the driver-digital-agents PAT, which is what lets `claude.yml` fire on
    `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). The PAT is

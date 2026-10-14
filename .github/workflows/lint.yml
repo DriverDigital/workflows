@@ -72,7 +72,7 @@ jobs:
           echo "all kit stubs carry a real SHA pin"
 
       - name: claude.yml system prompt survives tokenization
-        # The --append-system-prompt value (conduct block + Shopify operator tripwire) is delimited
+        # The --append-system-prompt value (conduct block, quality standard, Shopify tripwire) is delimited
         # by SINGLE QUOTES for claude_args' shell-quote tokenizer. shell-quote does NOT throw on an
         # unterminated quote — it silently truncates, dropping the tail of the prompt. Every flag
         # still parses, the YAML stays valid, actionlint exits 0, and the wave copies the truncated

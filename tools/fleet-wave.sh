@@ -23,8 +23,8 @@
 #   dependabot.yml                             <- written at .github/ on every target with a
 #                                                 templates/github/dependabot/ variant (picked by
 #                                                 tools/kit-platforms.sh; none = not written)
-#   bonsai-status-sync.yml                     <- deleted if present (kit no longer ships it)
-#   Production-Deploy.yml, production-deploy.yml <- deleted if present (a pre-kit theme workflow, unused)
+#   bonsai-status-sync.yml                     <- deleted if present (not a kit file)
+#   Production-Deploy.yml, production-deploy.yml <- deleted if present (an unused theme deploy workflow)
 #   AGENT_FILES (tools/kit-platforms.sh)       <- Shopify repos only: written to
 #                                                 .macroscope/check-run-agents/ wherever claude.yml
 #                                                 is, from driver-agents main; RETIRED_AGENT_FILES

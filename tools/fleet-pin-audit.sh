@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # fleet-pin-audit.sh — one-command drift detector for the central-workflow kit.
 #
-# Three checks, because a pin line alone never proved the fleet was current:
+# Three checks, because a pin line alone does not prove the fleet is current:
 #
 #   1. REFERENCE — every `uses:` pin in templates/github/*.yml equals the latest tag's SHA. Checks
 #      2 and 3 measure the fleet against `templates/`, so a stale reference makes both of them lie.
@@ -216,7 +216,7 @@ report="$(
     [ "$repo" = "workflows" ] && continue
     plat="$(topics_platform "${topics//,/ }")"
     # A repo without the driver-kit topic is still scanned, and its kit workflow files are listed
-    # apart: the wave keeps them current no longer, but a dormant repo may keep them until it is
+    # apart: the wave does not keep them current, but a dormant repo may keep them until it is
     # archived, so they never count as drift.
     topics_enrolled "${topics//,/ }" || plat="unenrolled"
     scan_ref "$repo" "$def" "$plat"

@@ -41,8 +41,8 @@ grep -rn 'DriverDigital/workflows/.*@0\{40\}' templates/github/              # m
 pipx run check-jsonschema==0.38.2 --builtin-schema vendor.dependabot templates/github/dependabot/*.yml
 ```
 
-`lint.yml` also checks that the prompt survives tokenization (the python step at
-the `lint.yml` step "claude.yml system prompt survives tokenization"; run it verbatim, needs PyYAML, after any edit to the reusable
+`lint.yml` also checks that the prompt survives tokenization (run the python in its step "claude.yml
+system prompt survives tokenization" verbatim, needs PyYAML, after any edit to the reusable
 `claude.yml`'s `claude_args` or `prompt:`) and that the Shopify blockquote matches driver-agents
 `main` (on PRs only; it reads driver-agents with `AGENTS_GH_PAT`).
 
