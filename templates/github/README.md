@@ -13,7 +13,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, branches and PRs, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
-| `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone at the pin → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
+| `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
 | `dependabot/<variant>.yml` | `.github/dependabot.yml` — wave targets with a variant | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (workflows but no root `package.json`), one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`), and none for a repo with neither. `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as the central repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
@@ -36,14 +36,14 @@ A repo takes the kit only with the `driver-kit` topic. Its platform topic, `shop
 `vercel-site` or `wordpress-site` (no platform files), decides which of these it may carry; the
 wave never writes one to a repo of another platform or of none (`tools/kit-platforms.sh`). The wave
 refreshes a platform stub only where a repo already carries it; the first copy comes from the repo's
-cutover or install commit. The standards, the cutover and the install steps:
+canary or cutover commit. The standards and the cutover steps:
 [`../../docs/branch-model.md`](../../docs/branch-model.md).
 
 | File | Platform | Rail |
 |---|---|---|
 | `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (checked while draft, pushed when ready, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
-| `vercel-deploy.yml` | Vercel | Fires the branch's deploy hook on push to `main` (production) or `develop` (preview) when the pusher is not in `VERCEL_TEAM_LOGINS`. The wave and the audit reach a repo's default branch, `develop`; `main` takes kit changes at its next promotion. |
+| `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
 **PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org,
 and the dispatcher's revise loop answers its findings. Claude reviews a PR only when a person
@@ -90,7 +90,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
      use the default token on purpose (central `README.md`, *Identities and secrets*).
    - `FIGMA_MCP_SECRET` — the bearer for driver-agents' Figma MCP server, which the implementer
      reads design files through (`../../docs/figma-mcp-in-ci.md`).
-   - `SHOPIFY_ALERT_WEBHOOK` — destructive or failed store-tool calls alert to
+   - `SHOPIFY_ALERT_WEBHOOK` — destructive, failed or refused store-tool calls alert to
      `#driver-agents-status` through it, labeled with the run URL. If it is ever absent, alerts are
      silently off and nothing else changes.
 
@@ -101,11 +101,10 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
      `DRIVER_ENGINEERING_APP_CLIENT_ID`, `DRIVER_ENGINEERING_APP_CLIENT_SECRET`, `SHOPIFY_STORE` (the
      myshopify domain) **and** the repository **variable** `SHOPIFY_STORE_NAME` to the store handle.
      Leave the variable unset and the provisioning step self-skips cleanly.
-     The handle must be a plain `[A-Za-z0-9._-]` string — it becomes a filename, and anything else
+     The handle must be a plain `[A-Za-z0-9_-]` string — it becomes a filename, and anything else
      fails the step loudly. Even on a store repo the step skips the read-only `/code-review` rail,
-     so a review run never holds the app's long-lived credentials; and `driver-agents` is cloned at
-     the pinned `DRIVER_AGENTS_REF`, with the checkout verified against that pin before any
-     credential is written to disk.
+     so a review run never holds the app's long-lived credentials; and `driver-agents` is cloned from
+     `main`, with the tool's presence checked before any credential is written to disk.
      The implementer's system prompt carries the Shopify operator tripwire (never bypass the
      wrapper; never evade an exit-3 refusal) — the blockquote is copied verbatim from driver-agents
      `docs/agent-instructions-shopify.md`, which is canonical: edit there first, re-copy into the
@@ -139,11 +138,11 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
    it replaces what a branch already carries, and installs `pr-bonsai-link.yml`, `claude-standards.md`
    and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
-   it cannot do). A platform's stubs come from its cutover or install commit (`../../docs/branch-model.md`).
+   it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
    skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
-   Palmers' country branches carry it too but get no Dependabot updates (Dependabot reads the
-   default branch only).
+   Palmers' country branches carry it too ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)
+   on what Dependabot updates).
    **Re-copying into a repo that already has the kit?** Let the wave do it
    (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
    `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It
@@ -157,8 +156,9 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    the rest is inert weight. `driver-engineering-app` runs both; the wave finds a branch by either
    file. Add Dependabot stubs if and when such a repo turns Dependabot on. `driver-agents` carries
    `lint.yml`, the standards, `dependabot-validate.yml` and `dependabot-keep-current.yml`, and
-   no `dependabot-report.yml`, `claude.yml` or `pr-bonsai-link.yml`, to keep the dispatcher's repo
-   separate from the rails it drives. The wave never adds them, since it only refreshes what a repo
+   no `claude.yml` or `pr-bonsai-link.yml` (it is off the ticket pipeline) and no
+   `dependabot-report.yml` (its stub's `secrets: inherit` would hand a shared workflow the Bonsai
+   key). The wave never adds them, since it only refreshes what a repo
    carries (and installs beside `claude.yml`, which it lacks).
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
@@ -187,9 +187,10 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
    (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
 
-6. **Route tickets to it.** Once `claude.yml` is live on the target branch, add the client's Bonsai
-   project to driver-agents `pipeline/project-repo-map.json` with its `repo`, `branch` and
-   `"pipeline": "github"`. Until then the dispatcher opens no issues there.
+6. **Route tickets to it.** Once `claude.yml` is live on the default branch, add the client's Bonsai
+   project to driver-agents `pipeline/project-repo-map.json` with its `repo` and
+   `"pipeline": "github"`. Only a Palmers entry names a `branch`. Until then the dispatcher opens no
+   issues there.
 
 ## Multi-branch repos (e.g. Palmers — independent release branches)
 
@@ -203,7 +204,7 @@ one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me
   repo's default branch — that's a hard GitHub rule for `issues` events; installing it on every
   branch means no one has to reason about which event resolves from where.)
 - **The map decides the branch.** Branch routing lives in driver-agents
-  `pipeline/project-repo-map.json`: each pipeline project carries an explicit `branch` (e.g. the
+  `pipeline/project-repo-map.json`: each Palmers project carries an explicit `branch` (e.g. the
   Palmers India project → `main-in`, the Palmers USA / Managed-Services project → `main`). The
   dispatcher writes a `**Target branch:**` line into the issue body, and the implementer bases its
   dev-linked branch on it (`gh issue develop --base <branch>`) and opens the PR into it. A Repo

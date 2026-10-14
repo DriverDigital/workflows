@@ -96,7 +96,7 @@ jobs:
     timeout-minutes: 15
     environment: ${{ vars.SHOPIFY_ENVIRONMENT_PER_BRANCH == 'true' && (github.base_ref || github.ref_name) || '' }}
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: theme
       - name: Install Shopify CLI

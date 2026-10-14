@@ -14,10 +14,12 @@ What the implementer gets:
 
 - Node JSON from **Driver-plan files only**. A client-owned file returns 403.
 - Read access only.
-- No rendered image. The model sees structure, never pixels.
+- Rendered images of a node through `figma_get_image` (proven by driver-agents
+  `figma-mcp-smoke.yml`). The prompt does not ask for them.
 
 The issue links the ready-for-dev frame, and the implementer reads it from there. The system prompt
-does not teach it how to explore a file; todo #95 tracks that.
+gives it no Figma guidance. The server's MCP instructions carry file navigation (driver-agents#68),
+and todo #95's short paragraph must not repeat them.
 
 ## Wiring rules
 
@@ -26,8 +28,8 @@ does not teach it how to explore a file; todo #95 tracks that.
 - The inline config merges with the action's built-ins, so the inline-comment poster survives.
 - `--allowedTools` permits a tool but never provides one. A new MCP server needs its own inline
   `--mcp-config` entry too, or its allow-list entry silently grants nothing.
-- The `--mcp-config` value is one of the six single quotes `lint.yml` counts in `claude_args` (see
-  CLAUDE.md, invariants). Adding another quoted flag moves that count in the same commit.
+- The `--mcp-config` value is one of the three single-quoted flags whose six quotes `lint.yml` counts
+  in `claude_args` (CLAUDE.md, invariants). Adding another quoted flag moves that count in the same commit.
 
 ## Why not Figma's server (`mcp.figma.com`)
 

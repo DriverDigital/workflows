@@ -11,11 +11,29 @@
 KIT_TOPIC=driver-kit
 SHOPIFY_FILES=(shopify-tool-smoke.yml shopify-theme.yml)
 VERCEL_FILES=(vercel-deploy.yml)
+# Macroscope check-run agents, written to .macroscope/check-run-agents/ on Shopify repos that run the
+# pipeline (claude.yml on the branch). The wave and the audit read them from driver-agents main;
+# this repo holds no copy. The agents are stack-specific, so a Vercel one needs its own list here.
+AGENT_FILES=(figma-design-fidelity-shopify.md)
+# Agent files the wave deletes where present.
+RETIRED_AGENT_FILES=(figma-design-fidelity.md)
 
 # The platform a kit file belongs to, or nothing for the shared kit.
 file_platform() {
   case " ${SHOPIFY_FILES[*]} " in *" $1 "*) echo shopify; return ;; esac
   case " ${VERCEL_FILES[*]} " in *" $1 "*) echo vercel ;; esac
+}
+
+agent_platform() { [ "$1" = shopify ]; }
+is_agent() { case " ${AGENT_FILES[*]} ${RETIRED_AGENT_FILES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
+
+# Fetch every check-run agent from driver-agents main into directory $1; non-zero if any read fails.
+fetch_agents() {
+  local f
+  for f in "${AGENT_FILES[@]}"; do
+    gh api "repos/DriverDigital/driver-agents/contents/.macroscope/check-run-agents/$f" \
+      -H 'Accept: application/vnd.github.raw' > "$1/$f" || return 1
+  done
 }
 
 # Whether a repo takes the kit, from its topics (space- or newline-separated).

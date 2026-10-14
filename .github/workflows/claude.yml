@@ -18,7 +18,8 @@ name: Claude Code (reusable)
 # any node in the GitHub UI), implement on it, push, then open a REAL PR (`gh pr create`). The PR
 # is authored by the Claude App.
 # Bonsai status is polled by the pipeline dispatcher (driver-agents pipeline-dispatch.yml): In
-# Progress on issue creation, Internal Review once a non-draft PR is dev-linked. The dispatcher
+# Progress on issue creation, Internal Review once a dev-linked non-draft PR is open and the
+# dispatcher's Macroscope revise loop is done. The dispatcher
 # resolves the task through the linked issue's `(uuid=...)` line; the `Bonsai task:` line the
 # prompt writes into the PR body is for people and for the kit's pr-bonsai-link check. This
 # branch+PR flow is model-driven (claude-code-action has no native dev-link / no auto-PR); the
@@ -27,8 +28,8 @@ name: Claude Code (reusable)
 # TRIGGERS on `@claude` in: an issue body (the pipeline dispatcher opens issues and @claude's them to
 # start work), a standalone PR/issue comment, OR inside a PR review or an inline review comment (a
 # reviewer @claude's the PR to request revisions — the natural place to do it). A review-driven run
-# pushes new commits to the existing PR (synchronize -> Internal Review); it does NOT open a second
-# PR (the branch+PR prompt is gated to issue events). The triggers live in the stub; the gate that
+# pushes new commits to the existing PR (the dispatcher, not the push, moves the ticket); it does
+# NOT open a second PR (the branch+PR prompt is gated to issue events). The triggers live in the stub; the gate that
 # decides whether a trigger runs is the job-level `if:` below.
 #
 # REUSABLE CONSTRAINTS. A called workflow runs inside the caller's run: `github.event`, `vars` and
@@ -204,9 +205,9 @@ jobs:
       # (::warning:: + exit 0) instead of failing the job — a provisioning blip must not kill an
       # implementer run that may not even touch Shopify. A ticket that DOES need the tool surfaces
       # the gap in its PR (CLAUDE.md says how).
-      # SUPPLY CHAIN: driver-agents is cloned at a PINNED revision (DRIVER_AGENTS_REF below) and the
-      # checkout is verified against it before any credential is written to disk — unreviewed code
-      # never reaches the store's client credentials. Bumping the tool is a deliberate edit here.
+      # SOURCE: driver-agents is cloned from its default branch, so the tool runs whatever has merged
+      # there; driver-agents' own PR review is the gate on that code. The credentials are written
+      # only once the clone holds the tool.
       # Repos without store secrets skip this cleanly: no failure, no tool, no new attack surface.
       - name: Provision Shopify admin tool (self-skipping)
         # LEAST PRIVILEGE: without the `if:` below this step has no event gate, so on a repo that
@@ -225,16 +226,9 @@ jobs:
           DRIVER_ENGINEERING_APP_CLIENT_SECRET: ${{ secrets.DRIVER_ENGINEERING_APP_CLIENT_SECRET }}
           SHOPIFY_SHOP: ${{ secrets.SHOPIFY_STORE }}
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
-          # PINNED driver-agents revision — the same immutable-SHA rule this repo already applies to
-          # every `uses:`. admin-graphql.sh is executed by the write-capable implementer while the
-          # store's client credentials sit on the runner's disk, so it must be REVIEWED code, not
-          # whatever driver-agents' default branch happens to hold at run time. Bump deliberately,
-          # then re-copy the kit in the next fleet wave. Keep in lockstep with
-          # templates/github/shopify-tool-smoke.yml, which lint.yml checks.
-          DRIVER_AGENTS_REF: 0397630e19fd3ff3170beae35dbbe3367ce60784 # main @ 2026-09-30 (masks the minted token from a run: step)
           # Optional: the #driver-agents-status Slack incoming-webhook URL (org-level secret, set
-          # org-wide — nothing per repo). When present, the tool's destructive/failed-call alerts
-          # fire from CI runs; absent = alerts off, nothing else
+          # org-wide — nothing per repo). When present, the tool's destructive, failed or refused-call
+          # alerts fire from CI runs; absent = alerts off, nothing else
           # changes — the same best-effort posture as the tool's own alerting.
           SHOPIFY_ALERT_WEBHOOK: ${{ secrets.SHOPIFY_ALERT_WEBHOOK }}
           # For SHOPIFY_AUDIT_CONTEXT below: the issue (issues/issue_comment rails) or PR number.
@@ -248,29 +242,25 @@ jobs:
           # not a transient blip, so it fails LOUD: never write a malformed env file the tool would
           # silently fail to find.
           case "$SHOPIFY_STORE_NAME" in
-            *[!a-zA-Z0-9._-]*|.*)
-              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 . _ -, no leading dot)"
+            *[!a-zA-Z0-9_-]*)
+              echo "::error::SHOPIFY_STORE_NAME '$SHOPIFY_STORE_NAME' is not a plain store handle (allowed: A-Z a-z 0-9 _ -)"
               exit 1 ;;
           esac
           set +e
           for i in 1 2 3 4 5; do
             # `timeout` is load-bearing: a hung clone would otherwise sit in a single attempt until
-            # the 90-minute job timeout and the retry/backoff below would never advance. Full clone
-            # (no --depth 1) so the pinned SHA is always reachable — driver-agents is ~20 KB, so the
-            # extra history costs nothing; revisit if that repo ever grows.
-            timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet &&
-              git -C "$RUNNER_TEMP/driver-agents" checkout -q "$DRIVER_AGENTS_REF" && break
+            # the 90-minute job timeout and the retry/backoff below would never advance.
+            timeout 120 gh repo clone DriverDigital/driver-agents "$RUNNER_TEMP/driver-agents" -- --quiet --depth 1 && break
             echo "driver-agents clone attempt $i failed; retrying in $((i * 3))s"
             rm -rf "$RUNNER_TEMP/driver-agents"
             [ "$i" -lt 5 ] && sleep "$((i * 3))"
           done
           set -e
-          # Fail CLOSED on the credential path: unless the checkout is verifiably AT the pinned
-          # revision, write no store env file and export no paths. The run itself still proceeds — a
-          # provisioning blip must not kill an implementer run that may never touch Shopify.
-          if [ "$(git -C "$RUNNER_TEMP/driver-agents" rev-parse HEAD 2>/dev/null)" != "$DRIVER_AGENTS_REF" ] ||
-             [ ! -x "$RUNNER_TEMP/driver-agents/tools/shopify/admin-graphql.sh" ]; then
-            echo "::warning::Shopify admin tool provisioning failed (driver-agents unavailable, or not at the pinned revision $DRIVER_AGENTS_REF) — this run proceeds WITHOUT store access"
+          # Fail CLOSED on the credential path: without the tool in the clone, write no store env file
+          # and export no paths. The run itself still proceeds — a provisioning blip must not kill an
+          # implementer run that may never touch Shopify.
+          if [ ! -x "$RUNNER_TEMP/driver-agents/tools/shopify/admin-graphql.sh" ]; then
+            echo "::warning::Shopify admin tool provisioning failed (driver-agents unavailable) — this run proceeds WITHOUT store access"
             rm -rf "$RUNNER_TEMP/driver-agents"
             exit 0
           fi
@@ -466,9 +456,9 @@ jobs:
           # FIGMA MCP: the inline --mcp-config below points at driver-agents' Figma MCP server
           # (bearer FIGMA_MCP_SECRET), proven by driver-agents figma-mcp-smoke.yml. Inline JSON, never
           # a file path — tag mode prepends its own inline --mcp-config and drops a path. It reads node
-          # JSON from Driver-plan files only (client-owned files 403) and never offers writes. No
-          # rendered image reaches the model until a canary proves figma_get_image does; the issue
-          # links the ready-for-dev frame (docs/figma-mcp-in-ci.md). With the secret unset the
+          # JSON from Driver-plan files only (client-owned files 403) and never offers writes;
+          # figma_get_image renders reach the model (proven by the same smoke). The issue links the
+          # ready-for-dev frame (docs/figma-mcp-in-ci.md). With the secret unset the
           # server rejects the call and the run proceeds without Figma.
           # MODEL/EFFORT: `opus` ALIAS (not a pinned id) so the implementer drifts to the latest Opus
           # with the CLI, with Fable (`--advisor fable`, also an alias) reviewing at key moments;
@@ -499,7 +489,7 @@ jobs:
           # and newlines out of the text.
           # The Shopify Admin API tripwire appended after the conduct text is COPIED VERBATIM from
           # driver-agents docs/agent-instructions-shopify.md (the canonical source — edit there
-          # first, then re-copy here on the kit bump that ships it). It rides this STATIC flag so it
+          # first; lint.yml goes red until it is re-copied here and released). It rides this STATIC flag so it
           # reaches every rail that can hold store credentials; the read-only review rails never
           # provision the tool. It extends the existing quoted string rather than adding a second
           # --append-system-prompt, so no repeated-flag last-wins behavior can drop either block.
