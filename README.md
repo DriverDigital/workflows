@@ -99,8 +99,8 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   its trailer. The pin and the trailer are one value and always move together.
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
   carries, installs `pr-bonsai-link.yml`, `close-linked-issues.yml`, `claude-standards.md` and the
-  `.claude/settings.json` attribution keys wherever `claude.yml` is, and writes `.github/dependabot.yml` from the variant
-  `tools/kit-platforms.sh` picks. On Shopify repos with `claude.yml` it also writes the check-run
+  `.claude/settings.json` attribution keys wherever `claude.yml` is, and writes
+  `.github/dependabot.yml` from the variant `tools/kit-platforms.sh` picks. On Shopify repos with `claude.yml` it also writes the check-run
   agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds a
   platform stub; that arrives with the repo's canary or cutover commit.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so

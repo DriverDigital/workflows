@@ -139,8 +139,8 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    as that line and let `/init` write the rest around it).
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
    it replaces what a branch already carries, and installs `pr-bonsai-link.yml`,
-   `close-linked-issues.yml`, `claude-standards.md` and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
-   it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
+   `close-linked-issues.yml`, `claude-standards.md` and the `claude-settings.json` keys beside
+   `claude.yml`; the `CLAUDE.md` import line is the one step it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
    skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
    Palmers' country branches carry it too ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)

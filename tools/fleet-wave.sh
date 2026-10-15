@@ -273,8 +273,8 @@ plan_and_push() {
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
   # Four files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
-  # check, the linked-issue closer, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
-  # Code project settings. dependabot.yml is installed on every target that has a variant
+  # check, the linked-issue closer, the house standards (whose CLAUDE.md import stays a per-repo
+  # edit) and the shared Claude Code project settings. dependabot.yml is installed on every target that has a variant
   # (dependabot_variant). Nothing outside .github/, .claude/ and
   # .macroscope/check-run-agents/ is ever written.
   for f in "${FULL_FILES[@]}"; do
