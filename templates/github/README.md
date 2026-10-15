@@ -42,7 +42,7 @@ canary or cutover commit. The standards and the cutover steps:
 
 | File | Platform | Rail |
 |---|---|---|
-| `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (pushed on open and every push, draft or ready, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
+| `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (pushed on open and every push, draft or ready, linked at the end of the PR description, deleted on close) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
 | `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
@@ -73,8 +73,9 @@ The dispatcher derives each move from GitHub on its hourly run. No workflow in t
 | PR open and Macroscope's findings worked through (revise loop done) | **Internal Review**, assigned to the reviewer the ticket names |
 | A person sets **Revisions Requested** and assigns the task to Agents | comments forwarded to the PR as `@claude`; back to **Internal Review** after the push |
 
-People own Revisions Requested and every status after Internal Review (Ready for QA, Client Review,
-Ready to Deploy, Delivered / Deployed / Completed), and every merge.
+People own Revisions Requested and every status after Internal Review on the board (Paused, Ready
+for QA, Client Review, Ready For Deployment, Info Needed, Delivered / Deployed / Completed), and
+every merge.
 
 ## Install into a repo (one-time)
 
