@@ -1,7 +1,8 @@
 name: Shopify theme (reusable)
 
 # Every theme push a Shopify site makes, called by the kit stub templates/github/shopify-theme.yml:
-#   pull_request, open         build, then push the preview theme DRIVER/<head branch>, draft or ready
+#   pull_request, open         build, then push the preview theme DRIVER/<head branch>, draft or ready,
+#                              and append its preview and editor links to the PR description once
 #   pull_request, closed       delete DRIVER/<head branch>
 #   push to main / main-*      build, then push DRIVER/<branch> (the stub skips Shopify's sync commits)
 # A theme is looked up by name and never a live one: a live theme that happens to carry the name is
@@ -91,6 +92,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ vars.SHOPIFY_ENVIRONMENT_PER_BRANCH == 'true' && (github.base_ref || github.ref_name) || '' }}
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -109,10 +113,25 @@ jobs:
           themes=$(shopify theme list --json)
           id=$(jq -r --arg n "$name" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
           if [ -n "$id" ]; then
-            shopify theme push --theme "$id"
+            shopify theme push --theme "$id" --json > "$RUNNER_TEMP/theme.json"
           else
-            shopify theme push --unpublished --theme "$name"
+            shopify theme push --unpublished --theme "$name" --json > "$RUNNER_TEMP/theme.json"
           fi
+      # The theme id never changes for a PR, so the line is appended once and later pushes find it.
+      # The default token's edit wakes no workflow. A failure here leaves the deploy green.
+      - name: Link the preview theme in the PR description
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          line=$(jq -r '"**Preview theme:** [preview](\(.theme.preview_url)) · [theme editor](\(.theme.editor_url))"' "$RUNNER_TEMP/theme.json")
+          body=$(gh api "repos/$GH_REPO/pulls/$PR" --jq '.body // ""')
+          grep -qF "$line" <<<"$body" && exit 0
+          gh api -X PATCH "repos/$GH_REPO/pulls/$PR" -f body="$body"$'\n\n'"$line" --silent
 
   cleanup:
     if: github.event.action == 'closed'

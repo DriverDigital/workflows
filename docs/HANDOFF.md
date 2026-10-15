@@ -11,9 +11,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     without a root `package.json`; the implementer `claude.yml` runs `--model opus --advisor fable`
     with subagent model tiers, clones driver-agents `main`, and its prompt now says when to read
     Figma and lists three Shopify theme traps; `shopify-theme` pushes the preview theme for draft PRs
-    too and uses `actions/download-artifact@v8`.
+    too, appends its preview and editor links to the PR description, and uses
+    `actions/download-artifact@v8`.
   - Kit: `shopify-tool-smoke.yml` clones driver-agents `main`; the `shopify-theme.yml` stub drops
-    the `ready_for_review` and `converted_to_draft` triggers; the new `close-linked-issues.yml`,
+    the `ready_for_review` and `converted_to_draft` triggers and grants `pull-requests: write`; the new `close-linked-issues.yml`,
     installed wherever `claude.yml` is; the `templates/github/dependabot/` variants; and in
     `claude-standards.md`, the draft-first PR rule, the `docs/HANDOFF.md` rule and the theme-editor
     pull-back rule.
@@ -56,7 +57,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Watch-items
 
 - **The first `shopify-theme.yml` canary** (savannahfriedkin). Open it as a draft PR: a draft now
-  pushes its preview theme, and marking it ready must not create a second theme. Every repo but
+  pushes its preview theme and appends one link line to the description; marking it ready must not
+  create a second theme or a second line. Every repo but
   Palmers (and foundrae, if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the
   `environment: ''` arm of the push and cleanup jobs. Read the push job log first: the job must run with no environment, and `vars.`
   must resolve in `jobs.<id>.environment`. If either fails, split the job into two variants rather
