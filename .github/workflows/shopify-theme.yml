@@ -113,12 +113,13 @@ jobs:
           themes=$(shopify theme list --json)
           id=$(jq -r --arg n "$name" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
           if [ -n "$id" ]; then
-            shopify theme push --theme "$id" --json > "$RUNNER_TEMP/theme.json"
+            shopify theme push --theme "$id" --json | tee "$RUNNER_TEMP/theme.json"
           else
-            shopify theme push --unpublished --theme "$name" --json > "$RUNNER_TEMP/theme.json"
+            shopify theme push --unpublished --theme "$name" --json | tee "$RUNNER_TEMP/theme.json"
           fi
-      # The theme id never changes for a PR, so the line is appended once and later pushes find it.
-      # The default token's edit wakes no workflow. A failure here leaves the deploy green.
+      # Appended once per theme: later pushes find the line. A close deletes the theme and a reopen
+      # creates a new one, which appends a second line under the dead one. The default token's edit
+      # wakes no workflow, and a failure here leaves the deploy green.
       - name: Link the preview theme in the PR description
         if: github.event_name == 'pull_request'
         continue-on-error: true
