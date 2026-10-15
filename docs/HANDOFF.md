@@ -18,11 +18,13 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     new `close-linked-issues.yml`, installed wherever `claude.yml` is; the
     `templates/github/dependabot/` variants; and in `claude-standards.md`, the draft-first PR rule,
     the `docs/HANDOFF.md` rule and the theme-editor pull-back rule.
-  - **This tag must reach the Shopify repos by the wave, not by a Dependabot pin bump.** The
-    reusable's push job needs the stub's new `pull-requests: write`, and Dependabot moves only the
-    pin, so a bumped old stub fails at startup on every run. After the wave, fix any Shopify row
-    `fleet-pin-audit.sh --stale` reports by hand, and close any Dependabot PR that bumps
-    `shopify-theme.yml` to this tag.
+  - **No Shopify default branch carries the `shopify-theme.yml` stub yet**; each gets it from its
+    canary or cutover commit (#91), never from the wave. So draft-PR previews and the description
+    link start per repo at its cutover, and until then designers get no preview from a draft PR.
+    The reusable's push job needs the stub's `pull-requests: write`: a stub copied from an older
+    template fails at startup, and Dependabot, which moves only the pin, cannot fix one.
+  - driver-agents #75 (merged) puts the preview link in the dispatcher's Internal Review comment;
+    it reads the description line, so it is inert until a repo's cutover.
   - Wave: installs `figma-design-fidelity-shopify.md` on the Shopify repos with `claude.yml`, deletes
     `figma-design-fidelity.md` from Avara, and deletes the unused production theme deploy from
     Avara's and LaPointe's default branch.
@@ -63,7 +65,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **The first `shopify-theme.yml` canary** (savannahfriedkin). Open it as a draft PR: a draft now
   pushes its preview theme and appends one link line to the description; marking it ready must not
-  create a second theme or a second line. Every repo but Palmers (and foundrae, if its cutover sets
+  create a second theme or a second line, and the push job log must still show the CLI's summary.
+  The first hand-off on that repo after it should carry the links in its Internal Review comment. Every repo but Palmers (and foundrae, if its cutover sets
   `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push and cleanup jobs.
   Read the push job log first: the job must run with no environment, and `vars.` must resolve in
   `jobs.<id>.environment`. If either fails, split the job into two variants rather than
@@ -100,8 +103,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Tag, repin and wave (README, "Release + repin order"). Canary the wave with `--only` first
-   (watch-items), then run `fleet-pin-audit.sh --stale` until it reads converged, and close #62.
+1. Tag, repin and wave (README, "Release + repin order"); push the tag. Re-list the `todo` issues
+   first. Canary the wave with `--only` (watch-items), then run `fleet-pin-audit.sh --stale` until it
+   reads converged, and close #62.
 2. After that wave, comment `@dependabot rebase` on indie-ridge #3 and #4 and savannahfriedkin #18.
    A wave is a direct push, not a merged PR, so keep-current never runs for it.
 3. Roll out the platform standards (#91, [`branch-model.md`](branch-model.md#order)): canary
