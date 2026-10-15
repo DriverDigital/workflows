@@ -57,8 +57,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **The first `shopify-theme.yml` canary** (savannahfriedkin). Open it as a draft PR: a draft now
   pushes its preview theme, and marking it ready must not create a second theme. Every repo but
-  Palmers (and foundrae, if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push
-  and cleanup jobs. Read the push job log first: the job must run with no environment, and `vars.`
+  Palmers (and foundrae, if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the
+  `environment: ''` arm of the push and cleanup jobs. Read the push job log first: the job must run with no environment, and `vars.`
   must resolve in `jobs.<id>.environment`. If either fails, split the job into two variants rather
   than documenting around it.
 - **The first fleet-wide `dependabot.yml` wave.** Canary it with `--only` on one npm repo: each npm
