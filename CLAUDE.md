@@ -120,8 +120,8 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
   default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
-  as github-actions[bot] so it cannot re-trigger the workflow), and this repo's
-  `dependabot-auto-merge.yml`.
+  as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`
+  (needs no PAT, and its close event wakes nothing), and this repo's `dependabot-auto-merge.yml`.
 - The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
   `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`
   re-runs it on itself.

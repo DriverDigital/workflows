@@ -18,8 +18,8 @@
 #                                                 standards live at .github/, claude-settings.json
 #                                                 at .claude/settings.json, the rest at
 #                                                 .github/workflows/
-#   pr-bonsai-link.yml, claude-standards.md,   <- also written wherever claude.yml is; the settings
-#   claude-settings.json                          file's keys are merged into an existing one
+#   pr-bonsai-link.yml, close-linked-issues.yml, <- also written wherever claude.yml is; the
+#   claude-standards.md, claude-settings.json       settings file's keys are merged into an existing one
 #   dependabot.yml                             <- written at .github/ on every target with a
 #                                                 templates/github/dependabot/ variant (picked by
 #                                                 tools/kit-platforms.sh; none = not written)
@@ -105,7 +105,7 @@ fi
 # file carries a per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable
 # (guard 4).
 FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.yml lint.yml
-            pr-bonsai-link.yml dependabot-keep-current.yml dependabot-report.yml
+            pr-bonsai-link.yml close-linked-issues.yml dependabot-keep-current.yml dependabot-report.yml
             dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json
             dependabot.yml)
 DELETE_FILES=(bonsai-status-sync.yml Production-Deploy.yml production-deploy.yml)
@@ -272,8 +272,8 @@ plan_and_push() {
   grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
-  # Three files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
-  # check, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
+  # Four files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
+  # check, the linked-issue closer, the house standards (whose CLAUDE.md import stays a per-repo edit) and the shared Claude
   # Code project settings. dependabot.yml is installed on every target that has a variant
   # (dependabot_variant). Nothing outside .github/, .claude/ and
   # .macroscope/check-run-agents/ is ever written.
@@ -290,7 +290,7 @@ plan_and_push() {
     fi
     [ "$f" != dependabot.yml ] || [ "$variant" != none ] || continue
     grep -qxF "$(dest "$f")" <<<"$existing" \
-      || { case "$f" in dependabot.yml) true ;; pr-bonsai-link.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
+      || { case "$f" in dependabot.yml) true ;; pr-bonsai-link.yml|close-linked-issues.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
       || continue
     # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.

@@ -10,6 +10,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 | File | Goes to | Does |
 |---|---|---|
 | `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
+| `close-linked-issues.yml` | `.github/workflows/close-linked-issues.yml` — wherever `claude.yml` is | On a PR merged into a branch other than the default (Palmers' `main-*`), closes the open issues its body names with a closing keyword (`Closes #N`), which GitHub honours only on the default branch. Not a required check. |
 | `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, branches and PRs, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
@@ -129,6 +130,7 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    cp templates/github/dependabot-keep-current.yml .github/workflows/
    cp templates/github/lint.yml                 .github/workflows/
    cp templates/github/pr-bonsai-link.yml       .github/workflows/
+   cp templates/github/close-linked-issues.yml  .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    cp templates/github/claude-standards.md      .github/claude-standards.md
    mkdir -p .claude && cp templates/github/claude-settings.json .claude/settings.json  # existing file: merge its attribution keys
@@ -136,8 +138,8 @@ Ready to Deploy, Delivered / Deployed / Completed), and every merge.
    Then add `@.github/claude-standards.md` to the repo's `CLAUDE.md` (a new repo: start `CLAUDE.md`
    as that line and let `/init` write the rest around it).
    Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
-   it replaces what a branch already carries, and installs `pr-bonsai-link.yml`, `claude-standards.md`
-   and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
+   it replaces what a branch already carries, and installs `pr-bonsai-link.yml`,
+   `close-linked-issues.yml`, `claude-standards.md` and the `claude-settings.json` keys beside `claude.yml`; the `CLAUDE.md` import line is the one step
    it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
    skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
