@@ -73,8 +73,9 @@ The dispatcher derives each move from GitHub on its hourly run. No workflow in t
 | PR open and Macroscope's findings worked through (revise loop done) | **Internal Review**, assigned to the reviewer the ticket names |
 | A person sets **Revisions Requested** and assigns the task to Agents | comments forwarded to the PR as `@claude`; back to **Internal Review** after the push |
 
-People own Revisions Requested and every status after Internal Review (Ready for QA, Client Review,
-Ready to Deploy, Delivered / Deployed / Completed), and every merge.
+People own Revisions Requested and every status after Internal Review on the board (Paused, Ready
+for QA, Client Review, Ready For Deployment, Info Needed, Delivered / Deployed / Completed), and
+every merge.
 
 ## Install into a repo (one-time)
 
