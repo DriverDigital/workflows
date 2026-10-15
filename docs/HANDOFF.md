@@ -14,8 +14,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     too and uses `actions/download-artifact@v8`.
   - Kit: `shopify-tool-smoke.yml` clones driver-agents `main`; the `shopify-theme.yml` stub drops
     the `ready_for_review` and `converted_to_draft` triggers; the new `close-linked-issues.yml`,
-    installed wherever `claude.yml` is; the `templates/github/dependabot/` variants; the draft-first PR rule, the `docs/HANDOFF.md` rule and the theme-editor pull-back rule in
-    `claude-standards.md`.
+    installed wherever `claude.yml` is; the `templates/github/dependabot/` variants; and in
+    `claude-standards.md`, the draft-first PR rule, the `docs/HANDOFF.md` rule and the theme-editor
+    pull-back rule.
   - Wave: installs `figma-design-fidelity-shopify.md` on the Shopify repos with `claude.yml`, deletes
     `figma-design-fidelity.md` from Avara, and deletes the unused production theme deploy from
     Avara's and LaPointe's default branch.
