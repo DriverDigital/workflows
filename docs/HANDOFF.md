@@ -9,10 +9,12 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Unreleased since v1.19.0, riding the next tag and wave** (the next session runs it):
   - Reusables: `vercel-deploy` fires only the `main` hook; `dependabot-validate` skips install
     without a root `package.json`; the implementer `claude.yml` runs `--model opus --advisor fable`
-    with subagent model tiers and clones driver-agents `main`; `shopify-theme` uses
-    `actions/download-artifact@v8`.
-  - Kit: `shopify-tool-smoke.yml` clones driver-agents `main`; the `templates/github/dependabot/`
-    variants; the draft-first PR rule and the `docs/HANDOFF.md` rule in `claude-standards.md`.
+    with subagent model tiers, clones driver-agents `main`, and its prompt now says when to read
+    Figma and lists three Shopify theme traps; `shopify-theme` pushes the preview theme for draft PRs
+    too and uses `actions/download-artifact@v8`.
+  - Kit: `shopify-tool-smoke.yml` clones driver-agents `main`; the `shopify-theme.yml` stub drops
+    the `ready_for_review` and `converted_to_draft` triggers; the new `close-linked-issues.yml`,
+    installed wherever `claude.yml` is; the `templates/github/dependabot/` variants; the draft-first PR rule and the `docs/HANDOFF.md` rule in `claude-standards.md`.
   - Wave: installs `figma-design-fidelity-shopify.md` on the Shopify repos with `claude.yml`, deletes
     `figma-design-fidelity.md` from Avara, and deletes the unused production theme deploy from
     Avara's and LaPointe's default branch.
@@ -39,6 +41,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Open decisions
 
+- **#79 (ticket-assets screenshots) is tabled** until #95's Figma paragraph has run on real tickets
+  (driver-agents #47 is the live test). `AGENTS_GH_PAT` can read `ticket-assets` if it is needed.
+- **#86 (one `.nvmrc` per platform) is tabled** and ships in its own PR when it goes ahead.
+
 - **Shared workflows on driver-agents.** It carries a partial kit. No `dependabot-report`: its stub's
   `secrets: inherit` would hand a shared workflow driver-agents' Bonsai key, so it could qualify for
   #85 only through a stub with an explicit secrets map. Add `claude.yml` + `pr-bonsai-link.yml` only
@@ -47,7 +53,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **The first `shopify-theme.yml` canary** (savannahfriedkin). Every repo but Palmers (and foundrae,
+- **The first `shopify-theme.yml` canary** (savannahfriedkin). Open it as a draft PR: a draft now
+  pushes its preview theme, and marking it ready must not create a second theme. Every repo but Palmers (and foundrae,
   if its cutover sets `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push
   and cleanup jobs. Read the push job log first: the job must run with no environment, and `vars.`
   must resolve in `jobs.<id>.environment`. If either fails, split the job into two variants rather
@@ -66,6 +73,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
+- **The first PR merged into a Palmers `main-*` branch after the wave.** Its `Closes #N` issue must
+  close with a comment naming the PR.
 - **The first real ticket through the implementer.** The guard steps should stay quiet; if one
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
@@ -82,9 +91,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Tag, repin and wave (README, "Release + repin order"). Land #95 and #96 first if they are ready.
-   Canary the wave with `--only` first (watch-items), then run `fleet-pin-audit.sh --stale` until it
-   reads converged, and close #62.
+1. Tag, repin and wave (README, "Release + repin order"). Canary the wave with `--only` first
+   (watch-items), then run `fleet-pin-audit.sh --stale` until it reads converged, and close #62.
 2. After that wave, comment `@dependabot rebase` on indie-ridge #3 and #4 and savannahfriedkin #18.
    A wave is a direct push, not a merged PR, so keep-current never runs for it.
 3. Roll out the platform standards (#91, [`branch-model.md`](branch-model.md#order)): canary
