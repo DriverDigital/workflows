@@ -119,7 +119,8 @@ jobs:
           fi
       # Appended once per theme: later pushes find the line. A close deletes the theme and a reopen
       # creates a new one, which appends a second line under the dead one. The default token's edit
-      # wakes no workflow, and a failure here leaves the deploy green.
+      # wakes no workflow, and a failure here leaves the deploy green. driver-agents' dispatch.sh
+      # (pr-view) parses this exact line for the Internal Review comment: change both together.
       - name: Link the preview theme in the PR description
         if: github.event_name == 'pull_request'
         continue-on-error: true
