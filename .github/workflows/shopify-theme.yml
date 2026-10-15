@@ -1,8 +1,7 @@
 name: Shopify theme (reusable)
 
 # Every theme push a Shopify site makes, called by the kit stub templates/github/shopify-theme.yml:
-#   pull_request, draft        build (or theme check, with no build script); nothing is pushed
-#   pull_request, ready        build, then push the preview theme DRIVER/<head branch>
+#   pull_request, open         build, then push the preview theme DRIVER/<head branch>, draft or ready
 #   pull_request, closed       delete DRIVER/<head branch>
 #   push to main / main-*      build, then push DRIVER/<branch> (the stub skips Shopify's sync commits)
 # A theme is looked up by name and never a live one: a live theme that happens to carry the name is
@@ -71,7 +70,6 @@ jobs:
       # A vite-built theme writes into these folders in place, so they are the whole deliverable.
       # Hidden files are opted in for .shopifyignore, which the push still honours.
       - uses: actions/upload-artifact@v7
-        if: github.event_name == 'push' || !github.event.pull_request.draft
         with:
           name: theme
           path: |
@@ -90,8 +88,6 @@ jobs:
 
   push:
     needs: build
-    if: >-
-      github.event_name == 'push' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: ${{ vars.SHOPIFY_ENVIRONMENT_PER_BRANCH == 'true' && (github.base_ref || github.ref_name) || '' }}
