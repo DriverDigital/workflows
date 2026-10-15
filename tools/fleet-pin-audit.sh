@@ -124,11 +124,13 @@ scan_ref() {  # repo ref platform
   # The install-beside-claude.yml checks below are about what the wave would add; it adds nothing to
   # an unenrolled repo, whose kit files are already reported above.
   [ "$plat" = unenrolled ] && return 0
-  # The wave installs pr-bonsai-link.yml and claude-standards.md wherever claude.yml is, so their
-  # absence there is drift (the standards file is probed at .github/ below).
-  if grep -qx claude.yml <<<"$files" && ! grep -qx pr-bonsai-link.yml <<<"$files"; then
-    echo "CONTENT $repo@$ref pr-bonsai-link.yml DRIFT missing"
-  fi
+  # The wave installs pr-bonsai-link.yml, close-linked-issues.yml and claude-standards.md wherever
+  # claude.yml is, so their absence there is drift (the standards file is probed at .github/ below).
+  for f in pr-bonsai-link.yml close-linked-issues.yml; do
+    if grep -qx claude.yml <<<"$files" && ! grep -qx "$f" <<<"$files"; then
+      echo "CONTENT $repo@$ref $f DRIFT missing"
+    fi
+  done
   # The kit files outside .github/workflows/: the PR template and the house standards. Presence
   # comes from the directory listing, as above, so a failed API call skips the file rather than
   # reading as "missing".

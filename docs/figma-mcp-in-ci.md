@@ -17,9 +17,9 @@ What the implementer gets:
 - Rendered images of a node through `figma_get_image` (proven by driver-agents
   `figma-mcp-smoke.yml`). The prompt does not ask for them.
 
-The issue links the ready-for-dev frame, and the implementer reads it from there. The system prompt
-gives it no Figma guidance. The server's MCP instructions carry file navigation, and todo #95's
-short paragraph must not repeat them.
+The issue links the ready-for-dev frame, and the implementer reads it from there. Its system prompt
+says when to read Figma and how to verify breakpoints; the server's MCP instructions carry file
+navigation, and the prompt must not repeat them.
 
 ## Wiring rules
 

@@ -56,6 +56,14 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   revise loop run unattended. PRs land with a merge commit, never a squash, so each commit survives on `main`.
   Deleting a head branch once its PR merges is preferred, but GitHub is not configured to do this on every repository, since some PR authors need to keep longer-lived branches in some repos: delete a branch you created for your own PR once it merges, and
   propose cleanup of other stale branches rather than deleting them.
+- **Theme editor changes on a PR preview** — On a Shopify theme repo, a branch with an open PR has
+  a preview theme `DRIVER/<branch>` (a name over 50 characters is shortened, so find it with
+  `shopify theme list`). Every push re-uploads the whole theme and overwrites anything changed in
+  that theme's editor, so before pushing, pull `templates/*.json`, `sections/*.json` and
+  `config/settings_data.json` from the preview into a scratch folder. Where a file differs from the
+  last pushed commit and the branch has not changed it since, take the preview's version and
+  commit it ("Pull theme editor changes"). Where both changed, stop and ask. Skip this when the CLI
+  has no access to the store, and say so.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.

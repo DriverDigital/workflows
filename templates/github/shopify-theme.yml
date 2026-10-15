@@ -1,13 +1,13 @@
 name: Shopify theme
 
-# Caller stub for every theme push a Shopify site makes: a preview theme per pull request (checked
-# while draft, pushed once ready, deleted on close) and DRIVER/<branch> on every push to main or a
-# Palmers-style main-* branch. The work lives in the reusable it pins.
+# Caller stub for every theme push a Shopify site makes: a preview theme per pull request, draft or
+# ready (pushed on open and every push, deleted on close), and DRIVER/<branch> on every push to main
+# or a Palmers-style main-* branch. The work lives in the reusable it pins.
 
 on:
   pull_request:
     branches: [main, "main-*"]
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, closed]
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [main, "main-*"]
 
