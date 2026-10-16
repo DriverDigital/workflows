@@ -73,9 +73,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Run the cutovers through the `repo-cutover` skill (`/repo-cutover`); it reads `~/cutover/log.md`
-   to resume. Re-list the `todo` issues, then cut over LittleMe (#91, [`branch-model.md`](branch-model.md#order)),
+1. Re-list the `todo` issues, then cut over LittleMe (#91, [`branch-model.md`](branch-model.md#order)),
    then the remaining Shopify cutovers one at a time, then the Vercel cutovers.
+   The `repo-cutover` skill, if available, runs these step by step and resumes from
+   `~/cutover/log.md`.
 2. Settle the open decisions above.
 
 ## Pointers
