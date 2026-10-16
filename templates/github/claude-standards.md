@@ -10,6 +10,13 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
 - **Commit messages** — Natural language, not strict conventional-commit formatting. Succinct: what
   changed, plus any rationale a senior developer would need later. No history, narratives, or
   who-decided-what.
+- **Commit authorship** — Commits carry the name and email of the person running the session, so the
+  team can see who worked on a repo or PR. No `Co-Authored-By` trailer. A cloud session's git identity
+  is Claude, so set both on each commit and turn signing off:
+  `git -c user.name="<name>" -c user.email="<email>" -c commit.gpgsign=false commit …`. The session
+  signs with Anthropic's key, which GitHub marks Unverified under a person's name. Ask for the name and
+  email if you don't have them. The implementer's issue runs are the exception: they commit as
+  `claude[bot]`.
 - **Code comments** — Code should be self-describing; comments are written as one senior engineer to
   another. A comment is either a *guidebook* (what this is, where it is used, how it works, what it is
   bound to) or *provenance* (which Figma frame, which ticket, which date, who decided). Guidebooks
