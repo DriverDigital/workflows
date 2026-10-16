@@ -12,6 +12,6 @@ permissions: {}
 
 jobs:
   deploy:
-    uses: DriverDigital/workflows/.github/workflows/vercel-deploy.yml@b6a6f8dc61fbe8bcfc71d21878d5577051774a6f # v1.19.0
+    uses: DriverDigital/workflows/.github/workflows/vercel-deploy.yml@9e93a7a1d0a3a7e66ef7dcab196e1eb66e6d9832 # v1.20.0
     secrets:
       VERCEL_DEPLOY_HOOK_MAIN: ${{ secrets.VERCEL_DEPLOY_HOOK_MAIN }}
