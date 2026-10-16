@@ -6,43 +6,22 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **Unreleased since v1.19.0, riding the next tag and wave** (the next session runs it):
-  - Reusables: `vercel-deploy` fires only the `main` hook; `dependabot-validate` skips install
-    without a root `package.json`; the implementer `claude.yml` runs `--model opus --advisor fable`
-    with subagent model tiers, clones driver-agents `main`, and its prompt now says when to read
-    Figma and lists three Shopify theme traps; `shopify-theme` pushes the preview theme for draft PRs
-    too, appends its preview and editor links to the PR description, and uses
-    `actions/download-artifact@v8`.
-  - Kit: `shopify-tool-smoke.yml` clones driver-agents `main`; the `shopify-theme.yml` stub drops
-    the `ready_for_review` and `converted_to_draft` triggers and grants `pull-requests: write`; the
-    new `close-linked-issues.yml`, installed wherever `claude.yml` is; the
-    `templates/github/dependabot/` variants; and in `claude-standards.md`, the draft-first PR rule,
-    the `docs/HANDOFF.md` rule and the theme-editor pull-back rule.
-  - **No Shopify default branch carries the `shopify-theme.yml` stub yet**; each gets it from its
-    canary or cutover commit (#91), never from the wave. So draft-PR previews and the description
-    link start per repo at its cutover, and until then designers get no preview from a draft PR.
-    The reusable's push job needs the stub's `pull-requests: write`: a stub copied from an older
-    template fails at startup, and Dependabot, which moves only the pin, cannot fix one.
-  - driver-agents #75 (merged) puts the preview link in the dispatcher's Internal Review comment;
-    it reads the description line, so it is inert until a repo's cutover.
-  - Wave: installs `figma-design-fidelity-shopify.md` on the Shopify repos with `claude.yml`, deletes
-    `figma-design-fidelity.md` from Avara, and deletes the unused production theme deploy from
-    Avara's and LaPointe's default branch.
-  - Until then, `fleet-pin-audit.sh --stale` reports `claude-standards.md` and `dependabot.yml` drift
-    fleet-wide, the Figma agent missing on the Shopify repos, and Avara's `shopify-tool-smoke.yml`.
+- **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
+  (#91) are under way: savannahfriedkin is done, LittleMe is next.
+  - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
+    so draft-PR previews and the description link start per repo then. A stub copied from an
+    older template fails at startup (the push job needs `pull-requests: write`).
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
 
 ## Blocked or gated
 
-- **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge,
+- **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
   driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
-- **The Vercel cutovers** wait on the release that carries the main-only `vercel-deploy` reusable.
-- **Driver-Horizon's cutover** waits on Driver-Horizon #10 (a theme check error).
-- **R-Finds' cutover** waits on its shared kit install.
-- **#83** waits on the house-standards import PRs: LaPointe #149, Palmers #124,
-  Driver-Digital-Website #179, studio-sulzer #65, client-workspaces #7 and Driver-Horizon #11.
+- **R-Finds' and Anduril-Gear's cutovers** wait on their shared kit install.
+- **#83** waits on Kissy-Kissy and LittleMe, which have no `CLAUDE.md` to carry the import; the
+  cutover commit adds the import only to an existing one.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
@@ -62,20 +41,12 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **The first `shopify-theme.yml` canary** (savannahfriedkin). Open it as a draft PR: a draft now
-  pushes its preview theme and appends one link line to the description; marking it ready must not
-  create a second theme or a second line, and the push job log must still show the CLI's summary.
-  The first hand-off on that repo after it should carry the links in its Internal Review comment. Every repo but Palmers (and foundrae, if its cutover sets
-  `SHOPIFY_ENVIRONMENT_PER_BRANCH`) takes the `environment: ''` arm of the push and cleanup jobs.
-  Read the push job log first: the job must run with no environment, and `vars.` must resolve in
-  `jobs.<id>.environment`. If either fails, split the job into two variants rather than
-  documenting around it.
-- **The first fleet-wide `dependabot.yml` wave.** Canary it with `--only` on one npm repo: each npm
-  repo gets a burst of single-major PRs (capped at 5 open), each with a validate run and a Macroscope
-  review. driver-engineering-app, client-workspaces and plugins get Dependabot for the first time, and
-  none of the three has validate or report rails, so their PRs arrive unchecked. The `actions/*`
-  minor/patch ignore also stops patch bumps on exact-pinned repo workflows (the pre-cutover deploy
-  workflows; vite-plugin-shopify-clean #120).
+- **Dependabot on LittleMe, Kissy-Kissy and LaPointe.** Every run there from August on sat queued
+  for 24 hours and was cancelled: "Dependabot on self-hosted runners" was on with no self-hosted
+  runner. The setting is now off on all three. The next daily `github_actions` run must start and
+  complete (`gh run list -R DriverDigital/<repo> --event dynamic`); if it queues again, the cause
+  is something else.
+- **The Dependabot report** cannot name what was bumped (#113).
 - **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
   pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
@@ -102,15 +73,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Tag, repin and wave (README, "Release + repin order"); push the tag. Re-list the `todo` issues
-   first. Canary the wave with `--only` (watch-items), then run `fleet-pin-audit.sh --stale` until it
-   reads converged, and close #62.
-2. After that wave, comment `@dependabot rebase` on indie-ridge #3 and #4 and savannahfriedkin #18.
-   A wave is a direct push, not a merged PR, so keep-current never runs for it.
-3. Roll out the platform standards (#91, [`branch-model.md`](branch-model.md#order)): canary
-   savannahfriedkin's stub, pilot LittleMe, then the remaining Shopify cutovers one at a time,
-   then the Vercel cutovers.
-4. Settle the open decisions above.
+1. Re-list the `todo` issues, then cut over LittleMe (#91, [`branch-model.md`](branch-model.md#order)),
+   then the remaining Shopify cutovers one at a time, then the Vercel cutovers.
+   The `repo-cutover` skill, if available, runs these step by step and resumes from
+   `~/cutover/log.md`.
+2. Settle the open decisions above.
 
 ## Pointers
 

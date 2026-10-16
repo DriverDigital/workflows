@@ -26,7 +26,7 @@ another platform or of none is drift, and the wave refuses to write one there.
 
 | Topics | Repos |
 |---|---|
-| `driver-kit` + `shopify-theme` | Avara, foundrae-blackridge, LaPointe, Kissy-Kissy, LittleMe, Palmers, R-Finds, savannahfriedkin, indie-ridge, Driver-Horizon, Anduril-Gear |
+| `driver-kit` + `shopify-theme` | Avara, foundrae-blackridge, LaPointe, Kissy-Kissy, LittleMe, Palmers, R-Finds, savannahfriedkin, indie-ridge, Anduril-Gear |
 | `driver-kit` + `vercel-site` | Team-Laird, Driver-Digital-Website, studio-sulzer |
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
@@ -87,7 +87,7 @@ Elsewhere:
 | Vercel project settings | Production branch `main`, with production domains auto-assigned, and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
 | `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. The waved file sets none. |
 | GitHub environments | foundrae: `staging`, `dev-staging` and the `testparty/*` branches hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
-| Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Driver-Horizon `main` and Team-Laird `develop` are unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge; foundrae `staging` and `main`, savannahfriedkin, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
+| Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Team-Laird `develop` is unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge and savannahfriedkin; foundrae `staging` and `main`, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
 
 ## Cutover, one repo at a time
 
@@ -103,19 +103,18 @@ and foundrae-blackridge (from `staging`).
 **WordPress repo to cut over:** The-Gathery (from `develop`). Nothing in GitHub deploys it, so it
 takes steps 1, 3, 4, 7 and 8 only.
 
-**Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge, Driver-Horizon and
-Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and
+**Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge and Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and
 `Staging-Deploy` files. On Palmers the commit lands on every `main*` branch, with
 `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` set first. The store handle the implementer and the smoke test
 use is the `SHOPIFY_STORE_NAME` repository variable, one per repo, so a Palmers country branch cannot
 have its own.
 
 **Before each cutover:**
-- The repo carries the shared kit. R-Finds does not yet.
+- The repo carries the shared kit. R-Finds and Anduril-Gear do not yet.
 - The kit's platform stub pins a release whose reusable matches it. The main-only Vercel stub needs
   the release that carries the main-only reusable.
 - A Shopify repo with no build script passes `shopify theme check --fail-level error`, which its build
-  job runs on every PR and push. Driver-Horizon fails it (`sections/header.liquid`, Driver-Horizon #10).
+  job runs on every PR and push.
 - No wave is running. The wave reads `default_branch` live, so one that runs mid-cutover commits to
   whichever branch is the default at that moment.
 - No merges into the repo from step 2 to step 6, and those steps run back to back. In between, the old
@@ -152,8 +151,11 @@ have its own.
    `VERCEL_DEPLOY_HOOK_DEVELOP`, and set `VERCEL_TEAM_LOGINS` to the logins the old `deploy.yml`
    skips: `mcarter-astronautdev jadewang425` on Driver-Digital-Website; the others can stay on the
    fallback. A login left out deploys twice.
-6. **Push one direct commit to `main`.** Leave `skip-ci` out, so the push deploys and proves the
-   stub. The commit:
+6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
+   leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
+   workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready
+   must add neither again. Merging it deploys from `main`, and the stub's cleanup deletes the
+   preview. Palmers takes one PR per `main*` branch. The commit:
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
    - adds the platform stub
