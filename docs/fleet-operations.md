@@ -150,3 +150,26 @@ This repo's `main` meets the standard (`actionlint`, strict, one approval).
 **The gap:** most kit branches lack strict with a required check, and a few have no protection or no
 human approver. One org ruleset will enforce the up-to-date rule fleet-wide (#99);
 the current state is in [`HANDOFF.md`](HANDOFF.md).
+
+## Repository settings
+
+Every active repo, under Settings → General → Pull Requests:
+
+- **Merge commits on, squash off.** PRs land with a merge commit so each commit survives on `main`.
+  Rebase stays on.
+- **Allow auto-merge on.** It only permits auto-merge: a PR merges itself only after someone turns
+  it on for that PR, and it still waits for the required checks and approval. The private forks
+  (primavera-shopify-theme, shopify-metadata-app) ignore the setting.
+- **Always suggest updating pull request branches on.**
+- **Automatically delete head branches on every site repo** (one with a platform topic), except
+  foundrae-blackridge, which keeps long-lived branches such as `dev-staging` and `testparty/*` that
+  open PRs use as heads. Branch protection keeps a protected head branch, so merges between Palmers'
+  `main*` branches are safe. The tool repos choose case by case.
+
+```sh
+gh api -X GET repos/DriverDigital/<repo> \
+  -q '{allow_merge_commit,allow_squash_merge,allow_rebase_merge,allow_auto_merge,allow_update_branch,delete_branch_on_merge}'
+```
+
+Deleting other branches by hand: only a stale branch whose PR merged and that holds no commits past
+that merge, so no one's work in progress goes. List them and get a yes first; never on foundrae.
