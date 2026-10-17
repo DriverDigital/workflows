@@ -37,7 +37,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **#79 (ticket-assets screenshots) is tabled** until #95's Figma paragraph has run on real tickets
   (driver-agents #47 is the live test). `AGENTS_GH_PAT` can read `ticket-assets` if it is needed.
-- **#86 (one `.nvmrc` per platform) is tabled** and ships in its own PR when it goes ahead.
 - **Shared workflows on driver-agents.** It carries a partial kit. No `dependabot-report`: its stub's
   `secrets: inherit` would hand a shared workflow driver-agents' Bonsai key, so it could qualify for
   #85 only through a stub with an explicit secrets map. Add `claude.yml` + `pr-bonsai-link.yml` only
@@ -83,7 +82,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
    cutovers one at a time, then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`.
-2. Settle the open decisions above.
+2. In the first release and wave after the cutovers, ship #86: one kit-owned `.nvmrc` per platform
+   replaces each repo's own Node pin (`volta.node`, `engines.node`), several of them past end of life.
+3. Settle the open decisions above.
 
 ## Pointers
 
