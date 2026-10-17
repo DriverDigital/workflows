@@ -163,7 +163,7 @@ have its own.
    - adds the platform stub
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
-     no `CLAUDE.md` (R-Finds) gets one holding only that line, and its to-do keeps `/init` for the rest
+     no `CLAUDE.md` gets one holding only that line, and its to-do keeps `/init` for the rest
 7. **Check that it worked, and set protection.**
    - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
      deploys its preview.

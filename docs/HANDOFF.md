@@ -7,10 +7,12 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## In flight
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
-  (#91) are under way: savannahfriedkin, LittleMe and Kissy-Kissy are done, LaPointe is next.
+  (#91) are under way: savannahfriedkin, LittleMe and Kissy-Kissy are done, R-Finds is next.
   - LittleMe's and Kissy-Kissy's pushes created a new `DRIVER/main`; the old `DRIVER/develop` and
-    `Kissy-2.0/develop` themes are still in their admins, to delete. Kissy-Kissy's snippet fix for
-    Shopify's strict2 Liquid parser is draft Kissy-Kissy #75 (LittleMe's, #50, is merged).
+    `Kissy-2.0/develop` themes are still in their admins, to delete.
+  - R-Finds' shared kit install is draft R-Finds #36 (validate green). It also deletes
+    `Production-Deploy.yml` and adds the one-line `CLAUDE.md`. Its merge makes R-Finds a wave
+    target and opens a burst of Dependabot PRs.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
@@ -22,7 +24,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
   LittleMe, Kissy-Kissy, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
-- **R-Finds' and Anduril-Gear's cutovers** wait on their shared kit install.
+- **R-Finds' cutover** waits on its kit install (R-Finds #36); **Anduril-Gear's** on its own.
+- **To-dos on R-Finds for the agents** wait on driver-agents #78: it has no Bonsai project, so the
+  dispatcher never reaches it.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
@@ -74,8 +78,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Re-list the `todo` issues, then cut over LaPointe (#91, [`branch-model.md`](branch-model.md#order)),
-   then Avara and the remaining Shopify cutovers one at a time, then the Vercel cutovers.
+1. Re-list the `todo` issues. Once R-Finds #36 is merged, cut over R-Finds (#91,
+   [`branch-model.md`](branch-model.md#order)), then LaPointe, Avara and the remaining Shopify
+   cutovers one at a time, then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`.
 2. Settle the open decisions above.
