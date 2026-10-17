@@ -190,7 +190,8 @@ have its own.
   `SHOPIFY_ENVIRONMENT_PER_BRANCH` unset. If they don't match, create a `main` environment holding
   `staging`'s secrets and set the variable.
 - Decide whether `dev-staging` and the `testparty/*` branches stay or go. Tag any you delete;
-  `dev-staging` holds commits that were never merged.
+  `dev-staging` holds commits that were never merged. Head branches are never deleted on merge here
+  ([repository settings](fleet-operations.md#repository-settings)).
 - `main` is connected to the unpublished `foundrae/main` theme through Shopify's GitHub integration.
   Disconnect it in the Shopify admin before step 3 deletes `main`.
 
