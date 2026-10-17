@@ -10,9 +10,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   (#91) are under way: savannahfriedkin, LittleMe and Kissy-Kissy are done, R-Finds is next.
   - LittleMe's and Kissy-Kissy's pushes created a new `DRIVER/main`; the old `DRIVER/develop` and
     `Kissy-2.0/develop` themes are still in their admins, to delete.
-  - R-Finds' shared kit install is draft R-Finds #36 (validate green). It also deletes
-    `Production-Deploy.yml` and adds the one-line `CLAUDE.md`. Its merge makes R-Finds a wave
-    target and opens a burst of Dependabot PRs.
+  - R-Finds has the shared kit (R-Finds #36) and its audit row reads converged. Its old
+    `Develop-Deploy` and `Feature-Deploy` fail at `shopify theme push`: they install the latest CLI on
+    Node 20.16. The cutover deletes both. Dependabot #37, #39 and #40 only bump actions in them.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
@@ -24,7 +24,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
   LittleMe, Kissy-Kissy, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
-- **R-Finds' cutover** waits on its kit install (R-Finds #36); **Anduril-Gear's** on its own.
+- **Anduril-Gear's cutover** waits on its shared kit install.
 - **To-dos on R-Finds for the agents** wait on driver-agents #78: it has no Bonsai project, so the
   dispatcher never reaches it.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
@@ -78,7 +78,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Re-list the `todo` issues. Once R-Finds #36 is merged, cut over R-Finds (#91,
+1. Re-list the `todo` issues, then cut over R-Finds (#91,
    [`branch-model.md`](branch-model.md#order)), then LaPointe, Avara and the remaining Shopify
    cutovers one at a time, then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
