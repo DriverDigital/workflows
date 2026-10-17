@@ -7,7 +7,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## In flight
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
-  (#91) are under way: savannahfriedkin is done, LittleMe is next.
+  (#91) are under way: savannahfriedkin and LittleMe are done, Avara is next.
+  - LittleMe's push created a new `DRIVER/main`; the old `DRIVER/develop` theme is still in its
+    admin, to delete. Its snippet fix for Shopify's strict2 Liquid parser is draft LittleMe #50.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
@@ -17,11 +19,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **R-Finds' and Anduril-Gear's cutovers** wait on their shared kit install.
-- **#83** waits on Kissy-Kissy and LittleMe, which have no `CLAUDE.md` to carry the import; the
-  cutover commit adds the import only to an existing one.
+- **#83** waits on Kissy-Kissy, which has no `CLAUDE.md` to carry the import; the cutover commit
+  adds the import only to an existing one.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
@@ -73,7 +75,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Re-list the `todo` issues, then cut over LittleMe (#91, [`branch-model.md`](branch-model.md#order)),
+1. Re-list the `todo` issues, then cut over Avara (#91, [`branch-model.md`](branch-model.md#order)),
    then the remaining Shopify cutovers one at a time, then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`.

@@ -87,7 +87,7 @@ Elsewhere:
 | Vercel project settings | Production branch `main`, with production domains auto-assigned, and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
 | `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. The waved file sets none. |
 | GitHub environments | foundrae: `staging`, `dev-staging` and the `testparty/*` branches hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
-| Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, LittleMe, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy, LittleMe and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Team-Laird `develop` is unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge and savannahfriedkin; foundrae `staging` and `main`, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
+| Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Team-Laird `develop` is unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge, savannahfriedkin and LittleMe; foundrae `staging` and `main`, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
 
 ## Cutover, one repo at a time
 
@@ -133,8 +133,9 @@ have its own.
    - Shopify: in the admin, confirm the exact name of the preview theme (`DRIVER/develop`,
      `Kissy-2.0/develop` or `DRIVER/staging`), that no `DRIVER/main` exists, that the store is under
      its theme limit, and that none of these is the live theme. Then rename the preview theme to
-     `DRIVER/main`. The reusable creates a new theme when no theme carries the name, so a mismatch
-     fails silently.
+     `DRIVER/main`, or leave it and let the first push create a new `DRIVER/main`. The reusable creates
+     a new theme when no theme carries the name, so a mismatch fails silently. A new theme lacks any
+     file Shopify rejects on push; a renamed one keeps its old copy.
    - Vercel: turn off "Auto-assign Custom Production Domains" on the project. On Team-Laird, delete
      the custom `staging` environment.
 3. **Tag the old `main` and delete it.**
@@ -154,14 +155,15 @@ have its own.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
    workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready
-   must add neither again. Merging it deploys from `main`, and the stub's cleanup deletes the
+   must add neither again. Read the draft's push log for "pushed with errors": the job stays green
+   when Shopify rejects a file (#115). Merging it deploys from `main`, and the stub's cleanup deletes the
    preview. Palmers takes one PR per `main*` branch. The commit:
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
    - adds the platform stub
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
-     no `CLAUDE.md` (Kissy-Kissy, LittleMe, R-Finds) has its own to-do
+     no `CLAUDE.md` (Kissy-Kissy, R-Finds) has its own to-do
 7. **Check that it worked, and set protection.**
    - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
      deploys its preview.
