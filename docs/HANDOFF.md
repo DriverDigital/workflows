@@ -7,9 +7,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## In flight
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
-  (#91) are under way: savannahfriedkin and LittleMe are done, Avara is next.
-  - LittleMe's push created a new `DRIVER/main`; the old `DRIVER/develop` theme is still in its
-    admin, to delete. Its snippet fix for Shopify's strict2 Liquid parser is draft LittleMe #50.
+  (#91) are under way: savannahfriedkin, LittleMe and Kissy-Kissy are done, LaPointe is next.
+  - LittleMe's and Kissy-Kissy's pushes created a new `DRIVER/main`; the old `DRIVER/develop` and
+    `Kissy-2.0/develop` themes are still in their admins, to delete. Kissy-Kissy's snippet fix for
+    Shopify's strict2 Liquid parser is draft Kissy-Kissy #75 (LittleMe's, #50, is merged).
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
@@ -19,11 +20,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, Kissy-Kissy, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **R-Finds' and Anduril-Gear's cutovers** wait on their shared kit install.
-- **#83** waits on Kissy-Kissy, which has no `CLAUDE.md` to carry the import; the cutover commit
-  adds the import only to an existing one.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
@@ -43,11 +42,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **Dependabot on LittleMe, Kissy-Kissy and LaPointe.** Every run there from August on sat queued
-  for 24 hours and was cancelled: "Dependabot on self-hosted runners" was on with no self-hosted
-  runner. The setting is now off on all three. The next daily `github_actions` run must start and
-  complete (`gh run list -R DriverDigital/<repo> --event dynamic`); if it queues again, the cause
-  is something else.
+- **Dependabot on LittleMe.** Its runs from August on sat queued for 24 hours and were cancelled:
+  "Dependabot on self-hosted runners" was on with no self-hosted runner. The setting is off, and
+  Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
+  daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
+  queues again, the cause is something else.
 - **The Dependabot report** cannot name what was bumped (#113).
 - **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
   pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
@@ -75,8 +74,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Re-list the `todo` issues, then cut over Avara (#91, [`branch-model.md`](branch-model.md#order)),
-   then the remaining Shopify cutovers one at a time, then the Vercel cutovers.
+1. Re-list the `todo` issues, then cut over LaPointe (#91, [`branch-model.md`](branch-model.md#order)),
+   then Avara and the remaining Shopify cutovers one at a time, then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`.
 2. Settle the open decisions above.

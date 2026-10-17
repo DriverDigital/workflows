@@ -87,7 +87,7 @@ Elsewhere:
 | Vercel project settings | Production branch `main`, with production domains auto-assigned, and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
 | `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. The waved file sets none. |
 | GitHub environments | foundrae: `staging`, `dev-staging` and the `testparty/*` branches hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
-| Protection | `develop` requires 1 review in Avara, LaPointe, Kissy-Kissy, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe, Kissy-Kissy and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Team-Laird `develop` is unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge, savannahfriedkin and LittleMe; foundrae `staging` and `main`, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
+| Protection | `develop` requires 1 review in Avara, LaPointe, R-Finds, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara, LaPointe and R-Finds and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Team-Laird `develop` is unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge, savannahfriedkin, LittleMe and Kissy-Kissy; foundrae `staging` and `main`, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
 
 ## Cutover, one repo at a time
 
@@ -163,7 +163,7 @@ have its own.
    - adds the platform stub
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
-     no `CLAUDE.md` (Kissy-Kissy, R-Finds) has its own to-do
+     no `CLAUDE.md` (R-Finds) gets one holding only that line, and its to-do keeps `/init` for the rest
 7. **Check that it worked, and set protection.**
    - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
      deploys its preview.
