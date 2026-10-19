@@ -536,13 +536,17 @@ jobs:
       # with no task never reaches the dispatcher. Ask its author when driver-agents
       # pipeline/reviewers.json lists them as a developer, else the repo's reviewer. Never fails the run.
       - name: Request a reviewer when the issue has no Bonsai task
-        if: ${{ github.event_name == 'issues' && steps.claude.outcome == 'success' && !contains(github.event.issue.body, 'uuid=') }}
+        if: ${{ github.event_name == 'issues' && steps.claude.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
+          BODY: ${{ github.event.issue.body }}
           AUTHOR: ${{ github.event.issue.user.login }}
           FALLBACK: ${{ vars.PR_REVIEWER_HANDLE || 'mcarter-astronautdev' }}
           BRANCH: issue-${{ github.event.issue.number }}
         run: |
+          if grep -qE 'uuid=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' <<<"$BODY"; then
+            echo "Bonsai task: the dispatcher requests the review at hand-off"; exit 0
+          fi
           reviewer=$FALLBACK
           if gh api -H 'Accept: application/vnd.github.raw' repos/DriverDigital/driver-agents/contents/pipeline/reviewers.json \
               | jq -e --arg u "$AUTHOR" 'any(.reviewers[]; .login == $u)' >/dev/null; then
