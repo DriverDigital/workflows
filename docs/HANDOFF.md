@@ -15,8 +15,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     as are foundrae's `staging` and `dev-staging` environments.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
-  - Docs PRs foundrae-blackridge #242, LittleMe #52 and Kissy-Kissy #77 rewrite each repo's README
-    and CLAUDE.md for `main`; step 6's commit now does this at each cutover.
+  - Step 6's commit now rewrites the repo's own README and CLAUDE.md; the five repos cut over so
+    far are done.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
@@ -26,9 +26,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   reaches the fleet only with a release and wave.
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
-- **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover. R-Finds #50, Kissy-Kissy #76
-  and LittleMe #51 add it to the repos cut over without it. The-Gathery, driver-onboarding,
-  vite-plugin-shopify-clean, plugins and client-workspaces get no step-6 commit and still lack it.
+- **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover, and every repo cut over so
+  far carries it. The-Gathery, driver-onboarding, vite-plugin-shopify-clean, plugins and
+  client-workspaces get no step-6 commit and still lack it.
 
 ## Blocked or gated
 
