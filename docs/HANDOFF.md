@@ -11,7 +11,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - LittleMe's, Kissy-Kissy's, R-Finds' and LaPointe's pushes created a new `DRIVER/main`; the old
     `DRIVER/develop` (LittleMe, R-Finds, LaPointe) and `Kissy-2.0/develop` themes are still in their
     admins, to delete.
-  - LaPointe #162 (draft) rewrites its README and CLAUDE.md for `main` only.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
