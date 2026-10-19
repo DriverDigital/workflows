@@ -17,9 +17,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
 - **#113, #115 and #118 are on a draft PR here** and reach the fleet with the next release and
-  wave. #118 reads driver-agents `pipeline/reviewers.json`, which lands with driver-agents #79;
-  until then a no-ticket issue run requests `PR_REVIEWER_HANDLE`. Shopify/cli's next JSON shape
-  fails #115's push check loudly (#119).
+  wave. The push job reads both Shopify CLI 4.x and the unreleased 5.x `theme push --json` shapes.
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
 
