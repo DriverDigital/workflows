@@ -110,7 +110,7 @@ use is the `SHOPIFY_STORE_NAME` repository variable, one per repo, so a Palmers 
 have its own.
 
 **Before each cutover:**
-- The repo carries the shared kit. Anduril-Gear does not yet.
+- The repo carries the shared kit. Anduril-Gear does not yet (Anduril-Gear #26).
 - The kit's platform stub pins a release whose reusable matches it. The main-only Vercel stub needs
   the release that carries the main-only reusable.
 - A Shopify repo with no build script passes `shopify theme check --fail-level error`, which its build
@@ -155,15 +155,17 @@ have its own.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
    workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready
-   must add neither again. Read the draft's push log for "pushed with errors": the job stays green
-   when Shopify rejects a file (#115). Causes so far: a strict-Liquid error in a snippet (LittleMe,
-   Kissy-Kissy), and `assets/.vite/manifest.json` where `.shopifyignore` lists only the bare folder
-   (R-Finds); fix either in a follow-up PR. Merging it deploys from `main`, and the stub's cleanup deletes the
+   must add neither again. A file Shopify rejects fails the push job with its error; on a pin older
+   than the release that carries #115 the job stays green, so read the log for "pushed with errors".
+   Causes so far: a strict-Liquid error in a snippet (LittleMe, Kissy-Kissy), and
+   `assets/.vite/manifest.json` where `.shopifyignore` lists only the bare folder (R-Finds); fix
+   either in a follow-up PR. Merging it deploys from `main`, and the stub's cleanup deletes the
    preview. Palmers takes one PR per `main*` branch. The commit:
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
    - adds the platform stub
    - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
+   - adds `lint.yml` where it's missing, now that the workflows it would fail on are gone
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
      no `CLAUDE.md` gets one holding only that line, and its to-do keeps `/init` for the rest
 7. **Check that it worked, and set protection.**

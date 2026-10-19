@@ -16,6 +16,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
+- **#113, #115 and #118 are on a draft PR here** and reach the fleet with the next release and
+  wave. #118 reads driver-agents `pipeline/reviewers.json`, which lands with driver-agents #79;
+  until then a no-ticket issue run requests `PR_REVIEWER_HANDLE`. Shopify/cli's next JSON shape
+  fails #115's push check loudly (#119).
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
 
@@ -24,9 +28,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
   LittleMe, Kissy-Kissy, R-Finds, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
-- **Anduril-Gear's cutover** waits on its shared kit install.
-- **To-dos on R-Finds for the agents** wait on driver-agents #78: it has no Bonsai project, so the
-  dispatcher never reaches it.
+- **Anduril-Gear's cutover** waits on its shared kit install (Anduril-Gear #26, draft).
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
