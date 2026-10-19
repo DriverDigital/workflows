@@ -172,6 +172,8 @@ have its own.
    - adds `lint.yml` where it's missing, now that the workflows it would fail on are gone
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
      no `CLAUDE.md` gets one holding only that line, and its to-do keeps `/init` for the rest
+   - rewrites the repo's README and CLAUDE.md lines that name the old branches, deploy workflows or
+     preview themes
 7. **Check that it worked, and set protection.**
    - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
      deploys its preview.

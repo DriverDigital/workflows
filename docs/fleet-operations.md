@@ -70,8 +70,9 @@ The kit's `dependabot.yml` variants (`templates/github/dependabot/`, picked by
 `tools/kit-platforms.sh`) carry a daily `github-actions` block (weekly on driver-agents), and exempt `DriverDigital/workflows*`
 from GitHub's default 3-day cooldown; each file's header says why. Two limits apply:
 
-- **Only the default branch is updated.** The variants set no `target-branch`, so Palmers' country
-  branches take pin moves from the wave alone.
+- **Only the default branch is updated.** The variants set no `target-branch`, so a repo's `main-*`
+  branches (Palmers' country branches, foundrae's `main-development`) take pin moves from the wave
+  alone.
 - **A Dependabot PR needs a merge.** A wave is one direct push; a bump waits on a person.
 
 To trigger a check by hand, comment `@dependabot recreate` on an open Dependabot PR, or use Insights →

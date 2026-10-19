@@ -201,8 +201,10 @@ every merge.
 
 Some repos run **several independent long-lived branches that merely share one repo** — Palmers runs
 one per country store (`main` = Palmers USA, plus `main-ca`, `main-in`, `main-me`, `main-sa`, and
-`main-au` / `main-uk` / `main-ma`). These branches are *not* a hub-and-spoke off
-`main`; they don't intersect. Treat each branch as its own self-contained store.
+`main-au` / `main-uk` / `main-ma`), and foundrae-blackridge runs `main-development` for its
+development store. These branches are *not* a hub-and-spoke off `main`; they don't intersect. Treat
+each branch as its own self-contained store. On a repo whose default branch is `main`, the wave and
+the pin audit cover every `main-*` branch.
 
 - **Install `claude.yml` on EVERY release branch.** Because the branches are independent, each one
   carries its own copy of the kit. (Strictly, the issue/`@claude` *kickoff* always fires from the
