@@ -8,7 +8,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
   (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe,
-  foundrae-blackridge, Anduril-Gear and Avara are done.
+  foundrae-blackridge, Anduril-Gear, Avara and indie-ridge are done.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
@@ -20,8 +20,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
   5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
   reaches the fleet only with a release and wave.
-- **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
-  `Staging-Deploy` until its cutover deletes them.
 - **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover, and every repo cut over so
   far carries it. The-Gathery, driver-onboarding, vite-plugin-shopify-clean, plugins and
   client-workspaces get no step-6 commit and still lack it.
@@ -85,7 +83,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 All cutovers land before the next release and wave.
 
 1. Re-list the `todo` issues, then cut over Palmers
-   (#91, [`branch-model.md`](branch-model.md#order)), then indie-ridge, then the Vercel cutovers.
+   (#91, [`branch-model.md`](branch-model.md#order)), then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`. After each, add the repo's `DRIVER/main` preview link (theme id from its
    push log on `main`, store domain from a PR's preview line) to the PM one-pager, an untracked
