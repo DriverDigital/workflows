@@ -198,6 +198,8 @@ jobs:
           done
           jq -s 'map({(.name): .}) | add // {}' registry.ndjson > registry.json 2>/dev/null || echo '{}' > registry.json
           echo "registry facts: $(jq 'length' registry.json) package(s)" | tee -a "$LOG"
+          # The report names the bump from these lines; registry.json holds latest versions, not the PR's.
+          printf '%s\n' "$PR_BODY" | grep -E '^(Bumps|Updates) ' > bumps.txt || true
 
           # Structured summary for the privileged report job (treated as INERT data there).
           CMDS="$(jq -Rn '[inputs]' < steps.txt 2>/dev/null || echo '[]')"
@@ -216,6 +218,7 @@ jobs:
             build.log
             result.json
             registry.json
+            bumps.txt
             pr-number.txt
           retention-days: 5
           if-no-files-found: warn
