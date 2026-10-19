@@ -9,10 +9,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
   (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe and
   foundrae-blackridge are done.
-  - LittleMe's, Kissy-Kissy's, R-Finds', LaPointe's and foundrae's pushes created a new `DRIVER/main`;
-    the old `DRIVER/develop` (LittleMe, R-Finds, LaPointe), `Kissy-2.0/develop`, `DRIVER/staging` and
-    `DRIVER/dev-staging` (foundrae's development store) themes are still in their admins, to delete,
-    as are foundrae's `staging` and `dev-staging` environments.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
