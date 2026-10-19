@@ -39,7 +39,7 @@ How a ticket becomes a merged change:
 5. The dispatcher runs the **revise loop**: while Macroscope has unresolved findings it posts a
    tag-mode `@claude` on the PR, up to three turns, and hands anything still flagged to a person.
 6. The dispatcher moves the task to **Internal Review**, assigns it to the reviewer the ticket names
-   and requests their review on GitHub. An issue a person opens with `@claude` and no Bonsai task
+   and, when driver-agents `pipeline/reviewers.json` lists them, requests their review on GitHub. An issue a person opens with `@claude` and no Bonsai task
    skips the dispatcher: the implementer requests its author when driver-agents
    `pipeline/reviewers.json` lists them, else the repo's `PR_REVIEWER_HANDLE`. The model itself
    requests no one, since a request at PR open lands while the revise loop is still changing the PR.
