@@ -11,17 +11,15 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - LittleMe's, Kissy-Kissy's and R-Finds' pushes created a new `DRIVER/main`; the old
     `DRIVER/develop` (LittleMe, R-Finds) and `Kissy-2.0/develop` themes are still in their admins, to
     delete.
-  - R-Finds #46 (draft) adds the `.shopifyignore` lines that stop `assets/.vite/manifest.json` being
-    rejected on every push; its preview push was clean.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
-- **#120 (draft) is not released.** It carries #113 (the Dependabot report names each bump), #115
+- **#120 is not released.** It carries #113 (the Dependabot report names each bump), #115
   and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
   5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
   reaches the fleet only with a release and wave.
-- **Anduril-Gear #26 (draft) installs the shared kit**, without `lint.yml` (its old deploy
-  workflows fail it). Theme check and validate pass on it.
+- **Anduril-Gear #26 installs the shared kit**, without `lint.yml` (its old deploy workflows fail
+  it).
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
 
@@ -30,7 +28,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
   LittleMe, Kissy-Kissy, R-Finds, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
-- **Anduril-Gear's cutover** waits on its shared kit install (Anduril-Gear #26, draft).
+- **Anduril-Gear's cutover** waits on its shared kit install (Anduril-Gear #26).
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
@@ -86,7 +84,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Once #120 is published and merged, release and wave it (README, *Release + repin order*) between
+1. Once #120 merges, release and wave it (README, *Release + repin order*) between
    cutovers, never during one. driver-agents #80 then updates its README to match.
 2. Merge Anduril-Gear #26; driver-agents #81 then routes its tickets to the implementer.
 3. Re-list the `todo` issues, then cut over LaPointe, foundrae-blackridge and Avara, in that order

@@ -41,9 +41,9 @@ How a ticket becomes a merged change:
 6. The dispatcher moves the task to **Internal Review**, assigns it to the reviewer the ticket names
    and, when driver-agents `pipeline/reviewers.json` lists them, requests their review on GitHub. An
    issue a person opens with `@claude` and no Bonsai task skips the dispatcher: the implementer
-   requests its author when `reviewers.json` lists them, else the repo's `PR_REVIEWER_HANDLE`. The
-   model itself requests no one, since a request at PR open lands while the revise loop is still
-   changing the PR.
+   requests its author when `reviewers.json` lists them, else the repo's `PR_REVIEWER_HANDLE`
+   (default `mcarter-astronautdev`). The model itself requests no one, since a request at PR open
+   lands while the revise loop is still changing the PR.
 7. A reviewer who sets **Revisions Requested** and assigns the task to Agents gets their comments
    forwarded to the PR as `@claude`; the task returns to Internal Review after the push. People own
    merging and every status after Internal Review.
@@ -168,8 +168,9 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
   reviewer on an issue with no Bonsai task; `shopify-tool-smoke.yml` uses it for the same clone.
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
-  is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, and
-  this repo's `dependabot-auto-merge.yml`.
+  is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, the
+  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's PR description link, and this
+  repo's `dependabot-auto-merge.yml`.
 
 Org-level Actions secrets, visible to every repo, so a new repo needs no secret setup:
 `CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET`,
@@ -187,7 +188,8 @@ stub passes no `secrets:`, and the reusable declares none.
 provenance (event `pull_request`, actor `dependabot[bot]`, a PR number, a same-repo head, and a
 validate run that succeeded or failed rather than cancelled), then its agent reads only the inert
 artifact (`build.log`, `result.json`, `registry.json`, `bumps.txt`) with `Read`, `Glob`, `Grep`
-and `Write` and no `gh`. Artifact content is never interpolated into a `run:` line. **Never use `pull_request_target`.**
+and `Write` and no `gh`. Artifact content is never interpolated into a `run:` line. **Never use
+`pull_request_target`.**
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
 `dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the reviewer
