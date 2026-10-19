@@ -7,10 +7,16 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## In flight
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
-  (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds and LaPointe are done.
-  - LittleMe's, Kissy-Kissy's, R-Finds' and LaPointe's pushes created a new `DRIVER/main`; the old
-    `DRIVER/develop` (LittleMe, R-Finds, LaPointe) and `Kissy-2.0/develop` themes are still in their
-    admins, to delete.
+  (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe and
+  foundrae-blackridge are done.
+  - LittleMe's, Kissy-Kissy's, R-Finds', LaPointe's and foundrae's pushes created a new `DRIVER/main`;
+    the old `DRIVER/develop` (LittleMe, R-Finds, LaPointe), `Kissy-2.0/develop`, `DRIVER/staging` and
+    `DRIVER/dev-staging` (foundrae's development store) themes are still in their admins, to delete,
+    as are foundrae's `staging` and `dev-staging` environments.
+  - foundrae's second branch, `main-development`, is not reached by the wave or the pin audit: both
+    look past the default branch only on Palmers. Repin it by hand at each release until they do.
+  - Each repo's own README and CLAUDE.md still describe its old branches and deploy workflows
+    until a step-9 docs PR rewrites them (LaPointe's is done).
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
@@ -20,11 +26,14 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   reaches the fleet only with a release and wave.
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
+- **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover. R-Finds #50, Kissy-Kissy #76
+  and LittleMe #51 add it to the repos cut over without it. The-Gathery, driver-onboarding,
+  vite-plugin-shopify-clean, plugins and client-workspaces get no step-6 commit and still lack it.
 
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
@@ -36,14 +45,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **#79 (ticket-assets screenshots) is tabled** until #95's Figma paragraph has run on real tickets
   (driver-agents #47 is the live test). `AGENTS_GH_PAT` can read `ticket-assets` if it is needed.
-- **Shared workflows on driver-agents.** It carries a partial kit. No `dependabot-report`: its stub's
-  `secrets: inherit` would hand a shared workflow driver-agents' Bonsai key, so it could qualify for
-  #85 only through a stub with an explicit secrets map. Add `claude.yml` + `pr-bonsai-link.yml` only
-  if tickets should reach driver-agents.
-- **foundrae's `dev-staging` and `testparty/*` branches:** retire them at its cutover, or keep them.
-- **`lint.yml` on Shopify repos.** savannahfriedkin, indie-ridge and LaPointe carry it; the runbook's
-  step 6 adds it at cutover. R-Finds, LittleMe and Kissy-Kissy were cut over without it: add it there
-  by hand or file a fleet to-do.
 
 ## Watch-items
 
@@ -83,7 +84,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 All cutovers land before the next release and wave.
 
-1. Re-list the `todo` issues, then cut over foundrae-blackridge and Avara, in that order
+1. Re-list the `todo` issues, then cut over Avara
    (#91, [`branch-model.md`](branch-model.md#order)), then Palmers, indie-ridge and Anduril-Gear, then
    the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from

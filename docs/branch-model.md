@@ -86,7 +86,7 @@ Elsewhere:
 | Vercel `deploy.yml` | Team-Laird, Driver-Digital-Website: `refs/heads/main` → production hook, `refs/heads/develop` → preview hook, skipped for the Vercel team's logins (`mcarter-astronautdev`; Driver-Digital-Website also `jadewang425`). studio-sulzer has none. |
 | Vercel project settings | Production branch `main`, with production domains auto-assigned, and Team-Laird's custom `staging` environment, which follows `develop`. Set in Vercel, not in git. |
 | `dependabot.yml` `target-branch: develop` | Team-Laird ×2, Driver-Digital-Website, studio-sulzer: redundant, since `develop` is the default. sandbox-vite-plugin-shopify-clean ×2 points at a branch that doesn't exist. The waved file sets none. |
-| GitHub environments | foundrae: `staging`, `dev-staging` and the `testparty/*` branches hold the store secrets, picked by branch name. Palmers: one per branch. None of them has a deployment branch policy. |
+| GitHub environments | foundrae: `main-development` holds the development store's secrets; the old `staging` and `dev-staging` ones are to delete. Palmers: one per branch. None of them has a deployment branch policy. |
 | Protection | `develop` requires 1 review in Avara, The-Gathery, studio-sulzer, Driver-Digital-Website. `main` requires 0 in Avara and on every Palmers `main*` branch, and 1 in foundrae; every cutover repo's `main` has `allow_deletions` off. Team-Laird `develop` is unprotected. Up to date before merging is enforced (strict plus a required check) only on indie-ridge, savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds and LaPointe; foundrae `staging` and `main`, studio-sulzer and Team-Laird `main` set strict with no required check, and the other site branches, all of Palmers' included, set neither. studio-sulzer's ruleset "Restrict main and develop" names both branches (disabled). |
 
 ## Cutover, one repo at a time
@@ -119,6 +119,10 @@ have its own.
   whichever branch is the default at that moment.
 - No merges into the repo from step 2 to step 6, and those steps run back to back. In between, the old
   deploy workflows push to a theme that has been renamed or fire on the new `main`.
+- The stub reads the repo-level `SHOPIFY_STORE` and `SHOPIFY_CLI_THEME_TOKEN` unless
+  `SHOPIFY_ENVIRONMENT_PER_BRANCH` is `true`. Check which secrets the old deploy workflows read: a
+  repo-level copy no workflow used can be stale (foundrae's was), and a failed store login fails the
+  push job with no message.
 
 **Steps:**
 
@@ -188,16 +192,13 @@ have its own.
    `-M` replaces it:
    `git fetch --prune origin && git branch -M <develop|staging> main && git branch -u origin/main main && git remote set-head origin -a`
 
-**foundrae-blackridge also needs,** all before step 6 and the integration disconnect before step 3:
-- Its store secrets exist both at repo level and in the `staging` and `dev-staging` environments.
-  Confirm the repo-level values point at the same store as `staging`'s, then leave
-  `SHOPIFY_ENVIRONMENT_PER_BRANCH` unset. If they don't match, create a `main` environment holding
-  `staging`'s secrets and set the variable.
-- Decide whether `dev-staging` and the `testparty/*` branches stay or go. Tag any you delete;
-  `dev-staging` holds commits that were never merged. Head branches are never deleted on merge here
-  ([repository settings](fleet-operations.md#repository-settings)).
-- `main` is connected to the unpublished `foundrae/main` theme through Shopify's GitHub integration.
-  Disconnect it in the Shopify admin before step 3 deletes `main`.
+**foundrae-blackridge has two stores.** `main` deploys to the main store with the repo-level
+secrets. `main-development` (once `dev-staging`, tagged `archive/dev-staging-2026-10`) deploys to the
+development store through the `main-development` environment, with
+`SHOPIFY_ENVIRONMENT_PER_BRANCH=true`; `main` has no environment secrets, so its jobs fall back to the
+repo-level ones. Its `.github/scripts/get-store.sh` picks the local dev store by the same branch
+name. The `testparty/*` branches stay, and head branches are never deleted on merge here
+([repository settings](fleet-operations.md#repository-settings)).
 
 driver-agents also deploys through Vercel, from `main` only. It is a tool, not a site, so it stays
 outside this standard until it needs one.

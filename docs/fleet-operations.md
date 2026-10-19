@@ -162,7 +162,7 @@ Every active repo, under Settings → General → Pull Requests:
   (primavera-shopify-theme, shopify-metadata-app) ignore the setting.
 - **Always suggest updating pull request branches on.**
 - **Automatically delete head branches on every site repo** (one with a platform topic), except
-  foundrae-blackridge, which keeps long-lived branches such as `dev-staging` and `testparty/*` that
+  foundrae-blackridge, which keeps long-lived branches such as `main-development` and `testparty/*` that
   open PRs use as heads. Branch protection keeps a protected head branch, so merges between Palmers'
   `main*` branches are safe. The tool repos choose case by case.
 
