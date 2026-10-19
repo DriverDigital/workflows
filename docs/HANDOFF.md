@@ -13,10 +13,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     the old `DRIVER/develop` (LittleMe, R-Finds, LaPointe), `Kissy-2.0/develop`, `DRIVER/staging` and
     `DRIVER/dev-staging` (foundrae's development store) themes are still in their admins, to delete,
     as are foundrae's `staging` and `dev-staging` environments.
-  - #125 extends the wave and the pin audit from Palmers' `main*` branches to
-    every repo already on `main`, so foundrae's `main-development` is covered. The audit then reads
-    one drift there: the missing Figma check-run agent, which `tools/fleet-wave.sh --only
-    foundrae-blackridge` from `main` adds.
+  - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
+    foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Docs PRs foundrae-blackridge #242, LittleMe #52 and Kissy-Kissy #77 rewrite each repo's README
     and CLAUDE.md for `main`; step 6's commit now does this at each cutover.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
