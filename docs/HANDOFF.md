@@ -8,7 +8,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
   (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe,
-  foundrae-blackridge and Anduril-Gear are done.
+  foundrae-blackridge, Anduril-Gear and Avara are done.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
@@ -29,7 +29,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
@@ -69,6 +69,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Figma check-run agent spend.** It runs on PRs that touch theme or front-end paths in the pipeline
   Shopify repos, at most 4 runs a PR. A run with no design cost $0.27–$1.31 on Avara, more for bigger
   diffs; a run with a design is unmeasured (capped at $6 a run, $24 a PR).
+- **A PR whose head is `main` or a `main-*` branch** would delete that branch's own `DRIVER/<branch>`
+  theme when it closes: `shopify-theme.yml`'s cleanup deletes every non-live theme named after the
+  head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
+  next push would recreate the theme under a new id.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
 - **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
   `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether
@@ -80,11 +84,12 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 All cutovers land before the next release and wave.
 
-1. Re-list the `todo` issues, then cut over Avara
-   (#91, [`branch-model.md`](branch-model.md#order)), then Palmers and indie-ridge, then
-   the Vercel cutovers.
+1. Re-list the `todo` issues, then cut over Palmers
+   (#91, [`branch-model.md`](branch-model.md#order)), then indie-ridge, then the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
-   `~/cutover/log.md`.
+   `~/cutover/log.md`. After each, add the repo's `DRIVER/main` preview link (theme id from its
+   push log on `main`, store domain from a PR's preview line) to the PM one-pager, an untracked
+   `pm-one-pager.md` in the CTO's clone.
 2. Work through the open `todo` issues; what lands ships in the next release.
 3. Release and wave (README, *Release + repin order*): #120, #86 (one kit-owned `.nvmrc` per
    platform replaces each repo's own Node pin, several of them past end of life) and step 2's work.
