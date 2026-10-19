@@ -11,8 +11,8 @@
 # Only repos carrying the driver-kit topic are targets (tools/kit-platforms.sh); within them, targets
 # are discovered by presence: every enrolled non-archived DriverDigital repo whose branch carries
 # claude.yml, dependabot-validate.yml, the house standards, lint.yml or a platform stub — the stub-only pairs
-# never took the full kit but still carry pins to move. Branches: each repo's default branch, plus
-# every main* branch of Palmers.
+# never took the full kit but still carry pins to move. Branches: each repo's default branch, plus,
+# when that is `main`, every `main-*` branch (Palmers' country stores, foundrae's main-development).
 # Per target, in one commit:
 #   every kit file the branch already carries  <- kit version; the PR template and the house
 #                                                 standards live at .github/, claude-settings.json
@@ -169,7 +169,7 @@ handle_of() {
 # ever called as `TARGETS=$(targets)`. Verified on bash 3.2.57 — `f(){ local x; x=$(false); echo
 # reached; }; T=$(f)` prints `reached` and exits 0. So errexit cannot be relied on to stop a wave
 # here, and a half-read fleet is the one failure this whole script must never report as success:
-# a `gh` hiccup on the Palmers branch listing would silently drop every country branch and still
+# a `gh` hiccup on a branch listing would silently drop every `main-*` branch and still
 # exit 0. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
@@ -178,7 +178,7 @@ targets() {
     # Its own statement, not interpolated into the string: a substitution embedded in a larger word
     # cannot fail the assignment, so a typo'd --only would fall through to the "no targets" message
     # and read as an empty fleet instead of a bad argument. The resolved name is used, not the
-    # typed one: `--only palmers` resolves, but the literal Palmers branch check below would not.
+    # typed one: `--only Workflows` resolves, but the literal kit-repo guard below would not match it.
     repos=$(api "repos/$ORG/$ONLY" --jq '"\(.name) \(.default_branch) \(.topics | join(","))"') \
       || { echo "--only $ONLY: no such repo in $ORG" >&2; exit 2; }
   else
@@ -205,10 +205,11 @@ targets() {
     fi
     plat=$(topics_platform "${topics//,/ }")
     [ "$plat" != several ] || { echo "$r carries more than one platform topic — pick one" >&2; exit 2; }
-    if [ "$r" = "Palmers" ]; then
+    # Only a repo already on main: before its cutover, an old `main` may carry promoted kit files.
+    if [ "$def" = main ]; then
       branches=$(api "repos/$ORG/$r/branches?per_page=100" --paginate --jq '.[].name') \
         || { echo "could not list $r branches — refusing to wave a partial fleet" >&2; exit 2; }
-      branches=$(printf '%s\n' "$branches" | grep -E '^main' || true)
+      branches=$(printf '%s\n' "$branches" | grep -E '^main(-.+)?$' || true)
     else
       branches=$def
     fi

@@ -14,9 +14,10 @@
 #
 # Scans every non-archived DriverDigital repo's .github/, .claude/settings.json and, on Shopify repos,
 # .macroscope/check-run-agents/, whose files are compared with driver-agents main (default branch,
-# plus every main* branch of Palmers — the kit is installed per country branch there). Kit files on
-# a repo without the driver-kit topic are listed apart as unenrolled and never count as drift; a
-# platform file on a repo whose topic names another platform, or none, is drift (tools/kit-platforms.sh).
+# plus, when that is main, every main-* branch — Palmers installs the kit per country branch, foundrae
+# on main-development). Kit files on a repo without the driver-kit topic are listed apart as unenrolled and
+# never count as drift; a platform file on a repo whose topic names another platform, or none, is drift
+# (tools/kit-platforms.sh).
 #
 # Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
 # the wave — in practice the wave repins within minutes of every tag, so it rarely gets the chance;
@@ -222,9 +223,9 @@ report="$(
     # archived, so they never count as drift.
     topics_enrolled "${topics//,/ }" || plat="unenrolled"
     scan_ref "$repo" "$def" "$plat"
-    if [ "$repo" = "Palmers" ]; then
-      gh api "repos/$ORG/Palmers/branches?per_page=100" --jq '.[].name' 2>/dev/null \
-        | grep '^main' | grep -v "^$def\$" | while read -r b; do scan_ref "$repo" "$b" "$plat"; done
+    if [ "$def" = main ]; then
+      gh api --paginate "repos/$ORG/$repo/branches?per_page=100" --jq '.[].name' 2>/dev/null \
+        | grep -E '^main-.' | while read -r b; do scan_ref "$repo" "$b" "$plat"; done
     fi
   done | sort
 )"
