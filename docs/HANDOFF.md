@@ -13,7 +13,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     the old `DRIVER/develop` (LittleMe, R-Finds, LaPointe), `Kissy-2.0/develop`, `DRIVER/staging` and
     `DRIVER/dev-staging` (foundrae's development store) themes are still in their admins, to delete,
     as are foundrae's `staging` and `dev-staging` environments.
-  - The `wave-main-branches` PR extends the wave and the pin audit from Palmers' `main*` branches to
+  - #125 extends the wave and the pin audit from Palmers' `main*` branches to
     every repo already on `main`, so foundrae's `main-development` is covered. The audit then reads
     one drift there: the missing Figma check-run agent, which `tools/fleet-wave.sh --only
     foundrae-blackridge` from `main` adds.
