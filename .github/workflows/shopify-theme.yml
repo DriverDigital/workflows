@@ -134,6 +134,18 @@ jobs:
           body=$(gh api "repos/$GH_REPO/pulls/$PR" --jq '.body // ""')
           grep -qF "$line" <<<"$body" && exit 0
           gh api -X PATCH "repos/$GH_REPO/pulls/$PR" -f body="$body"$'\n\n'"$line" --silent
+      # theme push exits 0 when Shopify rejects files: it names them in .theme.errors and sets
+      # .theme.warning. A missing preview_url means the CLI changed that JSON shape, and the checks
+      # below would pass a partial push, so it fails too. After the link step, so the link lands.
+      - name: Fail on files Shopify rejected
+        run: |
+          set -euo pipefail
+          json=$RUNNER_TEMP/theme.json
+          jq -e '.theme.preview_url' "$json" >/dev/null \
+            || { echo "::error::shopify theme push --json output has no .theme.preview_url; its shape changed"; exit 1; }
+          jq -r '.theme.errors // {} | to_entries[] | .key as $f | .value[] | "::error file=\($f)::\(gsub("\n"; "%0A"))"' "$json"
+          jq -e '(.theme.errors // {}) == {} and .theme.warning == null' "$json" >/dev/null \
+            || { echo "::error::$(jq -r '.theme.warning // "Files were pushed with errors"' "$json")"; exit 1; }
 
   cleanup:
     if: github.event.action == 'closed'
