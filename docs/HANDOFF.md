@@ -15,8 +15,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     as are foundrae's `staging` and `dev-staging` environments.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
-  - Step 6's commit now rewrites the repo's own README and CLAUDE.md; the five repos cut over so
-    far are done.
+  - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
+    far is done.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
