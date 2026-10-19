@@ -26,7 +26,7 @@ place the version is recorded.
 
 | File | Rail |
 |---|---|
-| `claude.yml` | The implementer. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line and a `Pre-review:` line. It requests no GitHub reviewer: the Bonsai assignment is the review request. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
+| `claude.yml` | The implementer. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line and a `Pre-review:` line. The model requests no reviewer: the dispatcher requests one at hand-off, and on an issue with no Bonsai task the workflow requests its author if driver-agents `pipeline/reviewers.json` lists them, else `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
 | `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
 | `dependabot-keep-current.yml` | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
@@ -98,7 +98,8 @@ every merge.
 
    Optional, per-repo:
    - **variable** `PR_REVIEWER_HANDLE` to override the reviewer requested by the
-     Dependabot-report rail (default `mcarter-astronautdev`).
+     Dependabot-report rail and by the implementer on an issue with no Bonsai task (default
+     `mcarter-astronautdev`).
    - **Shopify admin tooling** — only for repos with a store. Set all three secrets
      `DRIVER_ENGINEERING_APP_CLIENT_ID`, `DRIVER_ENGINEERING_APP_CLIENT_SECRET`, `SHOPIFY_STORE` (the
      myshopify domain) **and** the repository **variable** `SHOPIFY_STORE_NAME` to the store handle.
