@@ -11,11 +11,15 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - LittleMe's, Kissy-Kissy's and R-Finds' pushes created a new `DRIVER/main`; the old
     `DRIVER/develop` (LittleMe, R-Finds) and `Kissy-2.0/develop` themes are still in their admins, to
     delete.
-  - R-Finds #46 (draft) adds the `.shopifyignore` lines that stop `assets/.vite/manifest.json` being
-    rejected on every push; its preview push was clean.
   - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
     so draft-PR previews and the description link start per repo then. A stub copied from an
     older template fails at startup (the push job needs `pull-requests: write`).
+- **#120 is not released.** It carries #113 (the Dependabot report names each bump), #115
+  and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
+  5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
+  reaches the fleet only with a release and wave.
+- **Anduril-Gear #26 installs the shared kit**, without `lint.yml` (its old deploy workflows fail
+  it).
 - **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
   `Staging-Deploy` until its cutover deletes them.
 
@@ -24,9 +28,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
   LittleMe, Kissy-Kissy, R-Finds, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
-- **Anduril-Gear's cutover** waits on its shared kit install.
-- **To-dos on R-Finds for the agents** wait on driver-agents #78: it has no Bonsai project, so the
-  dispatcher never reaches it.
+- **Anduril-Gear's cutover** waits on its shared kit install (Anduril-Gear #26).
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
@@ -42,6 +44,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   #85 only through a stub with an explicit secrets map. Add `claude.yml` + `pr-bonsai-link.yml` only
   if tickets should reach driver-agents.
 - **foundrae's `dev-staging` and `testparty/*` branches:** retire them at its cutover, or keep them.
+- **`lint.yml` on Shopify repos.** Only savannahfriedkin and indie-ridge carry it. The runbook's
+  step 6 now adds it at cutover, but R-Finds, LittleMe and Kissy-Kissy are already cut over without
+  it: add it there by hand or file a fleet to-do.
 
 ## Watch-items
 
@@ -50,7 +55,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
   daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
   queues again, the cause is something else.
-- **The Dependabot report** cannot name what was bumped (#113).
+- **After #120's release and wave:** the first Dependabot report names each package with its from
+  and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
+  first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR.
 - **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
   pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
@@ -77,14 +84,17 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Re-list the `todo` issues, then cut over LaPointe, foundrae-blackridge and Avara, in that order
+1. Once #120 merges, release and wave it (README, *Release + repin order*) between
+   cutovers, never during one. driver-agents #80 then updates its README to match.
+2. Merge Anduril-Gear #26; driver-agents #81 then routes its tickets to the implementer.
+3. Re-list the `todo` issues, then cut over LaPointe, foundrae-blackridge and Avara, in that order
    (#91, [`branch-model.md`](branch-model.md#order)), then Palmers, indie-ridge and Anduril-Gear, then
    the Vercel cutovers.
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`.
-2. In the first release and wave after the cutovers, ship #86: one kit-owned `.nvmrc` per platform
+4. In the first release and wave after the cutovers, ship #86: one kit-owned `.nvmrc` per platform
    replaces each repo's own Node pin (`volta.node`, `engines.node`), several of them past end of life.
-3. Settle the open decisions above.
+5. Settle the open decisions above.
 
 ## Pointers
 

@@ -130,10 +130,23 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          line=$(jq -r '"**Preview theme:** [preview](\(.theme.preview_url)) · [theme editor](\(.theme.editor_url))"' "$RUNNER_TEMP/theme.json")
+          line=$(jq -r '.theme | "**Preview theme:** [preview](\(.preview_url // .previewUrl)) · [theme editor](\(.editor_url // .editorUrl))"' "$RUNNER_TEMP/theme.json")
           body=$(gh api "repos/$GH_REPO/pulls/$PR" --jq '.body // ""')
           grep -qF "$line" <<<"$body" && exit 0
           gh api -X PATCH "repos/$GH_REPO/pulls/$PR" -f body="$body"$'\n\n'"$line" --silent
+      # theme push can exit 0 when Shopify rejects files. CLI 4.x names them in .theme.errors and sets
+      # .theme.warning; 5.x sets status "partial" and lists .issues. Output in neither shape would
+      # pass a partial push, so it fails too. After the link step, so the link lands.
+      - name: Fail on files Shopify rejected
+        run: |
+          set -euo pipefail
+          json=$RUNNER_TEMP/theme.json
+          jq -e '.theme.preview_url // .theme.previewUrl' "$json" >/dev/null \
+            || { echo "::error::shopify theme push --json output is in neither known shape"; exit 1; }
+          jq -r '(.theme.errors // {} | to_entries[] | .key as $f | .value[] | "::error file=\($f)::\(gsub("\n"; "%0A"))"),
+                 (.issues // [] | .[] | "::error::\(.filePath): \(.message | gsub("\n"; "%0A"))")' "$json"
+          jq -e '(.theme.errors // {}) == {} and .theme.warning == null and (.issues // []) == [] and .status != "partial"' "$json" >/dev/null \
+            || { echo "::error::$(jq -r '.theme.warning // "Files were pushed with errors"' "$json")"; exit 1; }
 
   cleanup:
     if: github.event.action == 'closed'
