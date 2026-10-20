@@ -153,9 +153,8 @@ have its own.
    (see step 9). Remove any `target-branch: develop` the wave has not.
 5. **Vercel only: swap the hooks.** In Vercel, delete the `develop` hook and create a `main` hook
    where there is none (studio-sulzer). On the repo, set `VERCEL_DEPLOY_HOOK_MAIN`, delete
-   `VERCEL_DEPLOY_HOOK_DEVELOP`, and set `VERCEL_TEAM_LOGINS` to the logins the old `deploy.yml`
-   skips: `mcarter-astronautdev jadewang425` on Driver-Digital-Website; the others can stay on the
-   fallback. A login left out deploys twice.
+   `VERCEL_DEPLOY_HOOK_DEVELOP`. `VERCEL_TEAM_LOGINS` stays unset on all three: its fallback,
+   `mcarter-astronautdev`, is the only Vercel team member who merges. A login left out deploys twice.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
    workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready

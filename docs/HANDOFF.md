@@ -9,7 +9,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
   (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe,
   foundrae-blackridge, Anduril-Gear, Avara, indie-ridge, Palmers (all eight `main*` branches),
-  Team-Laird and studio-sulzer are done; Driver-Digital-Website and The-Gathery remain.
+  Team-Laird, studio-sulzer and Driver-Digital-Website are done; The-Gathery remains.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
@@ -75,15 +75,14 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
   next push would recreate the theme under a new id.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
-- **The last Vercel cutover.** On Team-Laird and studio-sulzer the staged builds left every production
-  domain alone and auto-assign stayed off through the promotion; Sanity publishes on Team-Laird go
-  live without a deploy hook. Check the same on Driver-Digital-Website.
+- **Sanity publishes on Driver-Digital-Website** should go live without a deploy, since
+  `<SanityLive />` invalidates its cache; unverified. Team-Laird's do.
 
 ## Next steps
 
 All cutovers land before the next release and wave.
 
-1. Re-list the `todo` issues, then run the Vercel cutovers and The-Gathery
+1. Re-list the `todo` issues, then run The-Gathery's cutover
    (#91, [`branch-model.md`](branch-model.md#order)).
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`. After each, add the repo's `DRIVER/main` preview link (theme id from its
