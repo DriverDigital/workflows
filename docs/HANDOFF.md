@@ -75,8 +75,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
   next push would recreate the theme under a new id.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
-- **Sanity publishes on Driver-Digital-Website** should go live without a deploy, since
-  `<SanityLive />` invalidates its cache; unverified. Team-Laird's do.
 
 ## Next steps
 
