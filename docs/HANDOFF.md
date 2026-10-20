@@ -8,8 +8,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
   (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe,
-  foundrae-blackridge, Anduril-Gear, Avara, indie-ridge, Palmers (all eight `main*` branches) and
-  Team-Laird are done; Driver-Digital-Website, studio-sulzer and The-Gathery remain.
+  foundrae-blackridge, Anduril-Gear, Avara, indie-ridge, Palmers (all eight `main*` branches),
+  Team-Laird and studio-sulzer are done; Driver-Digital-Website and The-Gathery remain.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
@@ -27,7 +27,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, Palmers (every `main*` branch), Team-Laird, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
@@ -75,10 +75,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
   next push would recreate the theme under a new id.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
-- **The next Vercel cutovers.** Team-Laird's staged builds left every production domain alone and
-  auto-assign stayed off through its promotion; Sanity publishes there go live without a deploy hook.
-  Check the same on Driver-Digital-Website and studio-sulzer, including `<project>.vercel.app` on
-  studio-sulzer, which has no custom domain.
+- **The last Vercel cutover.** On Team-Laird and studio-sulzer the staged builds left every production
+  domain alone and auto-assign stayed off through the promotion; Sanity publishes on Team-Laird go
+  live without a deploy hook. Check the same on Driver-Digital-Website.
 
 ## Next steps
 
