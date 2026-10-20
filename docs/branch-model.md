@@ -180,7 +180,13 @@ have its own.
    - Vercel: the push staged a build and the production domain still serves the previous
      deployment. A push by a login in `VERCEL_TEAM_LOGINS` skips the hook, so fire
      `VERCEL_DEPLOY_HOOK_MAIN` once by hand and confirm Vercel stages that build too. Promote once,
-     then confirm auto-assign is still off.
+     then confirm auto-assign is still off. That first promotion ships everything the working branch
+     gained since old `main` was last promoted, not only the switch-over PR (38 commits on
+     Team-Laird); read `compare/<live deployment's commit>...main` first.
+   - Vercel with an embedded Sanity Studio: to review the staged Studio, add the `main` branch alias
+     (`<project>-git-main-<team>.vercel.app`) in Sanity as a development host, not a registered
+     studio. A registered studio syncs its schema into the dataset, and the staged one would
+     overwrite the live schema before the promotion.
    - The open PRs target `main`.
    - `main` requires one review. The rename carries `develop`'s or `staging`'s rule over; set it
      where none came across (Team-Laird, whose `develop` is unprotected, and every repo already on
