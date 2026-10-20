@@ -150,7 +150,7 @@ have its own.
 4. **Rename the working branch to `main`:** `POST repos/DriverDigital/<repo>/branches/<develop|staging>/rename`
    with `new_name=main`. GitHub retargets its open PRs, moves its protection rule and makes it the
    default. It does not touch workflow branch filters, Vercel or Dependabot settings, or rulesets
-   (fix studio-sulzer's ruleset by hand). Remove any `target-branch: develop` the wave has not.
+   (see step 9). Remove any `target-branch: develop` the wave has not.
 5. **Vercel only: swap the hooks.** In Vercel, delete the `develop` hook and create a `main` hook
    where there is none (studio-sulzer). On the repo, set `VERCEL_DEPLOY_HOOK_MAIN`, delete
    `VERCEL_DEPLOY_HOOK_DEVELOP`, and set `VERCEL_TEAM_LOGINS` to the logins the old `deploy.yml`
@@ -201,8 +201,8 @@ have its own.
    `git fetch --prune origin && git branch -M <develop|staging> main && git branch -u origin/main main && git remote set-head origin -a`
 9. **Stale branches, when the CTO says so.** Tag every branch that is not an ancestor of `main` as
    `archive/<branch>` and read the tag back (a squash-merged PR's branch counts), then delete every
-   remote branch except `main` and the heads of open PRs. Delete a disabled ruleset that still names
-   the old branch (studio-sulzer's).
+   remote branch except `main` and the heads of open PRs. Delete a ruleset that still names the old
+   branch.
 
 **foundrae-blackridge has two stores.** `main` deploys to the main store with the repo-level
 secrets. `main-development` (once `dev-staging`, tagged `archive/dev-staging-2026-10`) deploys to the
