@@ -8,14 +8,14 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
   (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe,
-  foundrae-blackridge, Anduril-Gear, Avara and indie-ridge are done.
+  foundrae-blackridge, Anduril-Gear, Avara, indie-ridge and Palmers (all eight `main*` branches) are
+  done, so every Shopify repo is; the Vercel repos and The-Gathery remain.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
     far is done.
-  - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
-    so draft-PR previews and the description link start per repo then. A stub copied from an
-    older template fails at startup (the push job needs `pull-requests: write`).
+  - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
+    `pull-requests: write`).
 - **#120 is merged, not released.** It carries #113 (the Dependabot report names each bump), #115
   and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
   5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
@@ -27,7 +27,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, Palmers (every `main*` branch), driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
@@ -59,7 +59,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
 - **The first PR merged into a Palmers `main-*` branch after the wave.** Its `Closes #N` issue must
-  close with a comment naming the PR.
+  close with a comment naming the PR. Palmers #140–#146 (the `render` fixes) are the first.
+- **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
+  of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
+  published; check the Morocco store's admin.
 - **The first real ticket through the implementer.** The guard steps should stay quiet; if one
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
@@ -82,14 +85,16 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 All cutovers land before the next release and wave.
 
-1. Re-list the `todo` issues, then cut over Palmers
-   (#91, [`branch-model.md`](branch-model.md#order)), then the Vercel cutovers.
+1. Re-list the `todo` issues, then run the Vercel cutovers and The-Gathery
+   (#91, [`branch-model.md`](branch-model.md#order)).
    The `repo-cutover` skill, if available, runs these step by step and resumes from
    `~/cutover/log.md`. After each, add the repo's `DRIVER/main` preview link (theme id from its
    push log on `main`, store domain from a PR's preview line) to the PM one-pager, an untracked
    `pm-one-pager.md` in the CTO's clone.
 2. Work through the open `todo` issues; what lands ships in the next release.
-3. Release and wave (README, *Release + repin order*): #120, #86 (one kit-owned `.nvmrc` per
+3. Merge Palmers #140–#146 first: the AU and IN stores already reject those 22 `render` files, and
+   with #120 released a rejected file fails the push, so every push to `main-au` and `main-in` would
+   go red. Then release and wave (README, *Release + repin order*): #120, #86 (one kit-owned `.nvmrc` per
    platform replaces each repo's own Node pin, several of them past end of life) and step 2's work.
    driver-agents #80 then updates its README to match #120.
 4. Settle the open decisions above.
