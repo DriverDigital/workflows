@@ -199,6 +199,10 @@ have its own.
 8. **Every clone,** each engineer's included. Check a local `main` for unpushed work first, since
    `-M` replaces it:
    `git fetch --prune origin && git branch -M <develop|staging> main && git branch -u origin/main main && git remote set-head origin -a`
+9. **Stale branches, when the CTO says so.** Tag every branch that is not an ancestor of `main` as
+   `archive/<branch>` and read the tag back (a squash-merged PR's branch counts), then delete every
+   remote branch except `main` and the heads of open PRs. Delete a disabled ruleset that still names
+   the old branch (studio-sulzer's).
 
 **foundrae-blackridge has two stores.** `main` deploys to the main store with the repo-level
 secrets. `main-development` (once `dev-staging`, tagged `archive/dev-staging-2026-10`) deploys to the
