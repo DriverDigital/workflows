@@ -71,10 +71,8 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   revise loop run unattended. PRs land with a merge commit, never a squash, so each commit survives on `main`.
   Deleting a head branch once its PR merges is preferred, but GitHub is not configured to do this on every repository, since some PR authors need to keep longer-lived branches in some repos: delete a branch you created for your own PR once it merges, and
   propose cleanup of other stale branches rather than deleting them.
-- **Comments on a pull request** — A review or comment posted on someone's PR @mentions its author
-  once, in the review summary or the comment body, not in each inline comment. Mention a person
-  only, never a bot: `@claude` starts the implementer and `@dependabot` reads the comment as a
-  command.
+- **Comments on a pull request** — A review or comment posted on a PR @mentions its author once, in
+  the review summary or the comment body, not in each inline comment, so the author is notified.
 - **Closing issues** — In a PR body or commit message, give each issue its own keyword: `Closes #1,
   closes #2`, never `Closes #1, #2`. GitHub closes only the issue right after a keyword, and the
   kit's `close-linked-issues.yml` reads `main-*` merges the same way.
