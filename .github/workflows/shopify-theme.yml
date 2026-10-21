@@ -110,7 +110,7 @@ jobs:
           set -euo pipefail
           name=$THEME_NAME
           [ ${#name} -le 50 ] || name="${name:0:41}-$(printf %s "$name" | sha1sum | cut -c1-8)"
-          themes=$(shopify theme list --json) || { printf '%s\n' "$themes"; echo "::error::shopify theme list failed; see the CLI output above. A store-auth error means the store or theme-token secret is wrong or stale."; exit 1; }
+          themes=$(shopify theme list --json) || { echo "::error::shopify theme list failed; see the CLI error above. A store-auth error means the store or theme-token secret is wrong or stale."; exit 1; }
           id=$(jq -r --arg n "$name" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
           if [ -n "$id" ]; then
             shopify theme push --theme "$id" --json | tee "$RUNNER_TEMP/theme.json"
@@ -163,8 +163,7 @@ jobs:
         env:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
           SHOPIFY_CLI_THEME_TOKEN: ${{ secrets.SHOPIFY_CLI_THEME_TOKEN }}
-        run: |
-          shopify theme list --json > themes.json || { cat themes.json; echo "::error::shopify theme list failed; see the CLI output above. A store-auth error means the store or theme-token secret is wrong or stale."; exit 1; }
+        run: shopify theme list --json > themes.json || { echo "::error::shopify theme list failed; see the CLI error above. A store-auth error means the store or theme-token secret is wrong or stale."; exit 1; }
       - name: Delete ${{ env.THEME_NAME }}
         env:
           SHOPIFY_FLAG_STORE: ${{ secrets.SHOPIFY_STORE || secrets.SHOPIFY_FLAG_STORE }}
