@@ -23,6 +23,9 @@
 #   dependabot.yml                             <- written at .github/ on every target with a
 #                                                 templates/github/dependabot/ variant (picked by
 #                                                 tools/kit-platforms.sh; none = not written)
+#   node-version                               <- written as the root .node-version on every
+#                                                 Shopify, Vercel or WordPress target, from
+#                                                 templates/github/node-version/<platform>
 #   bonsai-status-sync.yml                     <- deleted if present (not a kit file)
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (an unused theme deploy workflow)
 #   AGENT_FILES (tools/kit-platforms.sh)       <- Shopify repos only: written to
@@ -107,15 +110,17 @@ fi
 FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.yml lint.yml
             pr-bonsai-link.yml close-linked-issues.yml dependabot-keep-current.yml dependabot-report.yml
             dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json
-            dependabot.yml)
+            dependabot.yml node-version)
 DELETE_FILES=(bonsai-status-sync.yml Production-Deploy.yml production-deploy.yml)
 # Where a kit file lives in a target repo: the PR template, the house standards and the Dependabot
-# config sit in .github/, and the shared Claude Code project settings are the repo's .claude/settings.json.
+# config sit in .github/, the shared Claude Code project settings are the repo's .claude/settings.json,
+# and the platform's Node version is the root .node-version.
 dest() {
   if is_agent "$1"; then echo ".macroscope/check-run-agents/$1"; return; fi
   case "$1" in
     pull_request_template.md|claude-standards.md|dependabot.yml) echo ".github/$1" ;;
     claude-settings.json) echo ".claude/settings.json" ;;
+    node-version) echo ".node-version" ;;
     *) echo ".github/workflows/$1" ;;
   esac
 }
@@ -235,7 +240,7 @@ plan_and_push() {
   local repo=$1 branch=$2 plat=$3 tmp f fp cur
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
-  local changes=0 existing root dotgithub workflows dotclaude kit_paths variant src
+  local changes=0 existing root dotgithub workflows dotclaude kit_paths variant src nv
   # Each listing is its own assignment so a failure cannot hide behind another (errexit is off inside
   # an assignment's substitution). A standards-only target has no .github/workflows, so that listing
   # runs only when .github says the directory exists.
@@ -249,6 +254,8 @@ plan_and_push() {
   fi
   root=$(api "repos/$ORG/$repo/contents?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
     || { echo "  $repo@$branch: cannot list the repo root" >&2; exit 3; }
+  if grep -qxF "file .node-version" <<<"$root"; then existing="$existing"$'\n'".node-version"; fi
+  nv=$(node_version_source "$plat")
   if agent_platform "$plat" && grep -qxF "dir .macroscope" <<<"$root"; then
     local macro agents
     macro=$(api "repos/$ORG/$repo/contents/.macroscope?ref=$branch" --jq '.[] | "\(.type) \(.path)"') \
@@ -267,17 +274,18 @@ plan_and_push() {
     existing="$existing"$'\n'"$dotclaude"
   fi
   # Discovery proved the target carries at least one kit file, so a listing with none is a lie — and
-  # would otherwise report "(no changes)", silently dropping the repo from the wave. dependabot.yml is
-  # no proof: discovery never probes for it, and plenty of repos carry their own.
-  kit_paths=$(for f in "${FULL_FILES[@]}"; do [ "$f" = dependabot.yml ] || dest "$f"; done)
+  # would otherwise report "(no changes)", silently dropping the repo from the wave. dependabot.yml and
+  # .node-version are no proof: discovery never probes for them, and plenty of repos carry their own.
+  kit_paths=$(for f in "${FULL_FILES[@]}"; do [ "$f" = dependabot.yml ] || [ "$f" = node-version ] || dest "$f"; done)
   grep -qxFf <(printf '%s\n' "$kit_paths") <<<"$existing" \
     || { echo "  $repo@$branch: no kit file in the .github listings" >&2; exit 3; }
 
   # Four files are installed beside claude.yml, not only refreshed where present: the Bonsai-link
   # check, the linked-issue closer, the house standards (whose CLAUDE.md import stays a per-repo
-  # edit) and the shared Claude Code project settings. dependabot.yml is installed on every target that has a variant
-  # (dependabot_variant). Nothing outside .github/, .claude/ and
-  # .macroscope/check-run-agents/ is ever written.
+  # edit) and the shared Claude Code project settings. dependabot.yml is installed on every target
+  # that has a variant (dependabot_variant), and .node-version on every target with a platform
+  # (node_version_source). Nothing outside .github/, .claude/, .macroscope/check-run-agents/ and the
+  # root .node-version is ever written.
   for f in "${FULL_FILES[@]}"; do
     # Guard 9, per file: a platform file is never written to a repo of another platform, and one
     # already there blocks the wave instead of being refreshed into place.
@@ -290,12 +298,14 @@ plan_and_push() {
       continue
     fi
     [ "$f" != dependabot.yml ] || [ "$variant" != none ] || continue
+    [ "$f" != node-version ] || [ -n "$nv" ] || continue
     grep -qxF "$(dest "$f")" <<<"$existing" \
-      || { case "$f" in dependabot.yml) true ;; pr-bonsai-link.yml|close-linked-issues.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
+      || { case "$f" in dependabot.yml|node-version) true ;; pr-bonsai-link.yml|close-linked-issues.yml|claude-standards.md|claude-settings.json) grep -qxF .github/workflows/claude.yml <<<"$existing" ;; *) false ;; esac; } \
       || continue
     # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
     src=$KIT/$f; [ "$f" != dependabot.yml ] || src=$KIT/dependabot/$variant.yml
+    [ "$f" != node-version ] || src=$KIT/$nv
     [ -f "$src" ] \
       || { echo "  $repo@$branch $src: not in the kit any more — move it to DELETE_FILES?" >&2; exit 3; }
     cur="$tmp/deployed-$f"; : > "$cur"

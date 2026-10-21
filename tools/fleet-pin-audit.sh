@@ -12,7 +12,8 @@
 #      lines are normalized away (see `kit_normalize` for why), and claude-settings.json is
 #      compared on its attribution keys alone; anything else that differs is drift.
 #
-# Scans every non-archived DriverDigital repo's .github/, .claude/settings.json and, on Shopify repos,
+# Scans every non-archived DriverDigital repo's .github/, .claude/settings.json, the root .node-version
+# (and, on Vercel repos, package.json's engines.node major beside it) and, on Shopify repos,
 # .macroscope/check-run-agents/, whose files are compared with driver-agents main (default branch,
 # plus, when that is main, every main-* branch — Palmers installs the kit per country branch, foundrae
 # on main-development). Kit files on a repo without the driver-kit topic are listed apart as unenrolled and
@@ -146,7 +147,7 @@ scan_ref() {  # repo ref platform
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
-  local root dotclaude="" variant
+  local root dotclaude="" variant nv waved=0
   root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
   # Check-run agents, on Shopify repos: the wave installs them beside claude.yml from driver-agents main.
   # A failed listing skips the check rather than reading as missing.
@@ -168,10 +169,13 @@ scan_ref() {  # repo ref platform
       fi
     done
   fi
-  # The wave writes .github/dependabot.yml on every branch it targets, so only those are compared:
-  # an enrolled repo the wave never reaches keeps its own file.
+  # The wave writes .github/dependabot.yml and .node-version on every branch it targets, so only those
+  # are compared: an enrolled repo the wave never reaches keeps its own files.
   if grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
      || grep -qx claude-standards.md <<<"$dotgithub"; then
+    waved=1
+  fi
+  if [ "$waved" = 1 ]; then
     variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)" \
       "$([ -n "$files" ] && echo 1 || echo 0)")"
     if [ "$variant" = none ]; then
@@ -182,6 +186,29 @@ scan_ref() {  # repo ref platform
         && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
     elif [ -n "$dotgithub" ]; then
       echo "CONTENT $repo@$ref dependabot.yml DRIFT missing"
+    fi
+  fi
+  # Vercel builds on engines.node and ignores .node-version, so on a Vercel repo the two majors must
+  # agree. Vercel offers majors only, so the patch level is never compared.
+  nv="$(node_version_source "$plat")"
+  if [ "$waved" = 1 ] && [ -n "$nv" ]; then
+    if grep -qx "file .node-version" <<<"$root"; then
+      gh api "repos/$ORG/$repo/contents/.node-version?ref=$ref" \
+        -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
+        && content_row "$repo" "$ref" .node-version "$KIT/$nv"
+    else
+      echo "CONTENT $repo@$ref .node-version DRIFT missing"
+    fi
+    if [ "$plat" = vercel ]; then
+      local want engines
+      want="$(grep -oE '[0-9]+' "$KIT/$nv" | head -1)"
+      engines="$(gh api "repos/$ORG/$repo/contents/package.json?ref=$ref" -H 'Accept: application/vnd.github.raw' 2>/dev/null \
+        | jq -r '.engines.node // empty' 2>/dev/null)"
+      if [ "$(grep -oE '[0-9]+' <<<"$engines" | head -1)" = "$want" ]; then
+        echo "CONTENT $repo@$ref engines.node ok"
+      else
+        echo "CONTENT $repo@$ref engines.node DRIFT reads '${engines:-unset}', Vercel needs $want.x"
+      fi
     fi
   fi
   # The shared Claude Code project settings at .claude/settings.json, installed beside claude.yml.

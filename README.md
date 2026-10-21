@@ -104,7 +104,9 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
   carries, installs `pr-bonsai-link.yml`, `close-linked-issues.yml`, `claude-standards.md` and the
   `.claude/settings.json` attribution keys wherever `claude.yml` is, and writes
-  `.github/dependabot.yml` from the variant `tools/kit-platforms.sh` picks. On Shopify repos with `claude.yml` it also writes the check-run
+  `.github/dependabot.yml` from the variant `tools/kit-platforms.sh` picks, and the root
+  `.node-version` from `templates/github/node-version/<platform>` on every target with a platform
+  topic. On Shopify repos with `claude.yml` it also writes the check-run
   agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds a
   platform stub; that arrives with the repo's canary or cutover commit.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
@@ -210,8 +212,8 @@ variable, which also names the implementer's reviewer on an issue with no Bonsai
 }
 ```
 
-All keys are optional. Node comes from `.nvmrc`, else `package.json` (`volta.node`, then
-`engines.node`), else the runner's default. The package manager comes from the lockfile (`pnpm`,
+All keys are optional. Node comes from `.node-version`, else `.nvmrc`, else `package.json`
+(`volta.node`, then `engines.node`), else the runner's default. The package manager comes from the lockfile (`pnpm`,
 `yarn`, else npm, the house default). `build` and `test` run only if those `package.json` scripts
 exist unless the override sets them; `themeCheck` and `dev` run only if configured.
 

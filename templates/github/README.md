@@ -16,6 +16,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 | `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
 | `dependabot/<variant>.yml` | `.github/dependabot.yml` — wave targets with a variant | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (workflows but no root `package.json`), one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`), and none for a repo with neither. `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
+| `node-version/<platform>` | `.node-version` at the repo root — wave targets with a platform topic | The Node major for that platform (`24`), so a Node move is one kit edit and a wave, with no release. The reusables read it before `.nvmrc` and `package.json`; developers get it through mise (driver-onboarding). Vercel builds on `package.json` `engines.node` and ignores this file, so a Vercel repo keeps `engines.node` at the same major (`24.x`); the audit flags a mismatch. |
 | `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as the central repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
 ### Caller stubs (thin — they call the central reusables at a pinned SHA)
@@ -145,7 +146,8 @@ every merge.
    `close-linked-issues.yml`, `claude-standards.md` and the `claude-settings.json` keys beside
    `claude.yml`; the `CLAUDE.md` import line is the one step it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
    The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
-   skipping a repo with no variant; copy the variant by hand only for a repo the wave cannot reach.
+   skipping a repo with no variant, and the root `.node-version` from its platform's file; copy
+   either by hand only for a repo the wave cannot reach.
    Palmers' country branches carry it too ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)
    on what Dependabot updates).
    **Re-copying into a repo that already has the kit?** Let the wave do it
