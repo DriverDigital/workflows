@@ -17,8 +17,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
     job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
     reviewer request on no-ticket issue runs).
-  - [ ] #126: How to QA steps in implementer PR bodies. Review comments are posted; waiting on the
-    author's push.
+  - [ ] #126: How to QA steps in implementer PR bodies. The author pushed fixes for every review
+    point; it needs a re-review.
   - [x] #128, #124, #121, #127: keep-current's author filter, the Shopify CLI error on a failed theme
     list, indented fences in `close-linked-issues.yml`, the PR template's bonsai-link sentence.
   - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
@@ -30,7 +30,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     `engines.node DRIFT` on studio-sulzer.
   - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
     session. Either can ship in a later release if the rest is ready first.
-  - [ ] #130: the fleet audit, last before the wave.
+  - [ ] #130: the fleet audit, last before the wave. studio-sulzer#81 (`engines.node`) can land any
+    time and should, or the pin audit stays red after the wave.
   - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
     savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
     Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
