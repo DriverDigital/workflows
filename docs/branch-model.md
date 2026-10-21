@@ -158,13 +158,12 @@ have its own.
    `mcarter-astronautdev`, is the only Vercel team member who merges. A login left out deploys twice.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
-   workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready
-   must add neither again. A file Shopify rejects fails the push job with its error; on a pin older
-   than the release that carries #115 the job stays green, so read the log for "pushed with errors".
-   Causes so far: a strict-Liquid error in a snippet (LittleMe, Kissy-Kissy), and
+   workflows); it changes no theme files, so it builds and pushes no preview. Merging it deploys
+   from `main`. A file Shopify rejects fails that push job with its error; on a pin older than the
+   release that carries #115 the job stays green, so read the log for "pushed with errors". Causes
+   so far: a strict-Liquid error in a snippet (LittleMe, Kissy-Kissy), and
    `assets/.vite/manifest.json` where `.shopifyignore` lists only the bare folder (R-Finds); fix
-   either in a follow-up PR. Merging it deploys from `main`, and the stub's cleanup deletes the
-   preview. Palmers takes one PR per `main*` branch. The commit:
+   either in a follow-up PR. Palmers takes one PR per `main*` branch. The commit:
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
    - adds the platform stub
@@ -175,8 +174,8 @@ have its own.
    - rewrites the repo's README and CLAUDE.md lines that name the old branches, deploy workflows or
      preview themes
 7. **Check that it worked, and set protection.**
-   - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
-     deploys its preview.
+   - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and the next
+     PR that changes theme files deploys its preview.
    - Vercel: the push staged a build and the production domain still serves the previous
      deployment. A push by a login in `VERCEL_TEAM_LOGINS` skips the hook, so fire
      `VERCEL_DEPLOY_HOOK_MAIN` once by hand and confirm Vercel stages that build too. Promote once,

@@ -76,14 +76,14 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
 - **Closing issues** — In a PR body or commit message, give each issue its own keyword: `Closes #1,
   closes #2`, never `Closes #1, #2`. GitHub closes only the issue right after a keyword, and the
   kit's `close-linked-issues.yml` reads `main-*` merges the same way.
-- **Theme editor changes on a PR preview** — On a Shopify theme repo, a branch with an open PR has
-  a preview theme `DRIVER/<branch>` (a name over 50 characters is shortened, so find it with
-  `shopify theme list`), unless it is a `chore/*` branch or the PR changes no theme files. Every push re-uploads the whole theme and overwrites anything changed in
-  that theme's editor, so before pushing, pull `templates/*.json`, `sections/*.json` and
-  `config/settings_data.json` from the preview into a scratch folder. Where a file differs from the
-  last pushed commit and the branch has not changed it since, take the preview's version and
-  commit it ("Pull theme editor changes"). Where both changed, stop and ask. Skip this when the CLI
-  has no access to the store, and say so.
+- **Theme editor changes on a PR preview** — On a Shopify theme repo, a branch with an open PR has a
+  preview theme `DRIVER/<branch>` (a name over 50 characters is shortened, so find it with `shopify
+  theme list`), unless it is a `chore/*` branch or the PR changes no theme files. Every push
+  re-uploads the whole theme and overwrites anything changed in that theme's editor, so before
+  pushing, pull `templates/*.json`, `sections/*.json` and `config/settings_data.json` from the preview
+  into a scratch folder. Where a file differs from the last pushed commit and the branch has not
+  changed it since, take the preview's version and commit it ("Pull theme editor changes"). Where both
+  changed, stop and ask. Skip this when the CLI has no access to the store, and say so.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.
