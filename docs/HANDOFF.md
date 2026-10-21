@@ -24,7 +24,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
     closing keyword per issue. Kit only, so the wave carries it without the tag.
   - [x] The no-task reviewer request warns when it cannot read `reviewers.json`.
-  - [x] #122: no preview theme for a `chore/*` head or a PR that changes no theme files.
+  - [x] #122: no preview theme for a PR that changes no theme files.
   - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
   - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
     session. Either can ship in a later release if the rest is ready first.

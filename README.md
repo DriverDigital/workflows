@@ -73,7 +73,7 @@ How a ticket becomes a merged change:
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
 | `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
-| `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link only) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a `chore/*` head or a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
+| `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link only) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
 | `vercel-deploy.yml` | the main deploy hook | `push` on `main` | Vercel sites: fires the main deploy hook when the pusher is outside the Vercel team. The build is staged; production is a promotion in Vercel. |
 
 The kit — every stub, whole-file workflow and standards file, where each goes and how to install it —
