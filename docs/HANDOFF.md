@@ -6,36 +6,41 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
-  (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe and
-  foundrae-blackridge are done.
+- **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
+  is cut over to `main`.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
-  - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
-    far is done.
-  - Every other Shopify default branch still lacks the `shopify-theme.yml` stub until its cutover,
-    so draft-PR previews and the description link start per repo then. A stub copied from an
-    older template fails at startup (the push job needs `pull-requests: write`).
-- **#120 is merged, not released.** It carries #113 (the Dependabot report names each bump), #115
-  and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
-  5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
-  reaches the fleet only with a release and wave.
-- **indie-ridge's `lint.yml` reads red** on info-level SC2086 findings in its own `Feature-Deploy` and
-  `Staging-Deploy` until its cutover deletes them.
-- **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover, and every repo cut over so
-  far carries it. The-Gathery, driver-onboarding, vite-plugin-shopify-clean, plugins and
-  client-workspaces get no step-6 commit and still lack it.
+  - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
+    `pull-requests: write`).
+- **The next release and wave.** Work through this list over as many sessions as it takes, then
+  release and wave (README, *Release + repin order*). Tick an item when it lands on `main`.
+  - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
+    job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
+    reviewer request on no-ticket issue runs).
+  - [ ] #126: How to QA steps in implementer PR bodies. Review comments are posted; waiting on the
+    author's push.
+  - [ ] #128: keep-current's author filter (`dependabot-keep-current.yml:70` only; the other
+    Dependabot filters read the event, which still says `dependabot[bot]`).
+  - [ ] #124: print the Shopify CLI error when listing themes fails.
+  - [ ] #121: strip indented code fences in `close-linked-issues.yml`.
+  - [ ] #127: the PR template's bonsai-link sentence.
+  - [ ] #122: no preview theme for `chore/*` and CI-only PRs.
+  - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
+  - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Either can
+    ship in a later release if the rest is ready first.
+  - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
+    savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
+    Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
+    driver-engineering-app enforce it today. First confirm every targeted branch reports the
+    required check; a required context with no run blocks every merge.
+- **`lint.yml` goes on every kit repo.** Every site repo carries it. driver-onboarding,
+  vite-plugin-shopify-clean, plugins and client-workspaces had no cutover and still lack it.
 
 ## Blocked or gated
 
-- **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
-  the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
-- **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the
-  `dependabot.yml` standard run for a while after its first wave. `dependabot-report` stays either way.
 
 ## Open decisions
 
@@ -60,8 +65,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
-- **The first PR merged into a Palmers `main-*` branch after the wave.** Its `Closes #N` issue must
-  close with a comment naming the PR.
+- **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
+  of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
+  published; check the Morocco store's admin.
 - **The first real ticket through the implementer.** The guard steps should stay quiet; if one
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
@@ -69,27 +75,17 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Figma check-run agent spend.** It runs on PRs that touch theme or front-end paths in the pipeline
   Shopify repos, at most 4 runs a PR. A run with no design cost $0.27–$1.31 on Avara, more for bigger
   diffs; a run with a design is unmeasured (capped at $6 a run, $24 a PR).
+- **A PR whose head is `main` or a `main-*` branch** would delete that branch's own `DRIVER/<branch>`
+  theme when it closes: `shopify-theme.yml`'s cleanup deletes every non-live theme named after the
+  head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
+  next push would recreate the theme under a new id.
 - **A red validate on an old Dependabot PR** clears on `@dependabot rebase` or any push.
-- **The first Vercel cutover.** Confirm a staged build leaves the production domain alone, including
-  `<project>.vercel.app` on studio-sulzer and Team-Laird, which have no custom domain. Check whether
-  a Sanity publish fires a deploy hook on any site: if one does, published content waits for a
-  promotion. Confirm auto-assign stays off after the first promotion, and turn it off again after
-  undoing a rollback.
 
 ## Next steps
 
-All cutovers land before the next release and wave.
-
-1. Re-list the `todo` issues, then cut over Avara
-   (#91, [`branch-model.md`](branch-model.md#order)), then Palmers, indie-ridge and Anduril-Gear, then
-   the Vercel cutovers.
-   The `repo-cutover` skill, if available, runs these step by step and resumes from
-   `~/cutover/log.md`.
-2. Work through the open `todo` issues; what lands ships in the next release.
-3. Release and wave (README, *Release + repin order*): #120, #86 (one kit-owned `.nvmrc` per
-   platform replaces each repo's own Node pin, several of them past end of life) and step 2's work.
-   driver-agents #80 then updates its README to match #120.
-4. Settle the open decisions above.
+1. Work through the release list under *In flight*, one feature branch and draft PR per session.
+2. Release and wave once it is done. driver-agents #80 then updates its README to match #120.
+3. Settle the open decisions above.
 
 ## Pointers
 

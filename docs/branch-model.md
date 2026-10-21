@@ -101,7 +101,8 @@ and foundrae-blackridge (from `staging`).
 **Vercel repos to cut over:** Driver-Digital-Website, studio-sulzer and Team-Laird (from `develop`).
 
 **WordPress repo to cut over:** The-Gathery (from `develop`). Nothing in GitHub deploys it, so it
-takes steps 1, 3, 4, 7 and 8 only.
+takes steps 1, 3, 4, 7 and 8, and a step-6 PR that only adds the shared kit files it lacks and
+rewrites its CLAUDE.md branch lines.
 
 **Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge and Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and
 `Staging-Deploy` files. On Palmers the commit lands on every `main*` branch, with
@@ -150,12 +151,11 @@ have its own.
 4. **Rename the working branch to `main`:** `POST repos/DriverDigital/<repo>/branches/<develop|staging>/rename`
    with `new_name=main`. GitHub retargets its open PRs, moves its protection rule and makes it the
    default. It does not touch workflow branch filters, Vercel or Dependabot settings, or rulesets
-   (fix studio-sulzer's ruleset by hand). Remove any `target-branch: develop` the wave has not.
+   (see step 9). Remove any `target-branch: develop` the wave has not.
 5. **Vercel only: swap the hooks.** In Vercel, delete the `develop` hook and create a `main` hook
    where there is none (studio-sulzer). On the repo, set `VERCEL_DEPLOY_HOOK_MAIN`, delete
-   `VERCEL_DEPLOY_HOOK_DEVELOP`, and set `VERCEL_TEAM_LOGINS` to the logins the old `deploy.yml`
-   skips: `mcarter-astronautdev jadewang425` on Driver-Digital-Website; the others can stay on the
-   fallback. A login left out deploys twice.
+   `VERCEL_DEPLOY_HOOK_DEVELOP`. `VERCEL_TEAM_LOGINS` stays unset on all three: its fallback,
+   `mcarter-astronautdev`, is the only Vercel team member who merges. A login left out deploys twice.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
    workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready
@@ -180,7 +180,13 @@ have its own.
    - Vercel: the push staged a build and the production domain still serves the previous
      deployment. A push by a login in `VERCEL_TEAM_LOGINS` skips the hook, so fire
      `VERCEL_DEPLOY_HOOK_MAIN` once by hand and confirm Vercel stages that build too. Promote once,
-     then confirm auto-assign is still off.
+     then confirm auto-assign is still off. That first promotion ships everything the working branch
+     gained since old `main` was last promoted, not only the switch-over PR (38 commits on
+     Team-Laird); read `compare/<live deployment's commit>...main` first.
+   - Vercel with an embedded Sanity Studio: to review the staged Studio, add the `main` branch alias
+     (`<project>-git-main-<team>.vercel.app`) in Sanity as a development host, not a registered
+     studio. A registered studio syncs its schema into the dataset, and the staged one would
+     overwrite the live schema before the promotion.
    - The open PRs target `main`.
    - `main` requires one review. The rename carries `develop`'s or `staging`'s rule over; set it
      where none came across (Team-Laird, whose `develop` is unprotected, and every repo already on
@@ -193,6 +199,10 @@ have its own.
 8. **Every clone,** each engineer's included. Check a local `main` for unpushed work first, since
    `-M` replaces it:
    `git fetch --prune origin && git branch -M <develop|staging> main && git branch -u origin/main main && git remote set-head origin -a`
+9. **Stale branches, when the CTO says so.** Tag every branch that is not an ancestor of `main` as
+   `archive/<branch>` and read the tag back (a squash-merged PR's branch counts), then delete every
+   remote branch except `main` and the heads of open PRs. Delete a ruleset that still names the old
+   branch.
 
 **foundrae-blackridge has two stores.** `main` deploys to the main store with the repo-level
 secrets. `main-development` (once `dev-staging`, tagged `archive/dev-staging-2026-10`) deploys to the
