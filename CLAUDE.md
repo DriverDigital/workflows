@@ -86,7 +86,7 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   `tools/kit-platforms.sh`) from it too: driver-agents' PR review is the only gate on that code. The
   store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store
   tooling. The implementer also reads `pipeline/reviewers.json` from it (`.reviewers[].login`); a
-  renamed key or a failed read falls back to `PR_REVIEWER_HANDLE` with no error.
+  renamed key or a failed read falls back to `PR_REVIEWER_HANDLE` with a warning and a green run.
 - Third-party actions float on their major tag in the reusables and the kit (README, *Action refs*).
   A SHA in `templates/` is a pin nothing bumps.
 - Stubs pin this repo's reusables by immutable SHA, never a moving `@v1`: a moved tag would reach every
