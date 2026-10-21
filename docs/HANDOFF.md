@@ -24,7 +24,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
     closing keyword per issue. Kit only, so the wave carries it without the tag.
   - [x] The no-task reviewer request warns when it cannot read `reviewers.json`.
-  - [ ] #122: no preview theme for `chore/*` and CI-only PRs.
+  - [x] #122: no preview theme for a `chore/*` head or a PR that changes no theme files.
   - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
   - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
     session. Either can ship in a later release if the rest is ready first.
@@ -58,6 +58,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **After #120's release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR.
+- **After the next wave:** close Avara#227, foundrae-blackridge#203 and Palmers#121, the per-repo
+  preview to-dos #122 replaces, with a line pointing at it. Driver-Horizon-old#8 stays: the repo is
+  archived.
 - **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
   pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the

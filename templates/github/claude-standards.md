@@ -78,7 +78,7 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   kit's `close-linked-issues.yml` reads `main-*` merges the same way.
 - **Theme editor changes on a PR preview** — On a Shopify theme repo, a branch with an open PR has
   a preview theme `DRIVER/<branch>` (a name over 50 characters is shortened, so find it with
-  `shopify theme list`). Every push re-uploads the whole theme and overwrites anything changed in
+  `shopify theme list`), unless it is a `chore/*` branch or the PR changes no theme files. Every push re-uploads the whole theme and overwrites anything changed in
   that theme's editor, so before pushing, pull `templates/*.json`, `sections/*.json` and
   `config/settings_data.json` from the preview into a scratch folder. Where a file differs from the
   last pushed commit and the branch has not changed it since, take the preview's version and

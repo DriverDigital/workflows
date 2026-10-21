@@ -2,7 +2,8 @@ name: Shopify theme (reusable)
 
 # Every theme push a Shopify site makes, called by the kit stub templates/github/shopify-theme.yml:
 #   pull_request, open         build, then push the preview theme DRIVER/<head branch>, draft or ready,
-#                              and append its preview and editor links to the PR description once
+#                              and append its preview and editor links to the PR description once;
+#                              skipped for a chore/* head or a PR that changes no theme files
 #   pull_request, closed       delete DRIVER/<head branch>
 #   push to main / main-*      build, then push DRIVER/<branch> (the stub skips Shopify's sync commits)
 # A theme is looked up by name and never a live one: a live theme that happens to carry the name is
@@ -36,8 +37,41 @@ env:
   THEME_NAME: DRIVER/${{ github.head_ref || github.ref_name }}
 
 jobs:
+  # A skip list, not a theme allowlist: a vite theme's sources live outside the theme folders, and a
+  # missed path would drop a real preview. package*.json is not on it, since a bump changes the build.
+  # Re-read on every push, so a PR that starts CI-only gets its preview once it touches the theme.
+  gate:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.files.outputs.skip }}
+    steps:
+      - name: Skip the preview for a chore branch or a PR that changes no theme files
+        id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD: ${{ github.head_ref }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [[ $HEAD == chore/* ]]; then
+            echo "chore branch: no preview"; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          if ! files=$(gh api --paginate "repos/$GH_REPO/pulls/$PR/files" --jq '.[].filename'); then
+            echo "::warning::Could not list the PR's files; building the preview."; exit 0
+          fi
+          if grep -qvE '^(\.github|\.claude|docs)/|\.md$' <<<"$files"; then
+            echo "theme files changed: preview"
+          else
+            echo "no theme files changed: no preview"; echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
-    if: github.event.action != 'closed'
+    needs: gate
+    if: ${{ !cancelled() && github.event.action != 'closed' && needs.gate.outputs.skip != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
