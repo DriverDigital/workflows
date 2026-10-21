@@ -25,7 +25,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     closing keyword per issue. Kit only, so the wave carries it without the tag.
   - [x] The no-task reviewer request warns when it cannot read `reviewers.json`.
   - [x] #122: no preview theme for a PR that changes no theme files.
-  - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
+  - [x] #86: the kit owns each platform's Node major as a root `.node-version` (`24`). Until the
+    wave, `fleet-pin-audit.sh` reads `.node-version DRIFT missing` on every platform repo and
+    `engines.node DRIFT` on studio-sulzer.
   - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
     session. Either can ship in a later release if the rest is ready first.
   - [ ] #130: the fleet audit, last before the wave.
@@ -45,6 +47,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Open decisions
 
+- **npm or pnpm (#132).** Weighed on its own, not tied to the next wave.
 - **#79 (ticket-assets screenshots) is tabled** until #95's Figma paragraph has run on real tickets
   (driver-agents #47 is the live test). `AGENTS_GH_PAT` can read `ticket-assets` if it is needed.
 
@@ -55,6 +58,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
   daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
   queues again, the cause is something else.
+- **After the next wave:** each repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify
+  `engines.node` (from #86) can land; before the wave, removing a pin leaves CI on the runner default.
+  driver-onboarding#41 adds mise to the setup docs.
 - **After #120's release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR.
