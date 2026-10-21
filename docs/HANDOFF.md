@@ -7,7 +7,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## In flight
 
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
-  is cut over to `main` (#91).
+  is cut over to `main`.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
@@ -16,9 +16,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
   5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
   reaches the fleet only with a release and wave.
-- **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover, and every repo cut over so
-  far carries it. driver-onboarding, vite-plugin-shopify-clean, plugins and client-workspaces get
-  no step-6 commit and still lack it.
+- **`lint.yml` goes on every kit repo.** Every site repo carries it. driver-onboarding,
+  vite-plugin-shopify-clean, plugins and client-workspaces had no cutover and still lack it.
 
 ## Blocked or gated
 
