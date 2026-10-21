@@ -58,14 +58,15 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
   daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
   queues again, the cause is something else.
-- **After the next wave:** each repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify
-  `engines.node` (from #86) can land; before the wave, removing a pin leaves CI on the runner default.
+- **After the next release's wave** (stubs past v1.20.0, whose reusables read `.node-version`): each
+  repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify `engines.node` (from #86) can land.
+  Before then, removing a pin leaves CI on the runner default.
   driver-onboarding#41 adds mise to the setup docs.
 - **After #120's release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR.
-- **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
-  pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
+- **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds, The-Gathery): CI
+  builds on the pinned Node until the next release's wave, then on the kit's `.node-version`. A red implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
   next tag.
 - **`claude-standards.md` on the comment path** is unverified (the issues path loads it). Have a

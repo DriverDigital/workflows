@@ -1,9 +1,11 @@
 # Branch model and the two platform standards
 
 Driver sites are hosted on Shopify, Vercel or WordPress. Shopify and Vercel each have their own CI/CD
-standard; WordPress has none, so its repos take the shared kit only. The shared kit (implementer,
+standard; WordPress has none, so its repos take the shared kit and a
+`.node-version` only. The shared kit (implementer,
 Dependabot rails, lint, Bonsai link, PR template, house standards, `.claude/settings.json`,
-`dependabot.yml`) is waved to enrolled repos. A platform's files go only to repos of that platform.
+`dependabot.yml`) is waved to enrolled repos. A platform's files go only to repos of that platform, and
+each platform topic also brings a root `.node-version` from `templates/github/node-version/<platform>`.
 
 ## Which repos get what
 
@@ -14,7 +16,7 @@ Four GitHub topics on each repo decide it. `tools/kit-platforms.sh` lists the fi
 | `driver-kit` | The repo takes the kit. `tools/fleet-wave.sh` targets nothing without it, so a stale repo receives nothing further without being archived. |
 | `shopify-theme` | A Shopify site: adds the Shopify files. |
 | `vercel-site` | A Vercel site: adds the Vercel files. |
-| `wordpress-site` | A WordPress site: no platform files, so the shared kit only. |
+| `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
 
@@ -61,8 +63,8 @@ step 5). One org ruleset will enforce it (#99). Until then, how to set it per re
 [fleet operations](fleet-operations.md#branch-protection).
 
 An enrolled repo with no platform topic gets the shared kit only, as the tool repos do. The-Gathery
-is a WordPress theme with no deploy automation; `wordpress-site` adds no files, so it too gets the
-shared kit only.
+is a WordPress theme with no deploy automation; `wordpress-site` adds only the root
+`.node-version`.
 
 No repo branch is ever connected to a store's live theme. Repos back unpublished preview themes
 only, so a branch rename never touches a live storefront.

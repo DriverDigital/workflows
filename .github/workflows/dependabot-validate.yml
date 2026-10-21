@@ -52,7 +52,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
-      # The repo's own Node: .node-version (the kit's, on a Shopify or Vercel repo), else .nvmrc, else
+      # The repo's own Node: .node-version (the kit's, on any platform repo), else .nvmrc, else
       # package.json (volta.node, then engines.node). A repo that pins none keeps the runner's default.
       - name: Resolve the repo's Node version
         id: node

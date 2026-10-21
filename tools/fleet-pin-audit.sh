@@ -199,12 +199,14 @@ scan_ref() {  # repo ref platform
     else
       echo "CONTENT $repo@$ref .node-version DRIFT missing"
     fi
-    if [ "$plat" = vercel ]; then
+    # One major only: an open range like >=24 lets Vercel build on a newer one. A failed fetch skips.
+    if [ "$plat" = vercel ] && grep -qx "file package.json" <<<"$root" \
+       && gh api "repos/$ORG/$repo/contents/package.json?ref=$ref" \
+            -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null; then
       local want engines
       want="$(grep -oE '[0-9]+' "$KIT/$nv" | head -1)"
-      engines="$(gh api "repos/$ORG/$repo/contents/package.json?ref=$ref" -H 'Accept: application/vnd.github.raw' 2>/dev/null \
-        | jq -r '.engines.node // empty' 2>/dev/null)"
-      if [ "$(grep -oE '[0-9]+' <<<"$engines" | head -1)" = "$want" ]; then
+      engines="$(jq -r '.engines.node // empty' "$TMP/raw" 2>/dev/null)" || engines="(invalid JSON)"
+      if grep -qxE "[~^]?v?$want(\.[0-9x*]+){0,2}" <<<"$engines"; then
         echo "CONTENT $repo@$ref engines.node ok"
       else
         echo "CONTENT $repo@$ref engines.node DRIFT reads '${engines:-unset}', Vercel needs $want.x"
