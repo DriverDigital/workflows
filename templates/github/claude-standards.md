@@ -53,6 +53,13 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   records, run ids, completed work, or who decided what; git and the PRs keep that history. A fact
   that stays true and needed (an account, a secret's home, an operating step) moves to the doc that
   owns it, such as `CLAUDE.md` or `README.md`.
+- **Docs ship with the change** — A pull request carries every doc update its change makes
+  necessary, in the same PR, never in a later pass. Do this without being asked. Before opening a PR,
+  pushing to one, merging or wrapping up, search the repo's docs for what the change touched and
+  update each one in place: `CLAUDE.md` when a convention or invariant moved, every README,
+  `docs/HANDOFF.md`, and any other doc that now says something untrue. Leave historical docs alone;
+  delete a doc that stopped being true rather than correcting it underneath. A doc in another repo
+  gets a `todo` issue there instead of an edit.
 - **Branches and pull requests** — Macroscope reviews a pull request at most three times, every
   push to a published PR spends one, and it does not review drafts. A session works on one feature
   branch, commits each piece of work separately (even when they touch unrelated things) and pushes
@@ -63,6 +70,9 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   revise loop run unattended. PRs land with a merge commit, never a squash, so each commit survives on `main`.
   Deleting a head branch once its PR merges is preferred, but GitHub is not configured to do this on every repository, since some PR authors need to keep longer-lived branches in some repos: delete a branch you created for your own PR once it merges, and
   propose cleanup of other stale branches rather than deleting them.
+- **Comments on a pull request** — A comment or review posted on someone's PR @mentions its author,
+  so they are notified. Mention a person only, never a bot: `@claude` starts the implementer and
+  `@dependabot` reads the comment as a command.
 - **Theme editor changes on a PR preview** — On a Shopify theme repo, a branch with an open PR has
   a preview theme `DRIVER/<branch>` (a name over 50 characters is shortened, so find it with
   `shopify theme list`). Every push re-uploads the whole theme and overwrites anything changed in
