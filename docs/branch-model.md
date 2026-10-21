@@ -115,7 +115,7 @@ have its own.
 - The kit's platform stub pins a release whose reusable matches it. The main-only Vercel stub needs
   the release that carries the main-only reusable.
 - A Shopify repo with no build script passes `shopify theme check --fail-level error`, which its build
-  job runs on every PR and push.
+  job runs on every push and on every PR that changes theme files.
 - No wave is running. The wave reads `default_branch` live, so one that runs mid-cutover commits to
   whichever branch is the default at that moment.
 - No merges into the repo from step 2 to step 6, and those steps run back to back. In between, the old

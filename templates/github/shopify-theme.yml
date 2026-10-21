@@ -12,7 +12,8 @@ on:
   push:
     branches: [main, "main-*"]
 
-# pull-requests: write lets the reusable add the preview theme links to the PR description.
+# pull-requests: write lets the reusable read the PR's files for the preview gate and add the preview
+# theme links to the PR description.
 permissions:
   contents: read
   pull-requests: write

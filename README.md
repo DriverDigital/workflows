@@ -73,7 +73,7 @@ How a ticket becomes a merged change:
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
 | `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
-| `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link only) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
+| `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link) and `read` (the preview gate) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
 | `vercel-deploy.yml` | the main deploy hook | `push` on `main` | Vercel sites: fires the main deploy hook when the pusher is outside the Vercel team. The build is staged; production is a promotion in Vercel. |
 
 The kit — every stub, whole-file workflow and standards file, where each goes and how to install it —
@@ -169,7 +169,7 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
   is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, the
-  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's PR description link, and this
+  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link, and this
   repo's `dependabot-auto-merge.yml`.
 
 Org-level Actions secrets, visible to every repo, so a new repo needs no secret setup:
