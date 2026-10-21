@@ -12,23 +12,35 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
     `pull-requests: write`).
-- **#120 is merged, not released.** It carries #113 (the Dependabot report names each bump), #115
-  and #119 (the theme push job fails on rejected files, reading Shopify CLI 4.x and the unreleased
-  5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
-  reaches the fleet only with a release and wave.
+- **The next release and wave.** Work through this list over as many sessions as it takes, then
+  release and wave (README, *Release + repin order*). Tick an item when it lands on `main`.
+  - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
+    job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
+    reviewer request on no-ticket issue runs).
+  - [ ] #126: How to QA steps in implementer PR bodies. Review comments are posted; waiting on the
+    author's push.
+  - [ ] #128: keep-current's author filter (`dependabot-keep-current.yml:70` only; the other
+    Dependabot filters read the event, which still says `dependabot[bot]`).
+  - [ ] #124: print the Shopify CLI error when listing themes fails.
+  - [ ] #121: strip indented code fences in `close-linked-issues.yml`.
+  - [ ] #127: the PR template's bonsai-link sentence.
+  - [ ] #122: no preview theme for `chore/*` and CI-only PRs.
+  - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
+  - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Either can
+    ship in a later release if the rest is ready first.
+  - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
+    savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
+    Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
+    driver-engineering-app enforce it today. First confirm every targeted branch reports the
+    required check; a required context with no run blocks every merge.
 - **`lint.yml` goes on every kit repo.** Every site repo carries it. driver-onboarding,
   vite-plugin-shopify-clean, plugins and client-workspaces had no cutover and still lack it.
 
 ## Blocked or gated
 
-- **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
-  the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
   on `v1`, so the fix arrives on its own; then remove the caveat comment in `claude.yml`.
-- **Dependabot auto-merge (#85)** on validate + report + Macroscope all clear. Let the
-  `dependabot.yml` standard run for a while after its first wave. `dependabot-report` stays either way.
 
 ## Open decisions
 
@@ -53,8 +65,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
-- **The first PR merged into a Palmers `main-*` branch after the wave.** Its `Closes #N` issue must
-  close with a comment naming the PR. Palmers #140–#146 (the `render` fixes) are the first.
 - **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
   of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
   published; check the Morocco store's admin.
@@ -73,12 +83,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Work through the open `todo` issues; what lands ships in the next release.
-2. Merge Palmers #140–#146 first: the AU and IN stores already reject those 22 `render` files, and
-   with #120 released a rejected file fails the push, so every push to `main-au` and `main-in` would
-   go red. Then release and wave (README, *Release + repin order*): #120, #86 (one kit-owned `.nvmrc` per
-   platform replaces each repo's own Node pin, several of them past end of life) and step 1's work.
-   driver-agents #80 then updates its README to match #120.
+1. Work through the release list under *In flight*, one feature branch and draft PR per session.
+2. Release and wave once it is done. driver-agents #80 then updates its README to match #120.
 3. Settle the open decisions above.
 
 ## Pointers
