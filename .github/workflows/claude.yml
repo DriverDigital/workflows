@@ -549,8 +549,8 @@ jobs:
           fi
           reviewer=$FALLBACK
           if ! roster=$(gh api -H 'Accept: application/vnd.github.raw' repos/DriverDigital/driver-agents/contents/pipeline/reviewers.json) \
-              || ! jq -e '.reviewers | type == "object" or type == "array"' >/dev/null <<<"$roster"; then
-            echo "::warning::Could not read .reviewers from driver-agents pipeline/reviewers.json; requesting $FALLBACK."
+              || ! jq -e 'any(.reviewers[]?; .login? != null)' >/dev/null <<<"$roster"; then
+            echo "::warning::Could not read .reviewers[].login from driver-agents pipeline/reviewers.json; requesting $FALLBACK."
           elif jq -e --arg u "$AUTHOR" 'any(.reviewers[]; .login == $u)' >/dev/null <<<"$roster"; then
             reviewer=$AUTHOR
           fi
