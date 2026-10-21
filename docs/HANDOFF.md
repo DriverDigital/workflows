@@ -21,24 +21,19 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     author's push.
   - [x] #128, #124, #121, #127: keep-current's author filter, the Shopify CLI error on a failed theme
     list, indented fences in `close-linked-issues.yml`, the PR template's bonsai-link sentence.
-  - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author. Kit
-    only, so the wave carries it without the tag.
+  - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
+    closing keyword per issue. Kit only, so the wave carries it without the tag.
   - [x] The no-task reviewer request warns when it cannot read `reviewers.json`.
   - [ ] #122: no preview theme for `chore/*` and CI-only PRs.
   - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
   - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
     session. Either can ship in a later release if the rest is ready first.
-  - [ ] Fleet audit, last before the wave: every repo's state, which repos the wave leaves out and
-    why, and whether each repo has every kit file its topics call for (some missed kit files at the
-    cutovers). `tools/fleet-pin-audit.sh` covers pins only.
+  - [ ] #130: the fleet audit, last before the wave.
   - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
     savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
     Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
     driver-engineering-app enforce it today. First confirm every targeted branch reports the
     required check; a required context with no run blocks every merge.
-  - Bonsai reviewers need nothing from this wave: driver-agents' dispatcher requests the task's
-    reviewer at hand-off (its `pipeline/reviewers.json`). It reads the reviewer from a line in the
-    task description, not Bonsai's Reviewer field, which the API does not expose.
 - **`lint.yml` goes on every kit repo.** Every site repo carries it. driver-onboarding,
   vite-plugin-shopify-clean, plugins and client-workspaces had no cutover and still lack it.
 
