@@ -101,7 +101,8 @@ and foundrae-blackridge (from `staging`).
 **Vercel repos to cut over:** Driver-Digital-Website, studio-sulzer and Team-Laird (from `develop`).
 
 **WordPress repo to cut over:** The-Gathery (from `develop`). Nothing in GitHub deploys it, so it
-takes steps 1, 3, 4, 7 and 8 only.
+takes steps 1, 3, 4, 7 and 8, and a step-6 PR that only adds the shared kit files it lacks and
+rewrites its CLAUDE.md branch lines.
 
 **Shopify repos already on `main`:** Palmers, savannahfriedkin, indie-ridge and Anduril-Gear. They take steps 1, 6 and 7 only. Step 6's commit deletes their `Feature-*` and
 `Staging-Deploy` files. On Palmers the commit lands on every `main*` branch, with

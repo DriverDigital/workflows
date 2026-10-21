@@ -6,14 +6,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** The cutovers
-  (#91) are under way: savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe,
-  foundrae-blackridge, Anduril-Gear, Avara, indie-ridge, Palmers (all eight `main*` branches),
-  Team-Laird, studio-sulzer and Driver-Digital-Website are done; The-Gathery remains.
+- **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
+  is cut over to `main` (#91).
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
-  - Step 6's commit now rewrites the repo's own README and CLAUDE.md; every repo cut over so
-    far is done.
   - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
     `pull-requests: write`).
 - **#120 is merged, not released.** It carries #113 (the Dependabot report names each bump), #115
@@ -21,13 +17,13 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   5.x output) and #118 (a reviewer request on no-ticket issue runs). The reusables change, so it
   reaches the fleet only with a release and wave.
 - **`lint.yml` goes on every kit repo.** Step 6 adds it at each cutover, and every repo cut over so
-  far carries it. The-Gathery, driver-onboarding, vite-plugin-shopify-clean, plugins and
-  client-workspaces get no step-6 commit and still lack it.
+  far carries it. driver-onboarding, vite-plugin-shopify-clean, plugins and client-workspaces get
+  no step-6 commit and still lack it.
 
 ## Blocked or gated
 
 - **Up-to-date branches fleet-wide, by one org ruleset (#99).** Only workflows, indie-ridge, savannahfriedkin,
-  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
+  LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear, Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and driver-engineering-app enforce it. First confirm every targeted branch reports
   the required check; a required context with no run blocks every merge.
 - **Real tickets through driver-engineering-app** wait on its security hardening pass.
 - **WebSearch/WebFetch** stay off until anthropics/claude-code-action#690 is fixed. The action floats
@@ -78,21 +74,13 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-All cutovers land before the next release and wave.
-
-1. Re-list the `todo` issues, then run The-Gathery's cutover
-   (#91, [`branch-model.md`](branch-model.md#order)).
-   The `repo-cutover` skill, if available, runs these step by step and resumes from
-   `~/cutover/log.md`. After each, add the repo's `DRIVER/main` preview link (theme id from its
-   push log on `main`, store domain from a PR's preview line) to the PM one-pager, an untracked
-   `pm-one-pager.md` in the CTO's clone.
-2. Work through the open `todo` issues; what lands ships in the next release.
-3. Merge Palmers #140–#146 first: the AU and IN stores already reject those 22 `render` files, and
+1. Work through the open `todo` issues; what lands ships in the next release.
+2. Merge Palmers #140–#146 first: the AU and IN stores already reject those 22 `render` files, and
    with #120 released a rejected file fails the push, so every push to `main-au` and `main-in` would
    go red. Then release and wave (README, *Release + repin order*): #120, #86 (one kit-owned `.nvmrc` per
-   platform replaces each repo's own Node pin, several of them past end of life) and step 2's work.
+   platform replaces each repo's own Node pin, several of them past end of life) and step 1's work.
    driver-agents #80 then updates its README to match #120.
-4. Settle the open decisions above.
+3. Settle the open decisions above.
 
 ## Pointers
 
