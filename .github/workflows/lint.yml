@@ -123,14 +123,22 @@ jobs:
         # The blockquote in claude.yml's --append-system-prompt is a copy of driver-agents
         # docs/agent-instructions-shopify.md, and the implementer clones that repo's main for the
         # tool it describes. Compared with whitespace collapsed, since the copy flattens one
-        # paragraph break. PRs only; one without the secret (Dependabot, a fork) skips the check. The
-        # token is this repo's own and reads driver-agents only: org secrets do not reach public repos.
+        # paragraph break. PRs only. The token is this repo's own and reads driver-agents only, so the
+        # org secrets can be limited to private repos. Dependabot and fork PRs never get it and skip;
+        # any other PR without it fails, since a skip there would hide a missing secret.
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.DRIVER_AGENTS_READ_TOKEN }}
+          PR_ACTOR: ${{ github.actor }}
+          FORK: ${{ github.event.pull_request.head.repo.fork }}
         run: |
           set -euo pipefail
-          if [ -z "$GH_TOKEN" ]; then echo "::notice::DRIVER_AGENTS_READ_TOKEN unavailable to this run; blockquote check skipped"; exit 0; fi
+          if [ -z "$GH_TOKEN" ]; then
+            if [ "$PR_ACTOR" = 'dependabot[bot]' ] || [ "$FORK" = true ]; then
+              echo "::notice::DRIVER_AGENTS_READ_TOKEN unavailable to this run; blockquote check skipped"; exit 0
+            fi
+            echo "::error::DRIVER_AGENTS_READ_TOKEN is not set on this repository, so the blockquote cannot be checked."; exit 1
+          fi
           gh api repos/DriverDigital/driver-agents/contents/docs/agent-instructions-shopify.md \
             -H 'Accept: application/vnd.github.raw' > "$RUNNER_TEMP/canon.md"
           python3 - "$RUNNER_TEMP/canon.md" <<'PY'

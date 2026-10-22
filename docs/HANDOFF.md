@@ -29,13 +29,15 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] #135: kit tiers. Every `driver-kit` repo takes the standards, private repos the private
     files, private repos with `agents-pipeline` the implementer; the wave adds missing files by tier,
     blocks on a file above a repo's tier, and the reusable `claude.yml` refuses a public repo.
-  - [ ] Before the tag: add `DRIVER_AGENTS_READ_TOKEN` to this repo (a fine-grained token, Contents
-    read on driver-agents only). Until it exists the blockquote check skips with a notice.
+  - [ ] Before the kit-tiers PR merges: add `DRIVER_AGENTS_READ_TOKEN` to this repo (a fine-grained
+    token, Contents read on driver-agents only). Until it exists the blockquote check fails on every
+    PR but Dependabot's.
   - [ ] Before the wave, or it blocks: put `agents-pipeline` on each private repo that takes Bonsai
-    tickets. Fifteen carry `claude.yml` today, and each one left without the topic blocks the wave:
-    the ten Shopify repos, studio-sulzer, Driver-Digital-Website, plugins, client-workspaces and
-    vite-plugin-shopify-clean. Decide which of plugins, client-workspaces, studio-sulzer and
-    Driver-Digital-Website stay on the pipeline; any that leave need a PR removing `claude.yml`.
+    tickets. Fourteen private repos carry `claude.yml` today, and each one left without the topic
+    blocks the wave: the ten Shopify repos, studio-sulzer, Driver-Digital-Website, plugins and
+    client-workspaces. Decide which of the last four stay on the pipeline; any that leave need a PR
+    removing `claude.yml`. vite-plugin-shopify-clean is public and must never carry the topic, which
+    blocks the wave outright.
   - [ ] Before the wave, or it blocks: merge the vite-plugin-shopify-clean PR that removes
     `claude.yml`, `pr-bonsai-link.yml`, the PR template, `dependabot-report.yml` and
     `dependabot-keep-current.yml`.
@@ -82,8 +84,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   findings shows a red `actionlint` until they are fixed. It adds the PR template and `bonsai-link`
   to driver-agents, driver-onboarding, driver-engineering-app, Team-Laird and The-Gathery, so a PR
   there reads red until its `Bonsai task:` line is filled. It adds the Dependabot stubs to plugins,
-  client-workspaces, studio-sulzer and driver-engineering-app, and `dependabot-report` to
-  driver-agents. Read the dry run before it.
+  client-workspaces, studio-sulzer and driver-engineering-app, `dependabot-report` to driver-agents,
+  and `.github/dependabot.yml` with all three stubs to driver-onboarding. Read the dry run before it.
 - **After the next release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the

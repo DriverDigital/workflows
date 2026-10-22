@@ -17,7 +17,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 | `claude-standards.md` | `.github/claude-standards.md` — every kit repo | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, docs shipping with the change, branches and PRs, comments on a PR, closing issues, theme editor changes on a preview, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. |
 | `claude-settings.json` | `.claude/settings.json` — every kit repo | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store, on the agents pipeline | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
-| `dependabot/<variant>.yml` | `.github/dependabot.yml` — wave targets with a variant | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (workflows but no root `package.json`), one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`), and none for a repo with neither. `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
+| `dependabot/<variant>.yml` | `.github/dependabot.yml` — every kit repo | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (no root `package.json`; every kit repo has workflows once waved), and one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`). `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
 | `node-version/<platform>` | `.node-version` at the repo root — wave targets with a platform topic | The Node major for that platform (`24`), so a Node move is one kit edit and a wave from `main` with `--message`, with no release. The reusables read it before `.nvmrc` and `package.json`; developers get it through mise once driver-onboarding#41 lands. Vercel builds on `package.json` `engines.node` and ignores this file, so a Vercel repo keeps `engines.node` at the same major (`24.x`); the audit flags a mismatch. |
 | `lint.yml` | `.github/workflows/lint.yml` — every kit repo | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as the central repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
@@ -142,12 +142,14 @@ every merge.
    # every kit repo
    cp templates/github/lint.yml                 .github/workflows/
    cp templates/github/close-linked-issues.yml  .github/workflows/
-   cp templates/github/dependabot-validate.yml  .github/workflows/   # with a dependabot.yml variant
+   cp templates/github/dependabot-validate.yml  .github/workflows/
+   cp templates/github/dependabot/<variant>.yml .github/dependabot.yml  # npm, actions, or the repo's own
+   cp templates/github/node-version/<platform>  .node-version            # platform repos only
    cp templates/github/claude-standards.md      .github/claude-standards.md
    cp templates/github/claude-settings.json     .claude/settings.json  # existing file: merge its attribution keys
    # private repos
-   cp templates/github/dependabot-report.yml    .github/workflows/   # with a dependabot.yml variant
-   cp templates/github/dependabot-keep-current.yml .github/workflows/  # with a dependabot.yml variant
+   cp templates/github/dependabot-report.yml    .github/workflows/
+   cp templates/github/dependabot-keep-current.yml .github/workflows/
    cp templates/github/pr-bonsai-link.yml       .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
    # private repos with agents-pipeline
@@ -172,7 +174,7 @@ every merge.
      Before requiring `bonsai-link` on a private repo, check that fork PRs are either disabled or
      allowed to run workflows — a fork PR that never runs it waits on "Expected" forever.
 
-   On a repo with no `dependabot-validate` (no Dependabot config), `actionlint` is the one check that runs on
+   Until the wave gives a repo `dependabot-validate`, `actionlint` is the one check that runs on
    every PR unconditionally, so it is the right thing to require — but **run it once and let it go
    green before you pin it**. `lint.yml` lints every workflow the repo already has, not just the
    ones this kit ships, so a repo with its own hand-written workflows can have findings to fix on
