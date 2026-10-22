@@ -96,10 +96,10 @@ content_row() {  # repo ref file [kit source, default $KIT/file] — $TMP/raw ho
 
 # Whether the wave adds kit file $1 to a branch that lacks it: the tier and platform allow it, and
 # wave_adds does not leave it for the repo's cutover (tools/kit-platforms.sh).
-expected() {  # file tier platform dependabot_variant node_version_source
+expected() {  # file tier platform node_version_source
   local fp
   fp="$(file_platform "$1")"
-  tier_allows "$2" "$(file_tier "$1")" && { [ -z "$fp" ] || [ "$fp" = "$3" ]; } && wave_adds "$1" "$4" "$5"
+  tier_allows "$2" "$(file_tier "$1")" && { [ -z "$fp" ] || [ "$fp" = "$3" ]; } && wave_adds "$1" "$4"
 }
 
 scan_ref() {  # repo ref platform tier is_default
@@ -154,13 +154,12 @@ scan_ref() {  # repo ref platform tier is_default
      || grep -qx claude-standards.md <<<"$dotgithub"; then
     waved=1
   fi
-  variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)" \
-    "$([ -n "$files" ] && echo 1 || echo 0)")"
+  variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)")"
   nv="$(node_version_source "$plat")"
   if [ "$waved" = 1 ] && [ "$wf_listed" = 1 ]; then
     for t in "$KIT"/*.yml; do
       f="$(basename "$t")"
-      if ! grep -qx "$f" <<<"$files" && expected "$f" "$tier" "$plat" "$variant" "$nv"; then
+      if ! grep -qx "$f" <<<"$files" && expected "$f" "$tier" "$plat" "$nv"; then
         echo "CONTENT $repo@$ref $f DRIFT missing"
       fi
     done
@@ -176,7 +175,7 @@ scan_ref() {  # repo ref platform tier is_default
       gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null || continue
       content_row "$repo" "$ref" "$f"
-    elif [ "$waved" = 1 ] && expected "$f" "$tier" "$plat" "$variant" "$nv"; then
+    elif [ "$waved" = 1 ] && expected "$f" "$tier" "$plat" "$nv"; then
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
@@ -206,7 +205,7 @@ scan_ref() {  # repo ref platform tier is_default
   fi
   # .github/dependabot.yml and .node-version are compared only where the wave writes them: an
   # enrolled branch the wave never reaches keeps its own files.
-  if [ "$waved" = 1 ] && [ "$variant" != none ]; then
+  if [ "$waved" = 1 ]; then
     if grep -qx dependabot.yml <<<"$dotgithub"; then
       gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
@@ -291,7 +290,8 @@ content="$(printf '%s\n' "$report" | grep '^CONTENT ' | sed 's/^CONTENT //')"
 unenrolled="$(printf '%s\n' "$report" | grep '^UNENROLLED ' | sed 's/^UNENROLLED //')"
 drift="$(printf '%s\n' "$content" | grep ' DRIFT ')"
 
-# The private kit repos all carry caller stubs, so zero pins fleet-wide means the scan read nothing — rate limiting, a revoked token, an org rename. Without this the run falls
+# Every waved kit branch carries the dependabot-validate stub, so zero pins fleet-wide means the scan
+# read nothing — rate limiting, a revoked token, an org rename. Without this the run falls
 # straight through to "(converged)" and exit 0, which is the exact failure this whole tool exists
 # to stop: a clean report that proves nothing.
 if [ -z "$pins" ]; then

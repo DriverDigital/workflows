@@ -19,9 +19,9 @@
 #                                                 .github/workflows/
 #   every other kit file but the platform      <- added where missing (wave_adds); the settings
 #   stubs and shopify-tool-smoke.yml              file's keys are merged into an existing one
-#   dependabot.yml                             <- written at .github/ on every target with a
+#   dependabot.yml                             <- written at .github/ on every target from its
 #                                                 templates/github/dependabot/ variant (picked by
-#                                                 tools/kit-platforms.sh; none = not written)
+#                                                 tools/kit-platforms.sh)
 #   node-version                               <- written as the root .node-version on every
 #                                                 Shopify, Vercel or WordPress target, from
 #                                                 templates/github/node-version/<platform>
@@ -199,6 +199,8 @@ targets() {
   fi
   while read -r r def priv topics; do
     [ -n "$r" ] || continue
+    # gh repo list renders an empty repo's missing default branch as the string null.
+    [ "$def" != null ] || { echo "skip   $r (empty repo)" >&2; continue; }
     # Guard 2. The kit repo's .github/workflows/ holds the REUSABLES the whole fleet calls, and they
     # share basenames with the stubs that call them — waving into it would overwrite the rails with
     # the stubs. Discovery does NOT exclude it: the OR probe below matches on claude.yml OR
@@ -276,8 +278,7 @@ plan_and_push() {
       existing="$existing"$'\n'"$agents"
     fi
   fi
-  variant=$(dependabot_variant "$repo" "$(grep -qxF "file package.json" <<<"$root" && echo 1 || echo 0)" \
-    "$(grep -qxF "dir .github/workflows" <<<"$dotgithub" && echo 1 || echo 0)")
+  variant=$(dependabot_variant "$repo" "$(grep -qxF "file package.json" <<<"$root" && echo 1 || echo 0)")
   if grep -qxF "dir .claude" <<<"$root"; then
     dotclaude=$(api "repos/$ORG/$repo/contents/.claude?ref=$branch" --jq '.[].path') \
       || { echo "  $repo@$branch: cannot list .claude" >&2; exit 3; }
@@ -317,9 +318,8 @@ plan_and_push() {
       fi
       continue
     fi
-    [ "$f" != dependabot.yml ] || [ "$variant" != none ] || continue
     [ "$f" != node-version ] || [ -n "$nv" ] || continue
-    grep -qxF "$(dest "$f")" <<<"$existing" || wave_adds "$f" "$variant" "$nv" || continue
+    grep -qxF "$(dest "$f")" <<<"$existing" || wave_adds "$f" "$nv" || continue
     # errexit would abort on the cp's missing source anyway; this fails with a clear message and
     # exit 3 before the network fetch. If the kit dropped it on purpose it belongs in DELETE_FILES.
     src=$KIT/$f; [ "$f" != dependabot.yml ] || src=$KIT/dependabot/$variant.yml

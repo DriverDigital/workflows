@@ -75,13 +75,11 @@ tier_allows() {  # repo_tier file_tier
 
 # Whether the wave adds a kit file where the branch lacks it (once tier and platform allow it), or
 # only refreshes a copy already there. The platform stubs and the store smoke test need per-repo
-# secrets set up first, so they arrive with the repo's cutover; the Dependabot files need a variant,
-# and .node-version a platform.
-wave_adds() {  # file dependabot_variant node_version_source
+# secrets set up first, so they arrive with the repo's cutover; .node-version needs a platform.
+wave_adds() {  # file node_version_source
   case "$1" in
     shopify-theme.yml|vercel-deploy.yml|shopify-tool-smoke.yml) return 1 ;;
-    dependabot.yml|dependabot-validate.yml|dependabot-report.yml|dependabot-keep-current.yml) [ "$2" != none ] ;;
-    node-version) [ -n "$3" ] ;;
+    node-version) [ -n "$2" ] ;;
     *) return 0 ;;
   esac
 }
@@ -108,10 +106,10 @@ node_version_source() {  # platform
 
 # Which templates/github/dependabot/<variant>.yml a repo takes as its .github/dependabot.yml: a repo
 # with its own exceptions by name, otherwise npm when the branch root holds a package.json (1), else
-# actions when it has .github/workflows (1), else none: Dependabot errors daily on an empty ecosystem.
-dependabot_variant() {  # repo has_root_package_json has_workflows
+# actions, since every kit branch carries at least lint.yml once waved.
+dependabot_variant() {  # repo has_root_package_json
   case "$1" in
     driver-agents|vite-plugin-shopify-clean) echo "$1" ;;
-    *) if [ "$2" = 1 ]; then echo npm; elif [ "$3" = 1 ]; then echo actions; else echo none; fi ;;
+    *) if [ "$2" = 1 ]; then echo npm; else echo actions; fi ;;
   esac
 }
