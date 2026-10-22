@@ -5,7 +5,7 @@
 #   driver-kit                  the repo takes the kit at all; the wave targets nothing without it,
 #                               so a stale repo stays untouched without having to be archived
 #   shopify-theme / vercel-site its hosting platform, which adds that platform's files
-#   / wordpress-site            (WordPress has none yet: those repos take the shared kit only)
+#   / wordpress-site            (WordPress has only its .node-version: see node_version_source)
 # A platform's files never reach a repo of the other platform or of none: the wave refuses to write
 # one there and the audit reports one found there, as it does kit files on a repo without driver-kit.
 KIT_TOPIC=driver-kit
@@ -55,6 +55,12 @@ topics_platform() {
     esac
   done
   case $n in 0) echo none ;; 1) echo "$found" ;; *) echo several ;; esac
+}
+
+# Which templates/github/node-version/<platform> a repo takes as its root .node-version, or nothing:
+# one per platform, so each can change major on its own. A repo with no platform takes none.
+node_version_source() {  # platform
+  case "$1" in shopify|vercel|wordpress) echo "node-version/$1" ;; esac
 }
 
 # Which templates/github/dependabot/<variant>.yml a repo takes as its .github/dependabot.yml: a repo

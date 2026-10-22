@@ -174,12 +174,13 @@ jobs:
           # actions/checkout persists. Stripping it works on a PUBLIC repo (anonymous fetch) but 403s on a
           # PRIVATE repo ("fatal: could not read Username for github.com"). The action then UNSETS this
           # header itself and pushes with the minted App token, so the claude[bot] identity is preserved.
-      # The repo's own Node: .nvmrc, else package.json (volta.node, then engines.node), so CI builds
-      # on the version the repo pins. A repo that pins neither keeps the runner's default.
+      # The repo's own Node: .node-version (the kit's, on any platform repo), else .nvmrc, else
+      # package.json (volta.node, then engines.node). A repo that pins none keeps the runner's default.
       - name: Resolve the repo's Node version
         id: node
         run: |
-          if [ -f .nvmrc ]; then echo "file=.nvmrc" >> "$GITHUB_OUTPUT"
+          if [ -f .node-version ]; then echo "file=.node-version" >> "$GITHUB_OUTPUT"
+          elif [ -f .nvmrc ]; then echo "file=.nvmrc" >> "$GITHUB_OUTPUT"
           elif [ -f package.json ] && jq -e '.volta.node // .engines.node' package.json >/dev/null 2>&1; then
             echo "file=package.json" >> "$GITHUB_OUTPUT"
           fi
@@ -548,8 +549,10 @@ jobs:
             echo "Bonsai task: the dispatcher requests the review at hand-off"; exit 0
           fi
           reviewer=$FALLBACK
-          if gh api -H 'Accept: application/vnd.github.raw' repos/DriverDigital/driver-agents/contents/pipeline/reviewers.json \
-              | jq -e --arg u "$AUTHOR" 'any(.reviewers[]; .login == $u)' >/dev/null; then
+          if ! roster=$(gh api -H 'Accept: application/vnd.github.raw' repos/DriverDigital/driver-agents/contents/pipeline/reviewers.json) \
+              || ! jq -e 'any(.reviewers[]?; .login? != null)' >/dev/null <<<"$roster"; then
+            echo "::warning::Could not read .reviewers[].login from driver-agents pipeline/reviewers.json; requesting $FALLBACK."
+          elif jq -e --arg u "$AUTHOR" 'any(.reviewers[]; .login == $u)' >/dev/null <<<"$roster"; then
             reviewer=$AUTHOR
           fi
           pr=$(gh pr list --head "$BRANCH" --state open --json number --jq '.[0].number') \

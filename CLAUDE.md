@@ -86,7 +86,7 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   `tools/kit-platforms.sh`) from it too: driver-agents' PR review is the only gate on that code. The
   store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store
   tooling. The implementer also reads `pipeline/reviewers.json` from it (`.reviewers[].login`); a
-  renamed key or a failed read falls back to `PR_REVIEWER_HANDLE` with no error.
+  renamed key or a failed read falls back to `PR_REVIEWER_HANDLE` with a warning and a green run.
 - Third-party actions float on their major tag in the reusables and the kit (README, *Action refs*).
   A SHA in `templates/` is a pin nothing bumps.
 - Stubs pin this repo's reusables by immutable SHA, never a moving `@v1`: a moved tag would reach every
@@ -122,7 +122,8 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
   default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
   as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
-  the `shopify-theme.yml` reusable's PR description link, and this repo's `dependabot-auto-merge.yml`.
+  the `shopify-theme.yml` reusable's preview gate and PR description link, and this repo's
+  `dependabot-auto-merge.yml`.
 - The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
   `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`
   re-runs it on itself.

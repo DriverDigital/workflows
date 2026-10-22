@@ -1,9 +1,11 @@
 # Branch model and the two platform standards
 
 Driver sites are hosted on Shopify, Vercel or WordPress. Shopify and Vercel each have their own CI/CD
-standard; WordPress has none, so its repos take the shared kit only. The shared kit (implementer,
+standard; WordPress has none, so its repos take the shared kit and a
+`.node-version` only. The shared kit (implementer,
 Dependabot rails, lint, Bonsai link, PR template, house standards, `.claude/settings.json`,
-`dependabot.yml`) is waved to enrolled repos. A platform's files go only to repos of that platform.
+`dependabot.yml`) is waved to enrolled repos. A platform's files go only to repos of that platform, and
+each platform topic also brings a root `.node-version` from `templates/github/node-version/<platform>`.
 
 ## Which repos get what
 
@@ -14,7 +16,7 @@ Four GitHub topics on each repo decide it. `tools/kit-platforms.sh` lists the fi
 | `driver-kit` | The repo takes the kit. `tools/fleet-wave.sh` targets nothing without it, so a stale repo receives nothing further without being archived. |
 | `shopify-theme` | A Shopify site: adds the Shopify files. |
 | `vercel-site` | A Vercel site: adds the Vercel files. |
-| `wordpress-site` | A WordPress site: no platform files, so the shared kit only. |
+| `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
 
@@ -43,7 +45,7 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
 | Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
 | Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | `vercel-deploy.yml` → reusable `vercel-deploy.yml` |
-| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. Vercel's GitHub app builds a preview for every open PR, whoever opens it. |
+| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. Vercel's GitHub app builds a preview for every open PR, whoever opens it. |
 | Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | `VERCEL_DEPLOY_HOOK_MAIN` |
 | Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | `VERCEL_TEAM_LOGINS`, per repo: space-separated GitHub logins with a seat on that project's Vercel team. When it's unset, `mcarter-astronautdev` alone is used |
 
@@ -61,8 +63,8 @@ step 5). One org ruleset will enforce it (#99). Until then, how to set it per re
 [fleet operations](fleet-operations.md#branch-protection).
 
 An enrolled repo with no platform topic gets the shared kit only, as the tool repos do. The-Gathery
-is a WordPress theme with no deploy automation; `wordpress-site` adds no files, so it too gets the
-shared kit only.
+is a WordPress theme with no deploy automation; `wordpress-site` adds only the root
+`.node-version`.
 
 No repo branch is ever connected to a store's live theme. Repos back unpublished preview themes
 only, so a branch rename never touches a live storefront.
@@ -115,7 +117,7 @@ have its own.
 - The kit's platform stub pins a release whose reusable matches it. The main-only Vercel stub needs
   the release that carries the main-only reusable.
 - A Shopify repo with no build script passes `shopify theme check --fail-level error`, which its build
-  job runs on every PR and push.
+  job runs on every push and on every PR that changes theme files.
 - No wave is running. The wave reads `default_branch` live, so one that runs mid-cutover commits to
   whichever branch is the default at that moment.
 - No merges into the repo from step 2 to step 6, and those steps run back to back. In between, the old
@@ -158,13 +160,12 @@ have its own.
    `mcarter-astronautdev`, is the only Vercel team member who merges. A login left out deploys twice.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
-   workflows), so it pushes a `DRIVER/<branch>` preview and appends one link line; marking it ready
-   must add neither again. A file Shopify rejects fails the push job with its error; on a pin older
-   than the release that carries #115 the job stays green, so read the log for "pushed with errors".
-   Causes so far: a strict-Liquid error in a snippet (LittleMe, Kissy-Kissy), and
+   workflows); it changes no theme files, so it builds and pushes no preview. Merging it deploys
+   from `main`. A file Shopify rejects fails that push job with its error; on a pin older than the
+   release that carries #115 the job stays green, so read the log for "pushed with errors". Causes
+   so far: a strict-Liquid error in a snippet (LittleMe, Kissy-Kissy), and
    `assets/.vite/manifest.json` where `.shopifyignore` lists only the bare folder (R-Finds); fix
-   either in a follow-up PR. Merging it deploys from `main`, and the stub's cleanup deletes the
-   preview. Palmers takes one PR per `main*` branch. The commit:
+   either in a follow-up PR. Palmers takes one PR per `main*` branch. The commit:
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
    - adds the platform stub
@@ -175,8 +176,8 @@ have its own.
    - rewrites the repo's README and CLAUDE.md lines that name the old branches, deploy workflows or
      preview themes
 7. **Check that it worked, and set protection.**
-   - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and a ready PR
-     deploys its preview.
+   - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and the next
+     PR that changes theme files deploys its preview.
    - Vercel: the push staged a build and the production domain still serves the previous
      deployment. A push by a login in `VERCEL_TEAM_LOGINS` skips the hook, so fire
      `VERCEL_DEPLOY_HOOK_MAIN` once by hand and confirm Vercel stages that build too. Promote once,

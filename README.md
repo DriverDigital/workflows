@@ -74,7 +74,7 @@ How a ticket becomes a merged change:
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
 | `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
-| `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link only) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR and per release branch. The build runs in a job with no secrets. |
+| `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link) and `read` (the preview gate) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
 | `vercel-deploy.yml` | the main deploy hook | `push` on `main` | Vercel sites: fires the main deploy hook when the pusher is outside the Vercel team. The build is staged; production is a promotion in Vercel. |
 
 The kit — every stub, whole-file workflow and standards file, where each goes and how to install it —
@@ -105,7 +105,9 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
   carries, installs `pr-bonsai-link.yml`, `close-linked-issues.yml`, `claude-standards.md` and the
   `.claude/settings.json` attribution keys wherever `claude.yml` is, and writes
-  `.github/dependabot.yml` from the variant `tools/kit-platforms.sh` picks. On Shopify repos with `claude.yml` it also writes the check-run
+  `.github/dependabot.yml` from the variant `tools/kit-platforms.sh` picks, and the root
+  `.node-version` from `templates/github/node-version/<platform>` on every target with a platform
+  topic. On Shopify repos with `claude.yml` it also writes the check-run
   agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds a
   platform stub; that arrives with the repo's canary or cutover commit.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
@@ -170,7 +172,7 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
   is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, the
-  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's PR description link, and this
+  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link, and this
   repo's `dependabot-auto-merge.yml`.
 
 Org-level Actions secrets, visible to every repo, so a new repo needs no secret setup:
@@ -211,8 +213,8 @@ variable, which also names the implementer's reviewer on an issue with no Bonsai
 }
 ```
 
-All keys are optional. Node comes from `.nvmrc`, else `package.json` (`volta.node`, then
-`engines.node`), else the runner's default. The package manager comes from the lockfile (`pnpm`,
+All keys are optional. Node comes from `.node-version`, else `.nvmrc`, else `package.json`
+(`volta.node`, then `engines.node`), else the runner's default. The package manager comes from the lockfile (`pnpm`,
 `yarn`, else npm, the house default). `build` and `test` run only if those `package.json` scripts
 exist unless the override sets them; `themeCheck` and `dev` run only if configured.
 
