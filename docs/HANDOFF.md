@@ -27,8 +27,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] The no-task reviewer request warns when it cannot read `reviewers.json`.
   - [x] #122: no preview theme for a PR that changes no theme files.
   - [x] #86: the kit owns each platform's Node major as a root `.node-version` (`24`). Until the
-    wave, `fleet-pin-audit.sh` reads `.node-version DRIFT missing` on every platform repo and
-    `engines.node DRIFT` on studio-sulzer.
+    wave, `fleet-pin-audit.sh` reads `.node-version DRIFT missing` on every platform repo.
   - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
     session. Either can ship in a later release if the rest is ready first.
   - [ ] #130: the fleet audit, last before the wave. studio-sulzer#81 (`engines.node`) can land any
