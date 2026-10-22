@@ -33,7 +33,8 @@ How a ticket becomes a merged change:
    person with a `⚠️ Needs a human:` comment.
 3. The repo's **`claude.yml`** (the implementer) branches `issue-<n>` from the issue's
    `Target branch:` line, else the repo's default branch, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
-   body carries `Closes #n`, `Bonsai task: <url>` and a `Pre-review:` line.
+   body carries `Closes #n`, `Bonsai task: <url>`, a `How to QA` section when the issue states
+   acceptance criteria, and a `Pre-review:` line.
 4. **Macroscope** reviews every PR in the org. It is the only automatic reviewer; Claude reviews a PR
    only when a person `@claude`s it.
 5. The dispatcher runs the **revise loop**: while Macroscope has unresolved findings it posts a

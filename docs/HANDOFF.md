@@ -17,8 +17,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
     job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
     reviewer request on no-ticket issue runs).
-  - [ ] #126: How to QA steps in implementer PR bodies. The author pushed fixes for every review
-    point; it needs a re-review.
+  - [x] #126 (merged): How to QA steps in implementer PR bodies.
+  - [ ] driver-agents #84, before the wave: `pr-view` drops the How to QA section, or its steps reach
+    the client-visible hand-off summary.
   - [x] #128, #124, #121, #127: keep-current's author filter, the Shopify CLI error on a failed theme
     list, indented fences in `close-linked-issues.yml`, the PR template's bonsai-link sentence.
   - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
@@ -63,11 +64,14 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify `engines.node` (from #86) can land.
   Before then, removing a pin leaves CI on the runner default.
   driver-onboarding#41 adds mise to the setup docs.
-- **After #120's release and wave:** the first Dependabot report names each package with its from
+- **After the next release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
-  first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR.
+  first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
+  first implementer PR on an issue with acceptance criteria has a How to QA section after its
+  Bonsai line, pointed at the right preview for the repo's platform.
 - **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds, The-Gathery): CI
-  builds on the pinned Node until the next release's wave, then on the kit's `.node-version`. A red implementer or validate build there is most likely the repo's own Node problem.
+  builds on the pinned Node until the next release's wave, then on the kit's `.node-version`. A red
+  implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
   next tag.
 - **`claude-standards.md` on the comment path** is unverified (the issues path loads it). Have a
