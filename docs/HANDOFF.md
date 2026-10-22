@@ -13,22 +13,25 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
     `pull-requests: write`).
 - **The next release and wave.** Work through this list over as many sessions as it takes, then
-  release and wave (README, *Release + repin order*). Tick an item when it lands on `main`.
+  release and wave (README, *Release + repin order*). Tick an item in the PR that lands it.
   - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
     job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
     reviewer request on no-ticket issue runs).
   - [x] #126 (merged): How to QA steps in implementer PR bodies.
   - [ ] driver-agents #84, before the wave: `pr-view` drops the How to QA section, or its steps reach
     the client-visible hand-off summary.
-  - [ ] #128: keep-current's author filter (`dependabot-keep-current.yml:70` only; the other
-    Dependabot filters read the event, which still says `dependabot[bot]`).
-  - [ ] #124: print the Shopify CLI error when listing themes fails.
-  - [ ] #121: strip indented code fences in `close-linked-issues.yml`.
-  - [ ] #127: the PR template's bonsai-link sentence.
-  - [ ] #122: no preview theme for `chore/*` and CI-only PRs.
-  - [ ] #86: one kit `.nvmrc` per platform, Node 24 on both.
-  - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Either can
-    ship in a later release if the rest is ready first.
+  - [x] #128, #124, #121, #127: keep-current's author filter, the Shopify CLI error on a failed theme
+    list, code fences in `close-linked-issues.yml`, the PR template's bonsai-link sentence.
+  - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
+    closing keyword per issue. Kit only, so the wave carries it without the tag.
+  - [x] The no-task reviewer request warns when it cannot read `reviewers.json`.
+  - [x] #122: no preview theme for a PR that changes no theme files.
+  - [x] #86: the kit owns each platform's Node major as a root `.node-version` (`24`). Until the
+    wave, `fleet-pin-audit.sh` reads `.node-version DRIFT missing` on every platform repo.
+  - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
+    session. Either can ship in a later release if the rest is ready first.
+  - [ ] #130: the fleet audit, last before the wave. studio-sulzer#81 (`engines.node`) can land any
+    time and should, or the pin audit stays red after the wave.
   - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
     savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
     Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
@@ -45,6 +48,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Open decisions
 
+- **npm or pnpm (#132).** Weighed on its own, not tied to the next wave.
 - **#79 (ticket-assets screenshots) is tabled** until #95's Figma paragraph has run on real tickets
   (driver-agents #47 is the live test). `AGENTS_GH_PAT` can read `ticket-assets` if it is needed.
 
@@ -55,13 +59,18 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
   daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
   queues again, the cause is something else.
+- **After the next release's wave** (stubs past v1.20.0, whose reusables read `.node-version`): each
+  repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify `engines.node` (from #86) can land.
+  Before then, removing a pin leaves CI on the runner default.
+  driver-onboarding#41 adds mise to the setup docs.
 - **After the next release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
   first implementer PR on an issue with acceptance criteria has a How to QA section after its
   Bonsai line, pointed at the right preview for the repo's platform.
-- **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
-  pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
+- **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds, The-Gathery): CI
+  builds on the pinned Node until the next release's wave, then on the kit's `.node-version`. A red
+  implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
   next tag.
 - **`claude-standards.md` on the comment path** is unverified (the issues path loads it). Have a

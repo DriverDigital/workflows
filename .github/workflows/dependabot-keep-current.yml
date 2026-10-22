@@ -67,7 +67,7 @@ jobs:
           # Open Dependabot PRs targeting the branch that just received a merge.
           nums=$(gh pr list --repo "$REPO" --state open --base "$BASE" \
                    --json number,author \
-                   --jq '.[] | select(.author.login == "dependabot[bot]") | .number')
+                   --jq '.[] | select(.author.login == "app/dependabot" or .author.login == "dependabot[bot]") | .number')
           if [ -z "$nums" ]; then
             echo "No open Dependabot PRs targeting '$BASE'."
             exit 0
