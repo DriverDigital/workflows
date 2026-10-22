@@ -17,8 +17,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
     job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
     reviewer request on no-ticket issue runs).
-  - [ ] #126: How to QA steps in implementer PR bodies. Review comments are posted; waiting on the
-    author's push.
+  - [x] #126 (merged): How to QA steps in implementer PR bodies.
+  - [ ] driver-agents #84, before the wave: `pr-view` drops the How to QA section, or its steps reach
+    the client-visible hand-off summary.
   - [ ] #128: keep-current's author filter (`dependabot-keep-current.yml:70` only; the other
     Dependabot filters read the event, which still says `dependabot[bot]`).
   - [ ] #124: print the Shopify CLI error when listing themes fails.
@@ -54,9 +55,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
   daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
   queues again, the cause is something else.
-- **After #120's release and wave:** the first Dependabot report names each package with its from
+- **After the next release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
-  first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR.
+  first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
+  first implementer PR on an issue with acceptance criteria has a How to QA section after its
+  Bonsai line, pointed at the right preview for the repo's platform.
 - **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds): CI builds on the
   pinned Node. A red implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
