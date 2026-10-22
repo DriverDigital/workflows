@@ -143,8 +143,10 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   or none, nothing goes to a repo without `driver-kit`, and a repo with more than one platform topic
   blocks the wave. A file above a repo's tier (`PRIVATE_FILES` on a public repo, `PIPELINE_FILES`
   without `agents-pipeline`) blocks it too, as does a public repo with `agents-pipeline`; the wave
-  never deletes such a file. A new kit file must be added to the lists there (platform, tier,
-  `wave_adds`), or the wave and the audit treat it as a standards file every kit repo takes.
+  never deletes such a file. A new kit file must be added to `FULL_FILES` in `tools/fleet-wave.sh`
+  and to the lists there (platform, tier, `wave_adds`): the audit expects every `templates/github/*.yml`,
+  so a file the wave does not write reads as missing for ever, and one left off the lists is taken as
+  a standards file every kit repo gets.
 - No wave runs while a repo is mid-cutover: the wave reads `default_branch` live.
 - A new fleet rail that shares `claude.yml`'s trigger wakes a real implementer run on an
   `agents-pipeline` repo;
