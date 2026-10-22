@@ -117,7 +117,7 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
 - The reusable's "Trusted authors" step is the prompt-injection defense: only collaborators,
   `driver-digital-agents` and four named bots reach Claude through `include_comments_by_actor`, and a run on
   an issue or PR written by anyone else is refused, since the action cannot filter a body, as is a
-  fork PR. It runs first, before checkout and provisioning, and fails
+  fork PR. It runs before checkout and provisioning, and fails
   the run when the collaborator list cannot be read — never fall back to an empty filter, which
   includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
@@ -136,10 +136,15 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   whole message, and a PR with *no* check runs looks healthy.
 - Branch protection: `PATCH` the subresource; a `PUT` replaces the whole object and drops the
   approval rule (creating a missing status-check rule needs one: carry every field over and diff). This repo keeps `enforce_admins: false` and is pushed to directly on purpose.
+- The reusable `claude.yml`'s first step fails the run on a public repo. It stays a failing step,
+  never a job-level `if:`: a skipped job tells the person who asked nothing.
 - A platform file (`tools/kit-platforms.sh`) never goes to a repo whose topic names another platform
   or none, nothing goes to a repo without `driver-kit`, and a repo with more than one platform topic
-  blocks the wave. A new platform file must be added to the list there, or neither the wave nor the
-  audit sees it.
+  blocks the wave. A file above a repo's tier (`PRIVATE_FILES` on a public repo, `PIPELINE_FILES`
+  without `agents-pipeline`) blocks it too, as does a public repo with `agents-pipeline`; the wave
+  never deletes such a file. A new kit file must be added to the lists there (platform, tier,
+  `wave_adds`), or the wave and the audit treat it as a standards file every kit repo takes.
 - No wave runs while a repo is mid-cutover: the wave reads `default_branch` live.
-- A new fleet rail that shares `claude.yml`'s trigger wakes a real implementer run on a client repo;
+- A new fleet rail that shares `claude.yml`'s trigger wakes a real implementer run on an
+  `agents-pipeline` repo;
   pilot on the PR leg (`docs/fleet-operations.md` → "Piloting a cross-repo reusable").
