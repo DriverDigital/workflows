@@ -81,8 +81,8 @@ jobs:
     # The four branches mirror the four subscribed events; a review with no body (e.g. a bare
     # approve) has a null review.body, and contains(null, …) is false — so it correctly no-ops.
     # ACTOR GATE (defense-in-depth): this job holds contents/pull-requests/
-    # issues WRITE plus the Max-plan OAuth secret, so an untrusted actor (e.g. a random public-repo
-    # issue or comment) must not even start the runner. claude-code-action also refuses writes for
+    # issues WRITE plus the Max-plan OAuth secret, so an untrusted actor (an outside contributor, or a
+    # bot the gate does not name) must not even start the runner. claude-code-action also refuses writes for
     # non-write actors, but that only kicks in AFTER the job spins up; author_association fails fast
     # before it. NOTE author_association is the actor's ORG RELATIONSHIP, not the token's scopes:
     # OWNER/MEMBER/COLLABORATOR covers the human reviewers on the comment/review revision paths. The
@@ -139,10 +139,18 @@ jobs:
       # Figma node JSON runs large; Claude Code's default MCP output cap truncates it.
       MAX_MCP_OUTPUT_TOKENS: "200000"
     steps:
-      # Prompt-injection defense, first so a refused run never checks out code or holds credentials.
-      # The action hands Claude the issue or PR conversation, and on a public repo anyone can comment:
-      # only collaborators, the dispatcher and the four named bots pass through
-      # (include_comments_by_actor). A body cannot be filtered, so a run on an issue or PR written by
+      # The implementer runs on private repos only: on a public one the issue, its branch, the PR and
+      # this log are world-readable, and the stub hands the job every org secret. A failed step, never
+      # the job-level if:, so the person who asked gets the failure note at the end of this job.
+      - name: Refuse a public repository
+        if: ${{ !github.event.repository.private }}
+        run: |
+          echo "::error::$GITHUB_REPOSITORY is public, and the implementer runs on private repositories only. Remove .github/workflows/claude.yml from this repository."
+          exit 1
+      # Prompt-injection defense, before checkout so a refused run never checks out code or holds
+      # credentials. The action hands Claude the issue or PR conversation, which apps and bots outside
+      # the gate can write to as well: only collaborators, the dispatcher and the four named bots pass
+      # through (include_comments_by_actor). A body cannot be filtered, so a run on an issue or PR written by
       # anyone else is refused, and so is a fork PR, whose code nobody here wrote. Fails loud: a quiet
       # fallback would hand Claude everything.
       - name: Trusted authors (prompt-injection defense)
@@ -171,8 +179,8 @@ jobs:
           # Keep the DEFAULT persist-credentials — do NOT set it to false. On the @claude-on-a-PR
           # (issue_comment / review) path, claude-code-action runs an early `git fetch origin <pr-branch>`
           # BEFORE it configures its own App-token git auth, so that fetch relies on the credential
-          # actions/checkout persists. Stripping it works on a PUBLIC repo (anonymous fetch) but 403s on a
-          # PRIVATE repo ("fatal: could not read Username for github.com"). The action then UNSETS this
+          # actions/checkout persists. Stripping it 403s on the private repos this runs on ("fatal: could
+          # not read Username for github.com"). The action then UNSETS this
           # header itself and pushes with the minted App token, so the claude[bot] identity is preserved.
       # The repo's own Node: .node-version (the kit's, on any platform repo), else .nvmrc, else
       # package.json (volta.node, then engines.node). A repo that pins none keeps the runner's default.
