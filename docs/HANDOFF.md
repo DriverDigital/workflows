@@ -18,8 +18,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
     reviewer request on no-ticket issue runs).
   - [x] #126 (merged): How to QA steps in implementer PR bodies.
-  - [ ] driver-agents #84, before the wave: `pr-view` drops the How to QA section, or its steps reach
-    the client-visible hand-off summary.
   - [x] #128, #124, #121, #127: keep-current's author filter, the Shopify CLI error on a failed theme
     list, code fences in `close-linked-issues.yml`, the PR template's bonsai-link sentence.
   - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
