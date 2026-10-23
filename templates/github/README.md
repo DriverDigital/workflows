@@ -1,7 +1,9 @@
 # GitHub pipeline kit
 
-Drop-in workflows that connect a DriverDigital repo to the Bonsai → PR pipeline, plus each platform's
-CI/CD stub, the Dependabot config and the house standards. The pipeline dispatcher (in
+The kit a DriverDigital repo with the `driver-kit` topic takes, as far as its tier allows (central
+README, *How a repo takes the kit*): the house standards and lint, the Dependabot config and stubs,
+each platform's CI/CD stub, and on pipeline repos the workflows that connect it to the Bonsai → PR
+pipeline. The pipeline dispatcher (in
 `driver-agents`) opens a GitHub **issue** from a ready Bonsai task and `@claude`s it; these workflows
 take it from there. The dispatcher owns every Bonsai status move; no workflow here touches Bonsai.
 
@@ -9,15 +11,15 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 
 | File | Goes to | Does |
 |---|---|---|
-| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — wherever `claude.yml` is | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
-| `close-linked-issues.yml` | `.github/workflows/close-linked-issues.yml` — wherever `claude.yml` is | On a PR merged into a `main-*` branch (Palmers' country branches), closes the open issues its body names with a closing keyword (`Closes #N`), which GitHub honours only on the default branch. Not a required check. |
-| `pull_request_template.md` | `.github/pull_request_template.md` | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
-| `claude-standards.md` | `.github/claude-standards.md` — wherever `claude.yml` is | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, docs shipping with the change, branches and PRs, comments on a PR, closing issues, theme editor changes on a preview, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. Lint-only repos are wave targets through it. |
-| `claude-settings.json` | `.claude/settings.json` — wherever `claude.yml` is | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
-| `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
-| `dependabot/<variant>.yml` | `.github/dependabot.yml` — wave targets with a variant | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (workflows but no root `package.json`), one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`), and none for a repo with neither. `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
+| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — private repos | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
+| `close-linked-issues.yml` | `.github/workflows/close-linked-issues.yml` — every kit repo | On a PR merged into a `main-*` branch (Palmers' country branches), closes the open issues its body names with a closing keyword (`Closes #N`), which GitHub honours only on the default branch. Not a required check. |
+| `pull_request_template.md` | `.github/pull_request_template.md` — private repos | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
+| `claude-standards.md` | `.github/claude-standards.md` — every kit repo | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, docs shipping with the change, branches and PRs, comments on a PR, closing issues, theme editor changes on a preview, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. |
+| `claude-settings.json` | `.claude/settings.json` — every kit repo | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
+| `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store, on the agents pipeline | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
+| `dependabot/<variant>.yml` | `.github/dependabot.yml` — every kit repo | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (no root `package.json`; every kit repo has workflows once waved), and one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`). `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
 | `node-version/<platform>` | `.node-version` at the repo root — wave targets with a platform topic | The Node major for that platform (`24`), so a Node move is one kit edit and a wave from `main` with `--message`, with no release. The reusables read it before `.nvmrc` and `package.json`; developers get it through mise once driver-onboarding#41 lands. Vercel builds on `package.json` `engines.node` and ignores this file, so a Vercel repo keeps `engines.node` at the same major (`24.x`); the audit flags a mismatch. |
-| `lint.yml` | `.github/workflows/lint.yml` | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as the central repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
+| `lint.yml` | `.github/workflows/lint.yml` — every kit repo | actionlint + shellcheck over the installing repo's own `.github/workflows/`. Guards the one CI failure with no signal: a YAML or shell error surfaces as a `startup_failure` — no check run, no notification — which on the PR page is indistinguishable from checks that have not started. Check-run context is the job id, **`actionlint`**. Not the same file as the central repo's own `.github/workflows/lint.yml`, which runs a superset and never ships. |
 
 ### Caller stubs (thin — they call the central reusables at a pinned SHA)
 
@@ -27,18 +29,18 @@ place the version is recorded.
 
 | File | Rail |
 |---|---|
-| `claude.yml` | The implementer. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line, a `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line. The model requests no reviewer. The dispatcher requests the ticket's reviewer at hand-off; on an issue with no Bonsai task the workflow requests its author. Either is requested only when driver-agents `pipeline/reviewers.json` lists them, and the no-ticket path falls back to `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
+| `claude.yml` | The implementer, on private repos with the `agents-pipeline` topic; the reusable fails the run on a public repo. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line, a `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line. The model requests no reviewer. The dispatcher requests the ticket's reviewer at hand-off; on an issue with no Bonsai task the workflow requests its author. Either is requested only when driver-agents `pipeline/reviewers.json` lists them, and the no-ticket path falls back to `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
-| `dependabot-report.yml` | Reasons over that artifact → verdict comment + human reviewer request. |
-| `dependabot-keep-current.yml` | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
+| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment + human reviewer request. Passes the reusable its two secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
+| `dependabot-keep-current.yml` | Private repos. After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 
 ### Platform stubs (one platform each)
 
-A repo takes the kit only with the `driver-kit` topic. Its platform topic, `shopify-theme`,
-`vercel-site` or `wordpress-site` (no platform files), decides which of these it may carry; the
-wave never writes one to a repo of another platform or of none (`tools/kit-platforms.sh`). The wave
-refreshes a platform stub only where a repo already carries it; the first copy comes from the repo's
-canary or cutover commit. The standards and the cutover steps:
+A repo takes the kit only with the `driver-kit` topic, and these only when it is private. Its
+platform topic, `shopify-theme`, `vercel-site` or `wordpress-site` (no platform files), decides
+which of these it may carry; the wave never writes one to a public repo or to a repo of another
+platform or of none (`tools/kit-platforms.sh`). The wave refreshes a platform stub only where a repo
+already carries it; the first copy comes from the repo's canary or cutover commit. The standards and the cutover steps:
 [`../../docs/branch-model.md`](../../docs/branch-model.md).
 
 | File | Platform | Rail |
@@ -124,49 +126,42 @@ every merge.
    `issues: [opened]` (the default GITHUB_TOKEN cannot retrigger workflows). The PAT is
    fine-grained across **All repositories**, and its minimal permission set, not the repo list, is
    the security boundary: it reads and writes issues and PRs and reads code and Actions (artifacts, run logs), and can never push code.
-4. **Set the topics, then copy the kit** (from a checkout of `DriverDigital/workflows`). The topics
-   are `driver-kit` plus the repo's platform; the wave touches nothing on a repo without `driver-kit`.
+4. **Set the topics, then let the wave install the kit.** The topics are `driver-kit`, the repo's
+   platform if it has one, and `agents-pipeline` if it is private and takes Bonsai tickets; the wave
+   touches nothing on a repo without `driver-kit`, and refuses a public repo with `agents-pipeline`.
+   Then run `tools/fleet-wave.sh --only <repo>` from a clean `main` (`--dry-run` first): it adds
+   every file the repo's tier allows (central README, *How a repo takes the kit*), including
+   `.github/dependabot.yml` from the variant that fits the repo (table above) with the Dependabot
+   stubs, and the root `.node-version` from its platform's file. A platform's stubs and
+   `shopify-tool-smoke.yml` come from its canary or cutover commit (`../../docs/branch-model.md`),
+   since they need the repo's secrets first. Then add `@.github/claude-standards.md` to the repo's
+   `CLAUDE.md` (a new repo: start `CLAUDE.md` as that line and let `/init` write the rest around it),
+   the one step the wave cannot do. For a repo the wave cannot reach, copy the files by hand:
    ```bash
-   mkdir -p .github/workflows
-   cp templates/github/claude.yml               .github/workflows/
+   mkdir -p .github/workflows .claude
+   # every kit repo
+   cp templates/github/lint.yml                 .github/workflows/
+   cp templates/github/close-linked-issues.yml  .github/workflows/
    cp templates/github/dependabot-validate.yml  .github/workflows/
+   cp templates/github/dependabot/<variant>.yml .github/dependabot.yml  # npm, actions, or the repo's own
+   cp templates/github/node-version/<platform>  .node-version            # platform repos only
+   cp templates/github/claude-standards.md      .github/claude-standards.md
+   cp templates/github/claude-settings.json     .claude/settings.json  # existing file: merge its attribution keys
+   # private repos
    cp templates/github/dependabot-report.yml    .github/workflows/
    cp templates/github/dependabot-keep-current.yml .github/workflows/
-   cp templates/github/lint.yml                 .github/workflows/
    cp templates/github/pr-bonsai-link.yml       .github/workflows/
-   cp templates/github/close-linked-issues.yml  .github/workflows/
    cp templates/github/pull_request_template.md .github/pull_request_template.md
-   cp templates/github/claude-standards.md      .github/claude-standards.md
-   mkdir -p .claude && cp templates/github/claude-settings.json .claude/settings.json  # existing file: merge its attribution keys
+   # private repos with agents-pipeline
+   cp templates/github/claude.yml               .github/workflows/
    ```
-   Then add `@.github/claude-standards.md` to the repo's `CLAUDE.md` (a new repo: start `CLAUDE.md`
-   as that line and let `/init` write the rest around it).
-   Every file above is kept current by the wave afterwards (`tools/fleet-wave.sh`, presence-based:
-   it replaces what a branch already carries, and installs `pr-bonsai-link.yml`,
-   `close-linked-issues.yml`, `claude-standards.md` and the `claude-settings.json` keys beside
-   `claude.yml`; the `CLAUDE.md` import line is the one step it cannot do). A platform's stubs come from its canary or cutover commit (`../../docs/branch-model.md`).
-   The wave also writes `.github/dependabot.yml` from the variant that fits the repo (table above),
-   skipping a repo with no variant, and the root `.node-version` from its platform's file; copy
-   either by hand only for a repo the wave cannot reach.
-   Palmers' country branches carry it too ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)
-   on what Dependabot updates).
-   **Re-copying into a repo that already has the kit?** Let the wave do it
-   (`tools/fleet-wave.sh --only <repo>`): whole-file, since no kit file carries a per-repo value, except
-   `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It
+   The wave covers Palmers' country branches the same way ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)
+   on what Dependabot updates there). It copies whole files, since no kit file carries a per-repo
+   value, except `.claude/settings.json`, where only the kit's `attribution` keys are merged in. It
    refuses a repo whose deployed file carries a store handle the `SHOPIFY_STORE_NAME` variable
    does not hold — set the variable first.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
-
-   **Partial install (`lint.yml`, plus the standards).** For a repo that is *not* on the Bonsai → PR
-   pipeline — no dispatcher issues — `lint.yml` and `claude-standards.md` are the useful subset and
-   the rest is inert weight. `driver-engineering-app` runs both; the wave finds a branch by either
-   file. Add Dependabot stubs if and when such a repo turns Dependabot on. `driver-agents` carries
-   `lint.yml`, the standards, `dependabot-validate.yml` and `dependabot-keep-current.yml`, and
-   no `claude.yml` or `pr-bonsai-link.yml` (it is off the ticket pipeline) and no
-   `dependabot-report.yml` (its stub's `secrets: inherit` would hand a shared workflow the Bonsai
-   key). The wave never adds them, since it only refreshes what a repo
-   carries (and installs beside `claude.yml`, which it lacks).
 5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
    check context GitHub reports**. Copy the literal string from the first run's checks list; the
    workflow display **name** is never part of it. Turn on **require branches to be up to date
@@ -179,7 +174,7 @@ every merge.
      Before requiring `bonsai-link` on a private repo, check that fork PRs are either disabled or
      allowed to run workflows — a fork PR that never runs it waits on "Expected" forever.
 
-   On a partial install with no `dependabot-validate`, `actionlint` is the one check that runs on
+   Until the wave gives a repo `dependabot-validate`, `actionlint` is the one check that runs on
    every PR unconditionally, so it is the right thing to require — but **run it once and let it go
    green before you pin it**. `lint.yml` lints every workflow the repo already has, not just the
    ones this kit ships, so a repo with its own hand-written workflows can have findings to fix on
@@ -194,7 +189,8 @@ every merge.
    the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
    (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
 
-6. **Route tickets to it.** Once `claude.yml` is live on the default branch, add the client's Bonsai
+6. **Route tickets to it.** Once the repo carries `agents-pipeline` and `claude.yml` is live on the
+   default branch, add the client's Bonsai
    project to driver-agents `pipeline/project-repo-map.json` with its `repo` and
    `"pipeline": "github"`. Only a Palmers entry names a `branch`. Until then the dispatcher opens no
    issues there.

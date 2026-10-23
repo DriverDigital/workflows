@@ -6,6 +6,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
+- **Open draft PRs.** #137 (branch `pre-wave-release`): the kit tiers (#135); its body lists what
+  changed, and more pre-wave items land on the same branch. Its lint check reads red until
+  `DRIVER_AGENTS_READ_TOKEN` exists. vite-plugin-shopify-clean#122: removes the pipeline and
+  private-tier files from that public repo. #136 (a teammate's): the review asks to drop its
+  `claude.yml` change and keep the standards line.
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
   is cut over to `main`.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
@@ -26,17 +31,35 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] #122: no preview theme for a PR that changes no theme files.
   - [x] #86: the kit owns each platform's Node major as a root `.node-version` (`24`). Until the
     wave, `fleet-pin-audit.sh` reads `.node-version DRIFT missing` on every platform repo.
-  - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
-    session. Either can ship in a later release if the rest is ready first.
+  - [x] #135: kit tiers. Every `driver-kit` repo takes the standards, private repos the private
+    files, private repos with `agents-pipeline` the implementer; the wave adds missing files by tier,
+    blocks on a file above a repo's tier, and the reusable `claude.yml` refuses a public repo.
+  - [ ] Before the kit-tiers PR merges: add `DRIVER_AGENTS_READ_TOKEN` to this repo (a fine-grained
+    token, Contents read on driver-agents only). Until it exists the blockquote check fails on every
+    PR but Dependabot's.
+  - [ ] Before the wave, or it blocks: put `agents-pipeline` on each private repo that takes Bonsai
+    tickets. Fourteen private repos carry `claude.yml` today, and each one left without the topic
+    blocks the wave: the ten Shopify repos, studio-sulzer, Driver-Digital-Website, plugins and
+    client-workspaces. Decide which of the last four stay on the pipeline; any that leave need a PR
+    removing `claude.yml`. vite-plugin-shopify-clean is public and must never carry the topic, which
+    blocks the wave outright.
+  - [ ] Before the wave, or it blocks: merge the vite-plugin-shopify-clean PR that removes
+    `claude.yml`, `pr-bonsai-link.yml`, the PR template, `dependabot-report.yml` and
+    `dependabot-keep-current.yml`.
   - [ ] #130: the fleet audit, last before the wave. studio-sulzer#81 (`engines.node`) can land any
     time and should, or the pin audit stays red after the wave.
+  - Next release, not this one: #129, then #85 (make the Dependabot verdict a real check, then
+    auto-merge on it), in their own session.
   - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
     savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
     Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
     driver-engineering-app enforce it today. First confirm every targeted branch reports the
     required check; a required context with no run blocks every merge.
-- **`lint.yml` goes on every kit repo.** Every site repo carries it. driver-onboarding,
-  vite-plugin-shopify-clean, plugins and client-workspaces had no cutover and still lack it.
+- **Switch the org secrets to private repositories** once the vite-plugin-shopify-clean PR and the
+  kit-tiers PR have merged, so no public repo uses them and this repo reads its own token. Set
+  `CLAUDE_CODE_OAUTH_TOKEN`, `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET` and `SHOPIFY_ALERT_WEBHOOK` to
+  "Private repositories" in the org's Actions secrets. Then update README's org-secrets paragraph and
+  the kit README's install step 2, which say every repo.
 
 ## Blocked or gated
 
@@ -61,6 +84,13 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify `engines.node` (from #86) can land.
   Before then, removing a pin leaves CI on the runner default.
   driver-onboarding#41 adds mise to the setup docs.
+- **The next wave adds files by tier for the first time.** It adds `lint.yml` to driver-onboarding,
+  vite-plugin-shopify-clean, plugins and client-workspaces, and a repo whose own workflows have
+  findings shows a red `actionlint` until they are fixed. It adds the PR template and `bonsai-link`
+  to driver-agents, driver-onboarding, driver-engineering-app, Team-Laird and The-Gathery, so a PR
+  there reads red until its `Bonsai task:` line is filled. It adds the Dependabot stubs to plugins,
+  client-workspaces, studio-sulzer and driver-engineering-app, `dependabot-report` to driver-agents,
+  and `.github/dependabot.yml` with all three stubs to driver-onboarding. Read the dry run before it.
 - **After the next release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
@@ -93,9 +123,18 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Work through the release list under *In flight*, one feature branch and draft PR per session.
-2. Release and wave once it is done. driver-agents #80 then updates its README to match #120.
-3. Settle the open decisions above.
+1. Add `DRIVER_AGENTS_READ_TOKEN` to this repo: a fine-grained token, Contents read on driver-agents
+   only. #137's lint goes green.
+2. Decide which of plugins, client-workspaces, studio-sulzer and Driver-Digital-Website stay on the
+   pipeline, then put `agents-pipeline` on them and the ten Shopify repos. A repo that leaves needs a
+   PR removing `claude.yml`.
+3. Review and publish #137 and vite-plugin-shopify-clean#122, then merge both.
+4. Switch the four org secrets to private repositories, then update the two docs that say every
+   repo (*In flight* above).
+5. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
+   dry run first. driver-agents#80 then updates its README to match #120, and driver-agents#93 its
+   CLAUDE.md kit row.
+6. Settle the open decisions above.
 
 ## Pointers
 

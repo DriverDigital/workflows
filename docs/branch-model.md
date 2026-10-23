@@ -2,20 +2,21 @@
 
 Driver sites are hosted on Shopify, Vercel or WordPress. Shopify and Vercel each have their own CI/CD
 standard; WordPress has none, so its repos take the shared kit and a
-`.node-version` only. The shared kit (implementer,
-Dependabot rails, lint, Bonsai link, PR template, house standards, `.claude/settings.json`,
-`dependabot.yml`) is waved to enrolled repos. A platform's files go only to repos of that platform, and
-each platform topic also brings a root `.node-version` from `templates/github/node-version/<platform>`.
+`.node-version` only. The kit is waved to enrolled repos as far as each repo's tier allows (README,
+*How a repo takes the kit*). A platform's files go only to private repos of that platform, and each
+platform topic also brings a root `.node-version` from `templates/github/node-version/<platform>`.
 
 ## Which repos get what
 
-Four GitHub topics on each repo decide it. `tools/kit-platforms.sh` lists the files each platform adds.
+Five GitHub topics on each repo and its visibility decide it. `tools/kit-platforms.sh` lists the files
+each platform and each tier adds.
 
 | Topic | Means |
 |---|---|
 | `driver-kit` | The repo takes the kit. `tools/fleet-wave.sh` targets nothing without it, so a stale repo receives nothing further without being archived. |
-| `shopify-theme` | A Shopify site: adds the Shopify files. |
-| `vercel-site` | A Vercel site: adds the Vercel files. |
+| `agents-pipeline` | The repo takes Bonsai tickets: adds the implementer. Private repos only; the wave refuses a public repo that carries it. |
+| `shopify-theme` | A Shopify site: adds the Shopify files on a private repo. |
+| `vercel-site` | A Vercel site: adds the Vercel files on a private repo. |
 | `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
@@ -24,7 +25,8 @@ The platform topics describe the repo, and `driver-kit` opts it in, so a dormant
 `shopify-theme` and still receive nothing. The audit scans every repo regardless. It lists kit
 workflow files on a repo without `driver-kit` in their own `unenrolled` section, which never fails the
 audit, so a dormant repo keeps its old files until it is archived. A platform file on a repo of
-another platform or of none is drift, and the wave refuses to write one there.
+another platform or of none, and a file above the repo's tier, are drift, and the wave refuses to
+write one there.
 
 | Topics | Repos |
 |---|---|
@@ -33,8 +35,8 @@ another platform or of none is drift, and the wave refuses to write one there.
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
 
-driver-agents carries a partial kit (`templates/github/README.md`, *Partial install*): it is off
-the ticket pipeline and must not pass its secrets to a shared workflow.
+vite-plugin-shopify-clean is public, so it takes the standards tier only. `agents-pipeline` goes on
+the private repos that take Bonsai tickets.
 Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 
 ## The standards
@@ -62,7 +64,8 @@ nothing on a branch with none: set it together with at least one required check 
 step 5). One org ruleset will enforce it (#99). Until then, how to set it per repo:
 [fleet operations](fleet-operations.md#branch-protection).
 
-An enrolled repo with no platform topic gets the shared kit only, as the tool repos do. The-Gathery
+An enrolled repo with no platform topic takes no platform files and no `.node-version`, as the
+internal tools do. The-Gathery
 is a WordPress theme with no deploy automation; `wordpress-site` adds only the root
 `.node-version`.
 
@@ -169,7 +172,6 @@ have its own.
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
    - adds the platform stub
-   - adds `.claude/settings.json` where the wave has not (repos without `claude.yml`)
    - adds `lint.yml` where it's missing, now that the workflows it would fail on are gone
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
      no `CLAUDE.md` gets one holding only that line, and its to-do keeps `/init` for the rest

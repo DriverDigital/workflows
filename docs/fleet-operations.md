@@ -2,7 +2,8 @@
 
 How kit changes reach the fleet, and the traps around it. The release sequence lives in
 [`README.md`](../README.md#release--repin-order); this doc does not restate it. Which repos and
-branches are targets is decided by topic ([`branch-model.md`](branch-model.md)); for the current
+branches are targets, and what each takes, is decided by topic and visibility
+([`branch-model.md`](branch-model.md)); for the current
 target list, run `tools/fleet-wave.sh --dry-run`.
 
 ---
@@ -36,8 +37,8 @@ before a wave. What it cannot say:
 - **One atomic commit per branch** through the Git Data API (blobs, tree, commit, ref patch), never
   one commit per file.
 - **Deletes go in the same commit.** A tree entry with `sha: null` removes a path. Delete by
-  presence (list the branch's files first), never from an assumed install list: partial installs are
-  normal. Retire a rail by deleting its files the same way, never with `gh workflow disable`: the
+  presence (list the branch's files first), never from an assumed install list: what a branch
+  carries depends on its repo's tier and history. Retire a rail by deleting its files the same way, never with `gh workflow disable`: the
   audit compares files and cannot see a disabled workflow.
 - **Pass `--message` when no new tag is being waved.** The default message names the tag
   (`chore(kit): repin to <tag>`), which misdescribes a wave that carries only kit-file changes.
@@ -98,7 +99,8 @@ basenames with the stubs, so the audit skips it. The Shopify blockquote is `lint
 
 ## Piloting a cross-repo reusable
 
-A new rail that shares `claude.yml`'s trigger wakes a real implementer run on a client repo. Before
+A new rail that shares `claude.yml`'s trigger wakes a real implementer run on an `agents-pipeline`
+repo. Before
 it ships fleet-wide, pilot it with these rules:
 
 - **Pilot on the PR leg.** An issue that trips the new rail also trips the implementer's issues gate.
@@ -107,8 +109,8 @@ it ships fleet-wide, pilot it with these rules:
   resolves no issue, so the run can skip its real work and pass green having tested nothing.
 - **Split the legs by what each can prove.** A private consumer proves a private repo resolves the
   public reusable and reads the caller's event payload. Variable resolution is repo-agnostic, so run
-  that leg wherever it is cheapest: a public, single-branch repo with no store attached
-  (`vite-plugin-shopify-clean`).
+  that leg wherever it is cheapest: a private, single-branch repo with no store attached
+  (`driver-onboarding`). A public repo proves nothing for a rail its tier never carries.
 - **Assert on the log line, not the colour.** A bogus variable value makes a wrong-way resolution
   fail too, because it falls back to a default. Check which value the log names, e.g.
   `curl: (6) Could not resolve host: pilot-bogus-host.invalid`.

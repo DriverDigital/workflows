@@ -20,7 +20,7 @@ subset of these conventions: [`CLAUDE.md`](CLAUDE.md).
 
 | Repo | Role |
 |---|---|
-| **workflows** (this repo, public) | The GitHub rails every fleet repo runs: the implementer, Dependabot, platform deploys. |
+| **workflows** (this repo, public) | The GitHub rails the fleet runs (the implementer, Dependabot, platform deploys) and the kit each repo takes by its tier. |
 | [**driver-agents**](https://github.com/DriverDigital/driver-agents) (private) | The pipeline dispatcher, the Shopify admin-tool wrapper and the canonical Shopify instructions (the implementer clones its `main`), the read-only Figma and Bonsai MCP servers, the Macroscope Check Run agent prompts and the nightly audit publisher. |
 | [**driver-engineering-app**](https://github.com/DriverDigital/driver-engineering-app) (private) | The "Driver Engineering" Shopify app installed in each client org. Its client id and secret are the credentials the implementer's store tooling mints Admin API tokens from, and its app home shows clients what the agents did. |
 
@@ -31,7 +31,7 @@ How a ticket becomes a merged change:
    on Palmers, the branch) from driver-agents' project-repo map, opens a GitHub issue as `driver-digital-agents` with
    `@claude` in the body, and moves the task to *In Progress*. Anything it cannot route goes to a
    person with a `⚠️ Needs a human:` comment.
-3. The repo's **`claude.yml`** (the implementer) branches `issue-<n>` from the issue's
+3. The repo's **`claude.yml`** (the implementer, on private repos with the `agents-pipeline` topic) branches `issue-<n>` from the issue's
    `Target branch:` line, else the repo's default branch, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
    body carries `Closes #n`, `Bonsai task: <url>`, a `How to QA` section when the issue states
    acceptance criteria, and a `Pre-review:` line.
@@ -70,7 +70,7 @@ How a ticket becomes a merged change:
 
 | Reusable (`.github/workflows/`) | Privilege | Caller trigger | Job |
 |---|---|---|---|
-| `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer. An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
+| `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer, on private repos only (it fails the run on a public one). An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
 | `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
@@ -95,30 +95,34 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
 
 ## How a repo takes the kit
 
-- **Topics decide everything.** `driver-kit` enrolls a repo; the wave touches nothing without it. A
-  platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files it may
-  carry, and a repo with two platform topics blocks the wave. The lists live in
-  `tools/kit-platforms.sh`; the standards and the per-repo cutover in
-  [`docs/branch-model.md`](docs/branch-model.md).
+- **Topics and visibility decide everything.** `driver-kit` enrolls a repo; the wave touches nothing
+  without it. Its tier is the most of the kit it may carry:
+
+  | Tier | Repos | Kit files |
+  |---|---|---|
+  | standards | every `driver-kit` repo | `claude-standards.md`, `lint.yml`, `dependabot.yml`, `.node-version`, `close-linked-issues.yml`, `dependabot-validate.yml`, the `.claude/settings.json` attribution keys |
+  | private | private repos | the standards, plus `pr-bonsai-link.yml`, the PR template, `dependabot-report.yml`, `dependabot-keep-current.yml`, the platform stubs and the check-run agents |
+  | pipeline | private repos with `agents-pipeline` | everything, adding `claude.yml` and `shopify-tool-smoke.yml` |
+
+  A platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files a
+  repo may carry and its `.node-version`; a repo with none (the internal tools) takes no Node
+  version. A repo with two platform topics, a public repo with `agents-pipeline`, or a file above a
+  repo's tier blocks the wave. The lists live in `tools/kit-platforms.sh`; the standards and the
+  per-repo cutover in [`docs/branch-model.md`](docs/branch-model.md).
 - **Stubs pin by SHA.** Every `uses: DriverDigital/workflows/...@<sha> # vX.Y.Z` names the release in
   its trailer. The pin and the trailer are one value and always move together.
-- **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch already
-  carries, installs `pr-bonsai-link.yml`, `close-linked-issues.yml`, `claude-standards.md` and the
-  `.claude/settings.json` attribution keys wherever `claude.yml` is, and writes
-  `.github/dependabot.yml` from the variant `tools/kit-platforms.sh` picks, and the root
-  `.node-version` from `templates/github/node-version/<platform>` on every target with a platform
-  topic. On Shopify repos with `claude.yml` it also writes the check-run
-  agents to `.macroscope/check-run-agents/`, read from driver-agents `main`. It never adds a
-  platform stub; that arrives with the repo's canary or cutover commit.
+- **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch
+  carries and adds every file the tier and platform allow that it lacks: `.github/dependabot.yml`
+  from the variant `tools/kit-platforms.sh` picks (and the Dependabot stubs with it), the root
+  `.node-version` from `templates/github/node-version/<platform>`, the `.claude/settings.json`
+  attribution keys, and on private Shopify repos the check-run agents, read from driver-agents
+  `main`. It never adds a platform stub or `shopify-tool-smoke.yml`, which need the repo's secrets
+  first; those arrive with the repo's canary or cutover commit. It never deletes a file above a
+  repo's tier either: that is a PR on the repo.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
   Dependabot also bumps the stub pins on a repo the wave skipped. It scans the default branch only.
 - **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit
   file against the latest tag and `templates/`, and exits non-zero on any drift.
-- **Partial installs are normal.** A repo off the ticket pipeline can carry just `lint.yml` and the
-  standards (driver-engineering-app does). driver-agents carries no `claude.yml` or
-  `pr-bonsai-link.yml` (it is off the ticket pipeline) and no `dependabot-report` (its
-  `secrets: inherit` would hand a shared workflow the Bonsai key); the wave only refreshes what a
-  repo carries, so it never adds them.
 
 Install steps, the required checks and the multi-branch (Palmers) setup:
 [`templates/github/README.md`](templates/github/README.md). Wave mechanics and what the
@@ -178,7 +182,9 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
 Org-level Actions secrets, visible to every repo, so a new repo needs no secret setup:
 `CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET`,
 `SHOPIFY_ALERT_WEBHOOK` and `BONSAI_API_KEY` (the dispatcher's). Store repos add their own store
-secrets and the `SHOPIFY_STORE_NAME` variable (kit README, install step 2). **Never set
+secrets and the `SHOPIFY_STORE_NAME` variable (kit README, install step 2). This repo's own
+`lint.yml` reads driver-agents with `DRIVER_AGENTS_READ_TOKEN`, a repository secret: a fine-grained
+token with Contents read on driver-agents only. **Never set
 `anthropic_api_key`**: it overrides the OAuth token and bills at API rates.
 
 ## The Dependabot security split
