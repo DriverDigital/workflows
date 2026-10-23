@@ -6,6 +6,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
+- **Open draft PRs.** #137 (branch `pre-wave-release`): the kit tiers (#135); its body lists what
+  changed, and more pre-wave items land on the same branch. Its lint check reads red until
+  `DRIVER_AGENTS_READ_TOKEN` exists. vite-plugin-shopify-clean#122: removes the pipeline and
+  private-tier files from that public repo. #136 (a teammate's): the review asks to drop its
+  `claude.yml` change and keep the standards line.
 - **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
   is cut over to `main`.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
@@ -118,9 +123,18 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Work through the release list under *In flight*, one feature branch and draft PR per session.
-2. Release and wave once it is done. driver-agents #80 then updates its README to match #120.
-3. Settle the open decisions above.
+1. Add `DRIVER_AGENTS_READ_TOKEN` to this repo: a fine-grained token, Contents read on driver-agents
+   only. #137's lint goes green.
+2. Decide which of plugins, client-workspaces, studio-sulzer and Driver-Digital-Website stay on the
+   pipeline, then put `agents-pipeline` on them and the ten Shopify repos. A repo that leaves needs a
+   PR removing `claude.yml`.
+3. Review and publish #137 and vite-plugin-shopify-clean#122, then merge both.
+4. Switch the four org secrets to private repositories, then update the two docs that say every
+   repo (*In flight* above).
+5. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
+   dry run first. driver-agents#80 then updates its README to match #120, and driver-agents#93 its
+   CLAUDE.md kit row.
+6. Settle the open decisions above.
 
 ## Pointers
 
