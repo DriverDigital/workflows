@@ -1,6 +1,6 @@
 name: Shopify tool smoke test
 
-# Store repos only. A manual, read-only check of the Shopify admin tool's wiring: secrets, the
+# Store repos on the agents pipeline only. A manual, read-only check of the Shopify admin tool's wiring: secrets, the
 # driver-agents clone, the token mint and the Admin API. It fails loudly where the implementer's
 # provisioning degrades quietly.
 

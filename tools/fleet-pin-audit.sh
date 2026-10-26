@@ -17,7 +17,8 @@
 # .macroscope/check-run-agents/, whose files are compared with driver-agents main (default branch,
 # plus, when that is main, every main-* branch — Palmers installs the kit per country branch, foundrae
 # on main-development). Kit files on a repo without the driver-kit topic are listed apart as unenrolled and
-# never count as drift; a platform file on a repo whose topic names another platform, or none, is drift
+# never count as drift. A platform file on a repo whose topic names another platform, or none, and a file
+# above the repo's tier are drift, and so is a file the wave would add but the branch lacks
 # (tools/kit-platforms.sh).
 #
 # Dependabot does bump these pins when a repo has a github-actions block and the tag lands before
@@ -93,8 +94,16 @@ content_row() {  # repo ref file [kit source, default $KIT/file] — $TMP/raw ho
   fi
 }
 
-scan_ref() {  # repo ref platform
-  local repo="$1" ref="$2" plat="$3" files f fp
+# Whether the wave adds kit file $1 to a branch that lacks it: the tier and platform allow it, and
+# wave_adds does not leave it for the repo's cutover (tools/kit-platforms.sh).
+expected() {  # file tier platform node_version_source
+  local fp
+  fp="$(file_platform "$1")"
+  tier_allows "$2" "$(file_tier "$1")" && { [ -z "$fp" ] || [ "$fp" = "$3" ]; } && wave_adds "$1" "$4"
+}
+
+scan_ref() {  # repo ref platform tier is_default
+  local repo="$1" ref="$2" plat="$3" tier="$4" is_default="$5" files f fp ft t
   # A standards-only target has no .github/workflows; its .github/ kit files are still checked below.
   files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || files=""
   for f in $files; do
@@ -110,7 +119,8 @@ scan_ref() {  # repo ref platform
       | while read -r line; do echo "PIN $repo@$ref $f $line"; done
 
     # 3. CONTENT — only for files the kit actually ships. A platform file on a repo whose topic
-    # names another platform (or none) is drift whatever its bytes say; the wave refuses to touch it.
+    # names another platform (or none), or a file above the repo's tier, is drift whatever its bytes
+    # say; the wave refuses to touch it.
     [ -f "$KIT/$f" ] || continue
     if [ "$plat" = unenrolled ]; then
       echo "UNENROLLED $repo@$ref $f"
@@ -121,36 +131,55 @@ scan_ref() {  # repo ref platform
       echo "CONTENT $repo@$ref $f DRIFT platform: a $fp file, repo topic says $plat"
       continue
     fi
+    ft="$(file_tier "$f")"
+    if ! tier_allows "$tier" "$ft"; then
+      echo "CONTENT $repo@$ref $f DRIFT tier: a $ft-tier file on a $tier repo"
+      continue
+    fi
     content_row "$repo" "$ref" "$f"
   done
-  # The install-beside-claude.yml checks below are about what the wave would add; it adds nothing to
-  # an unenrolled repo, whose kit files are already reported above.
+  # The checks below are about what the wave would add or replace; it touches nothing on an
+  # unenrolled repo, whose kit files are already reported above.
   [ "$plat" = unenrolled ] && return 0
-  # The wave installs pr-bonsai-link.yml, close-linked-issues.yml and claude-standards.md wherever
-  # claude.yml is, so their absence there is drift (the standards file is probed at .github/ below).
-  for f in pr-bonsai-link.yml close-linked-issues.yml; do
-    if grep -qx claude.yml <<<"$files" && ! grep -qx "$f" <<<"$files"; then
-      echo "CONTENT $repo@$ref $f DRIFT missing"
-    fi
-  done
-  # The kit files outside .github/workflows/: the PR template and the house standards. Presence
-  # comes from the directory listing, as above, so a failed API call skips the file rather than
+  # Presence comes from directory listings, so a failed API call skips the checks rather than
   # reading as "missing".
-  local dotgithub
-  dotgithub="$(gh api "repos/$ORG/$repo/contents/.github?ref=$ref" --jq '.[].name' 2>/dev/null)" || dotgithub=""
+  local root dotgithub="" dotclaude="" variant nv waved=0 wf_listed=1
+  root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
+  if grep -qx "dir .github" <<<"$root"; then
+    dotgithub="$(gh api "repos/$ORG/$repo/contents/.github?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
+  fi
+  grep -qx workflows <<<"$dotgithub" && [ -z "$files" ] && wf_listed=0
+  # The wave targets every default branch and any other that already carries a kit file.
+  if [ "$is_default" = 1 ] || grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
+     || grep -qx claude-standards.md <<<"$dotgithub"; then
+    waved=1
+  fi
+  variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)")"
+  nv="$(node_version_source "$plat")"
+  if [ "$waved" = 1 ] && [ "$wf_listed" = 1 ]; then
+    for t in "$KIT"/*.yml; do
+      f="$(basename "$t")"
+      if ! grep -qx "$f" <<<"$files" && expected "$f" "$tier" "$plat" "$nv"; then
+        echo "CONTENT $repo@$ref $f DRIFT missing"
+      fi
+    done
+  fi
+  # The kit files outside .github/workflows/: the PR template and the house standards.
   for f in pull_request_template.md claude-standards.md; do
     if grep -qx "$f" <<<"$dotgithub"; then
+      ft="$(file_tier "$f")"
+      if ! tier_allows "$tier" "$ft"; then
+        echo "CONTENT $repo@$ref $f DRIFT tier: a $ft-tier file on a $tier repo"
+        continue
+      fi
       gh api "repos/$ORG/$repo/contents/.github/$f?ref=$ref" \
         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null || continue
       content_row "$repo" "$ref" "$f"
-    elif [ -n "$dotgithub" ] && [ "$f" = claude-standards.md ] && grep -qx claude.yml <<<"$files"; then
+    elif [ "$waved" = 1 ] && expected "$f" "$tier" "$plat" "$nv"; then
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
-  local root dotclaude="" variant nv waved=0
-  root="$(gh api "repos/$ORG/$repo/contents?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || return 0
-  # Check-run agents, on Shopify repos: the wave installs them beside claude.yml from driver-agents main.
-  # A failed listing skips the check rather than reading as missing.
+  # Check-run agents, on Shopify repos of the private tier, compared with driver-agents main.
   local macro="" agents="" listed=1
   if agent_platform "$plat" && grep -qx "dir .macroscope" <<<"$root"; then
     macro="$(gh api "repos/$ORG/$repo/contents/.macroscope?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || listed=0
@@ -160,37 +189,33 @@ scan_ref() {  # repo ref platform
   fi
   if agent_platform "$plat" && [ "$listed" = 1 ]; then
     for f in "${AGENT_FILES[@]}"; do
+      ft="$(file_tier "$f")"
       if grep -qx "$f" <<<"$agents"; then
-        gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents/$f?ref=$ref" \
-          -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
-          && content_row "$repo" "$ref" "$f" "$TMP/agents/$f"
-      elif grep -qx claude.yml <<<"$files"; then
+        if ! tier_allows "$tier" "$ft"; then
+          echo "CONTENT $repo@$ref $f DRIFT tier: a $ft-tier file on a $tier repo"
+        else
+          gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents/$f?ref=$ref" \
+            -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
+            && content_row "$repo" "$ref" "$f" "$TMP/agents/$f"
+        fi
+      elif [ "$waved" = 1 ] && tier_allows "$tier" "$ft"; then
         echo "CONTENT $repo@$ref $f DRIFT missing"
       fi
     done
   fi
-  # The wave writes .github/dependabot.yml and .node-version on every branch it targets, so only those
-  # are compared: an enrolled repo the wave never reaches keeps its own files.
-  if grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
-     || grep -qx claude-standards.md <<<"$dotgithub"; then
-    waved=1
-  fi
+  # .github/dependabot.yml and .node-version are compared only where the wave writes them: an
+  # enrolled branch the wave never reaches keeps its own files.
   if [ "$waved" = 1 ]; then
-    variant="$(dependabot_variant "$repo" "$(grep -qx "file package.json" <<<"$root" && echo 1 || echo 0)" \
-      "$([ -n "$files" ] && echo 1 || echo 0)")"
-    if [ "$variant" = none ]; then
-      :
-    elif grep -qx dependabot.yml <<<"$dotgithub"; then
+    if grep -qx dependabot.yml <<<"$dotgithub"; then
       gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
         -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
         && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
-    elif [ -n "$dotgithub" ]; then
+    else
       echo "CONTENT $repo@$ref dependabot.yml DRIFT missing"
     fi
   fi
   # Vercel builds on engines.node and ignores .node-version, so on a Vercel repo the two majors must
   # agree. Vercel offers majors only, so the patch level is never compared.
-  nv="$(node_version_source "$plat")"
   if [ "$waved" = 1 ] && [ -n "$nv" ]; then
     if grep -qx "file .node-version" <<<"$root"; then
       gh api "repos/$ORG/$repo/contents/.node-version?ref=$ref" \
@@ -213,8 +238,7 @@ scan_ref() {  # repo ref platform
       fi
     fi
   fi
-  # The shared Claude Code project settings at .claude/settings.json, installed beside claude.yml.
-  # Missing is reported only when both listings succeeded; a failed call skips the check.
+  # The shared Claude Code project settings at .claude/settings.json, a standards file.
   if grep -qx "dir .claude" <<<"$root"; then
     dotclaude="$(gh api "repos/$ORG/$repo/contents/.claude?ref=$ref" --jq '.[].name' 2>/dev/null)" || return 0
   fi
@@ -222,15 +246,15 @@ scan_ref() {  # repo ref platform
     gh api "repos/$ORG/$repo/contents/.claude/settings.json?ref=$ref" \
       -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null || return 0
     content_row "$repo" "$ref" claude-settings.json
-  elif grep -qx claude.yml <<<"$files"; then
+  elif [ "$waved" = 1 ]; then
     echo "CONTENT $repo@$ref claude-settings.json DRIFT missing"
   fi
 }
 
 # Enumerate the fleet OUTSIDE the report subshell — a failure here has to be able to kill the run.
 # ponytail: `--limit 200` against ~58 non-archived repos; past it the fleet truncates silently.
-repos="$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,repositoryTopics \
-           --jq '.[] | "\(.name) \(.defaultBranchRef.name) \([(.repositoryTopics // [])[].name] | join(","))"')" || repos=""
+repos="$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,isPrivate,repositoryTopics \
+           --jq '.[] | "\(.name) \(.defaultBranchRef.name) \(.isPrivate) \([(.repositoryTopics // [])[].name] | join(","))"')" || repos=""
 if [ -z "$repos" ]; then
   echo "FATAL: could not enumerate $ORG repos (gh failed, or auth/network is down)." >&2
   echo "This run proves NOTHING. An empty scan is not a clean fleet — do not read it as one." >&2
@@ -238,7 +262,7 @@ if [ -z "$repos" ]; then
 fi
 
 report="$(
-  printf '%s\n' "$repos" | while read -r repo def topics; do
+  printf '%s\n' "$repos" | while read -r repo def priv topics; do
     # Skip the kit repo itself: its .github/workflows/ holds the REUSABLES, which share basenames
     # with the stubs that call them (dependabot-validate.yml is a reusable here and a thin stub in
     # the kit), so a content compare against templates/ would report a phantom drift for every
@@ -251,10 +275,11 @@ report="$(
     # apart: the wave does not keep them current, but a dormant repo may keep them until it is
     # archived, so they never count as drift.
     topics_enrolled "${topics//,/ }" || plat="unenrolled"
-    scan_ref "$repo" "$def" "$plat"
+    tier="$(repo_tier "$priv" "${topics//,/ }")"
+    scan_ref "$repo" "$def" "$plat" "$tier" 1
     if [ "$def" = main ]; then
       gh api --paginate "repos/$ORG/$repo/branches?per_page=100" --jq '.[].name' 2>/dev/null \
-        | grep -E '^main-.' | while read -r b; do scan_ref "$repo" "$b" "$plat"; done
+        | grep -E '^main-.' | while read -r b; do scan_ref "$repo" "$b" "$plat" "$tier" 0; done
     fi
   done | sort
 )"
@@ -265,8 +290,8 @@ content="$(printf '%s\n' "$report" | grep '^CONTENT ' | sed 's/^CONTENT //')"
 unenrolled="$(printf '%s\n' "$report" | grep '^UNENROLLED ' | sed 's/^UNENROLLED //')"
 drift="$(printf '%s\n' "$content" | grep ' DRIFT ')"
 
-# Every kit repo@branch pair carries at least one caller stub, so zero pins fleet-wide means the
-# scan read nothing — rate limiting, a revoked token, an org rename. Without this the run falls
+# Every waved kit branch carries the dependabot-validate stub, so zero pins fleet-wide means the scan
+# read nothing — rate limiting, a revoked token, an org rename. Without this the run falls
 # straight through to "(converged)" and exit 0, which is the exact failure this whole tool exists
 # to stop: a clean report that proves nothing.
 if [ -z "$pins" ]; then
