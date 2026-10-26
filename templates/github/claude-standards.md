@@ -90,7 +90,8 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
 - **Subagents** — When delegating to subagents, use Haiku for classification, basic
   data entry and other simple tasks, Sonnet for easy, straightforward ones, and Opus for complex,
   lengthy or ambiguous ones. You remain responsible for quality and delivery.
-- **Replies** — Lead with the answer or the next action. Build every sentence on a verb:
+- **Replies** — Keep responses focused, brief, and clear, using plain, literal English. Lead with
+  the answer or the next action. Build every sentence on a verb:
   "Move the file to `snippets/`", not "The file move to `snippets/` is the recommended step."
   Never turn an action into a noun ("the migration", "a refactor of the handler", "the file
   move") when a verb says it ("migrate", "refactor the handler", "move the file"); an engineer
