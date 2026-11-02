@@ -150,8 +150,8 @@ check still blocks everyone else, and puts a red X in front of the admin.
 
 This repo's `main` meets the standard (`actionlint`, strict, one approval).
 
-**The gap:** most kit branches lack strict with a required check, and a few have no protection or no
-human approver. One org ruleset will enforce the up-to-date rule fleet-wide (#99);
+**The gap:** driver-onboarding, plugins, client-workspaces and vite-plugin-shopify-clean set strict
+with no required check, so nothing is enforced there. One org ruleset will enforce the up-to-date rule fleet-wide (#99);
 the current state is in [`HANDOFF.md`](HANDOFF.md).
 
 ## Repository settings
