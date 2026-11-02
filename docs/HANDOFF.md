@@ -35,9 +35,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     files, private repos with `agents-pipeline` the implementer; the wave adds missing files by tier,
     blocks on a file above a repo's tier, and the reusable `claude.yml` refuses a public repo.
   - [x] `DRIVER_AGENTS_READ_TOKEN` is set on this repo (fine-grained, Contents read on driver-agents).
-  - [x] `agents-pipeline` is on the pipeline repos: the ten Shopify repos, studio-sulzer and
-    Driver-Digital-Website. vite-plugin-shopify-clean is public and must never carry it, which blocks
-    the wave outright.
+  - [x] `agents-pipeline` is on the pipeline repos: the ten Shopify repos, studio-sulzer,
+    Driver-Digital-Website, Team-Laird and The-Gathery. The wave adds `claude.yml` to the last two;
+    their entries in driver-agents' repo map are separate work there. vite-plugin-shopify-clean is
+    public and must never carry the topic, which blocks the wave outright.
   - [ ] Before the wave, or it blocks: merge plugins#59 and client-workspaces#8, which remove
     `claude.yml`. Both repos leave the pipeline; engineers work them directly.
   - [ ] #130: the fleet audit, last before the wave.
@@ -90,6 +91,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
+- **The first implementer runs on Team-Laird and The-Gathery.** Team-Laird's build throws without
+  `SANITY_API_READ_TOKEN`; its `CLAUDE.md` gives the no-secrets command from
+  `.github/agent-validate.json`. If the run fails at the build, add a line there saying to use it.
+  The-Gathery has no preview deploy, so its PRs carry QA steps with no preview link.
 - **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
   of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
   published; check the Morocco store's admin.
