@@ -186,8 +186,9 @@ targets() {
     # cannot fail the assignment, so a typo'd --only would fall through to the "no targets" message
     # and read as an empty fleet instead of a bad argument. The resolved name is used, not the
     # typed one: `--only Workflows` resolves, but the literal kit-repo guard below would not match it.
-    repos=$(api "repos/$ORG/$ONLY" --jq '"\(.name) \(.default_branch) \(.private) \(.topics | join(","))"') \
+    repos=$(api "repos/$ORG/$ONLY" --jq 'if .archived then "archived" else "\(.name) \(.default_branch) \(.private) \(.topics | join(","))" end') \
       || { echo "--only $ONLY: no such repo in $ORG" >&2; exit 2; }
+    [ "$repos" != archived ] || { echo "--only $ONLY: the repo is archived, so it takes no kit" >&2; exit 2; }
   else
     repos=$(gh repo list "$ORG" --limit 200 --no-archived --json name,defaultBranchRef,isPrivate,repositoryTopics \
               --jq '.[] | "\(.name) \(.defaultBranchRef.name) \(.isPrivate) \([(.repositoryTopics // [])[].name] | join(","))"') \
