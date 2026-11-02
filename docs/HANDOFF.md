@@ -39,8 +39,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     Driver-Digital-Website, Team-Laird and The-Gathery. The wave adds `claude.yml` to the last two;
     their entries in driver-agents' repo map are separate work there. vite-plugin-shopify-clean is
     public and must never carry the topic, which blocks the wave outright.
-  - [ ] Before the wave, or it blocks: merge plugins#59 and client-workspaces#8, which remove
-    `claude.yml`. Both repos leave the pipeline; engineers work them directly.
+  - [x] plugins and client-workspaces left the pipeline (plugins#59, client-workspaces#8); engineers
+    work them directly. The full dry run blocks nowhere.
   - [ ] #130: the fleet audit, last before the wave.
   - Next release, not this one: #129, then #85 (make the Dependabot verdict a real check, then
     auto-merge on it), in their own session.
@@ -112,18 +112,17 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Merge plugins#59 and client-workspaces#8.
-2. Review, publish and merge #137.
-3. Switch the four org secrets to private repositories, then update the two docs that say every
+1. Merge #137 once Macroscope's review is handled.
+2. Switch the four org secrets to private repositories, then update the two docs that say every
    repo (*In flight* above).
-4. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
+3. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
    dry run first. driver-agents#80 then updates its README to match #120, and driver-agents#93 its
    CLAUDE.md kit row.
-5. Give each open PR a new event after the wave: merge `main` in or push (close and reopen works for
+4. Give each open PR a new event after the wave: merge `main` in or push (close and reopen works for
    Palmers' draft country PRs). A re-run of an old failed run reuses the old pin and stays red. Every
    repo on #99's list requires up-to-date, so its PRs read behind; Dependabot's need
    `@dependabot rebase`.
-6. Settle the open decisions above.
+5. Settle the open decisions above.
 
 ## Pointers
 
