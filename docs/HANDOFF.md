@@ -13,11 +13,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     entries in driver-agents' repo map are separate work there.
   - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
     `pull-requests: write`).
-- **Open PRs need a new event to pick up the wave.** A re-run of an old failed run reuses the old
-  pin and stays red; a push, a merge of `main`, or a close and reopen runs the new stub. The PRs red
-  on `theme / push` from the Shopify CLI 5 bug: foundrae-blackridge #249 and #252, Palmers #168–#174
-  (drafts, one per country branch), Avara #258 and #262, LaPointe #170. Every repo on #99's list
-  requires up-to-date, so its PRs read behind; Dependabot's need `@dependabot rebase`.
 - **The next release:** #129, then #85 (make the Dependabot verdict a real check, then auto-merge on
   it), in their own session.
 - **#99, the up-to-date org ruleset.** Not tied to a release. Its comments list the six repos whose
@@ -75,11 +70,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Give the open PRs above a new event: merge `main` in or push; close and reopen Palmers' drafts.
-2. driver-agents#80 updates its README to match #120, and driver-agents#93 its `CLAUDE.md` kit row.
-3. Add Team-Laird and The-Gathery to driver-agents' repo map, so tickets route to them.
-4. #99: set the required checks its comments list, then the org ruleset.
-5. Settle the open decisions above.
+1. driver-agents#80 updates its README to match #120, and driver-agents#93 its `CLAUDE.md` kit row.
+2. Add Team-Laird and The-Gathery to driver-agents' repo map (driver-agents#96).
+3. #99: set the required checks its comments list, then the org ruleset.
+4. Settle the open decisions above.
 
 ## Pointers
 

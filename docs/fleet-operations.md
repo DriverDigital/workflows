@@ -24,6 +24,12 @@ Use a PR wave only for a change that wants per-repo review. A byte-identical kit
 The skip-ci token does not stop GitHub's "Dependabot Updates" scheduler, so a run of it after a wave
 is expected.
 
+**Open PRs pick up a wave only on their next event.** A PR runs the stubs from its merge with the
+base, so it needs a push after the wave: "Update branch" (`PUT pulls/<n>/update-branch`) does it and
+clears "behind" too, and Dependabot's PRs take `@dependabot rebase`. A re-run reuses the old pin and
+stays red. Marking a draft ready does not run the theme stub, and closing a PR fires its cleanup job,
+which deletes the PR's preview theme.
+
 **Never write the literal token in a commit message that is not a wave.** GitHub scans the whole
 message, body included, so a commit that only describes the technique skips its own CI. The PR then
 shows no check runs at all, which looks like checks that have not started yet. Write `skip-ci` in
