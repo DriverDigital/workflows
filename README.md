@@ -179,9 +179,10 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
   kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link, and this
   repo's `dependabot-auto-merge.yml`.
 
-Org-level Actions secrets, visible to every repo, so a new repo needs no secret setup:
-`CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET`,
-`SHOPIFY_ALERT_WEBHOOK` and `BONSAI_API_KEY` (the dispatcher's). Store repos add their own store
+Org-level Actions secrets, visible to every private repo and to no public one, so a new private repo
+needs no secret setup: `CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`,
+`FIGMA_MCP_SECRET` and `SHOPIFY_ALERT_WEBHOOK`. `BONSAI_API_KEY` (the dispatcher's) goes to selected
+repos only. Store repos add their own store
 secrets and the `SHOPIFY_STORE_NAME` variable (kit README, install step 2). This repo's own
 `lint.yml` reads driver-agents with `DRIVER_AGENTS_READ_TOKEN`, a repository secret: a fine-grained
 token with Contents read on driver-agents only. **Never set

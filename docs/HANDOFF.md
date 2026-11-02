@@ -6,8 +6,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **#137 (branch `pre-wave-release`) is the release PR.** It carries the kit tiers (#135); its body
-  lists what changed.
 - **v1.20.0 is waved; the pin audit reads drift until the next wave**: the kit-only changes since
   the tag, `.node-version`, and the tier rows below. Every site repo is cut over to `main`.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
@@ -49,10 +47,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
     Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, Driver-Digital-Website,
     driver-agents and driver-engineering-app enforce it today. First confirm every targeted branch reports the
     required check; a required context with no run blocks every merge.
-- **Switch the org secrets to private repositories** once #137 has merged, so no public repo uses them and this repo reads its own token. Set
-  `CLAUDE_CODE_OAUTH_TOKEN`, `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET` and `SHOPIFY_ALERT_WEBHOOK` to
-  "Private repositories" in the org's Actions secrets. Then update README's org-secrets paragraph and
-  the kit README's install step 2, which say every repo.
 
 ## Blocked or gated
 
@@ -112,17 +106,14 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Merge #137 once Macroscope's review is handled.
-2. Switch the four org secrets to private repositories, then update the two docs that say every
-   repo (*In flight* above).
-3. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
+1. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
    dry run first. driver-agents#80 then updates its README to match #120, and driver-agents#93 its
    CLAUDE.md kit row.
-4. Give each open PR a new event after the wave: merge `main` in or push (close and reopen works for
+2. Give each open PR a new event after the wave: merge `main` in or push (close and reopen works for
    Palmers' draft country PRs). A re-run of an old failed run reuses the old pin and stays red. Every
    repo on #99's list requires up-to-date, so its PRs read behind; Dependabot's need
    `@dependabot rebase`.
-5. Settle the open decisions above.
+3. Settle the open decisions above.
 
 ## Pointers
 
