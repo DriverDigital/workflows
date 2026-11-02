@@ -92,9 +92,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
 - **The first implementer runs on Team-Laird and The-Gathery.** Team-Laird's build throws without
-  `SANITY_API_READ_TOKEN`; its `CLAUDE.md` gives the no-secrets command from
-  `.github/agent-validate.json`. If the run fails at the build, add a line there saying to use it.
-  The-Gathery has no preview deploy, so its PRs carry QA steps with no preview link.
+  `SANITY_API_READ_TOKEN`, which the implementer never gets; Team-Laird#86 names the no-secrets build
+  in its `CLAUDE.md`. The-Gathery has no preview deploy, so its PRs carry QA steps with no preview link.
 - **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
   of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
   published; check the Morocco store's admin.
