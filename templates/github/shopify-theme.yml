@@ -27,6 +27,6 @@ jobs:
       (github.event_name == 'pull_request' &&
        github.event.pull_request.user.login != 'dependabot[bot]' &&
        github.event.pull_request.head.repo.full_name == github.repository)
-    uses: DriverDigital/workflows/.github/workflows/shopify-theme.yml@9e93a7a1d0a3a7e66ef7dcab196e1eb66e6d9832 # v1.20.0
+    uses: DriverDigital/workflows/.github/workflows/shopify-theme.yml@884587adc424faf3abb16834f67a1f5520addfac # v1.21.0
     # inherit, not a map: environment secrets (Palmers) cannot be passed by name.
     secrets: inherit
