@@ -6,8 +6,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **v1.20.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
-  is cut over to `main`.
+- **#137 (branch `pre-wave-release`) is the release PR.** It carries the kit tiers (#135); its body
+  lists what changed.
+- **v1.20.0 is waved; the pin audit reads drift until the next wave**: the kit-only changes since
+  the tag, `.node-version`, and the tier rows below. Every site repo is cut over to `main`.
   - The wave and the pin audit cover every `main-*` branch of a repo already on `main`, so
     foundrae's `main-development` takes kit updates like Palmers' country branches.
   - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
@@ -15,9 +17,12 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **The next release and wave.** Work through this list over as many sessions as it takes, then
   release and wave (README, *Release + repin order*). Tick an item in the PR that lands it.
   - [x] #120 (merged): #113 (the Dependabot report names each bump), #115 and #119 (the theme push
-    job fails on rejected files, reading Shopify CLI 4.x and the unreleased 5.x output) and #118 (a
+    job fails on rejected files, reading Shopify CLI 4.x and 5.x output) and #118 (a
     reviewer request on no-ticket issue runs).
   - [x] #126 (merged): How to QA steps in implementer PR bodies.
+  - [x] #136 (merged): the standards' Replies line. Kit only.
+  - [x] #139 (merged): the theme push and cleanup jobs read Shopify CLI 5's `theme list` shape. Open
+    PRs with a red `theme / push` (foundrae-blackridge, Palmers, Avara, LaPointe) need it waved.
   - [x] #128, #124, #121, #127: keep-current's author filter, the Shopify CLI error on a failed theme
     list, code fences in `close-linked-issues.yml`, the PR template's bonsai-link sentence.
   - [x] Standards: docs ship in the same PR as the change; PR comments @mention the author; one
@@ -26,17 +31,28 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   - [x] #122: no preview theme for a PR that changes no theme files.
   - [x] #86: the kit owns each platform's Node major as a root `.node-version` (`24`). Until the
     wave, `fleet-pin-audit.sh` reads `.node-version DRIFT missing` on every platform repo.
-  - [ ] #129, then #85: make the Dependabot verdict a real check, then auto-merge on it. Its own
-    session. Either can ship in a later release if the rest is ready first.
-  - [ ] #130: the fleet audit, last before the wave. studio-sulzer#81 (`engines.node`) can land any
-    time and should, or the pin audit stays red after the wave.
+  - [x] #135: kit tiers. Every `driver-kit` repo takes the standards, private repos the private
+    files, private repos with `agents-pipeline` the implementer; the wave adds missing files by tier,
+    blocks on a file above a repo's tier, and the reusable `claude.yml` refuses a public repo.
+  - [x] `DRIVER_AGENTS_READ_TOKEN` is set on this repo (fine-grained, Contents read on driver-agents).
+  - [x] `agents-pipeline` is on the pipeline repos: the ten Shopify repos, studio-sulzer,
+    Driver-Digital-Website, Team-Laird and The-Gathery. The wave adds `claude.yml` to the last two;
+    their entries in driver-agents' repo map are separate work there. vite-plugin-shopify-clean is
+    public and must never carry the topic, which blocks the wave outright.
+  - [x] plugins and client-workspaces left the pipeline (plugins#59, client-workspaces#8); engineers
+    work them directly. The full dry run blocks nowhere.
+  - [ ] #130: the fleet audit, last before the wave.
+  - Next release, not this one: #129, then #85 (make the Dependabot verdict a real check, then
+    auto-merge on it), in their own session.
   - Not tied to the release: #99 (the up-to-date org ruleset). Only workflows, indie-ridge,
     savannahfriedkin, LittleMe, Kissy-Kissy, R-Finds, LaPointe, foundrae-blackridge, Anduril-Gear,
-    Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, driver-agents and
-    driver-engineering-app enforce it today. First confirm every targeted branch reports the
+    Avara, Palmers (every `main*` branch), Team-Laird, studio-sulzer, The-Gathery, Driver-Digital-Website,
+    driver-agents and driver-engineering-app enforce it today. First confirm every targeted branch reports the
     required check; a required context with no run blocks every merge.
-- **`lint.yml` goes on every kit repo.** Every site repo carries it. driver-onboarding,
-  vite-plugin-shopify-clean, plugins and client-workspaces had no cutover and still lack it.
+- **Switch the org secrets to private repositories** once #137 has merged, so no public repo uses them and this repo reads its own token. Set
+  `CLAUDE_CODE_OAUTH_TOKEN`, `AGENTS_GH_PAT`, `FIGMA_MCP_SECRET` and `SHOPIFY_ALERT_WEBHOOK` to
+  "Private repositories" in the org's Actions secrets. Then update README's org-secrets paragraph and
+  the kit README's install step 2, which say every repo.
 
 ## Blocked or gated
 
@@ -52,21 +68,21 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **Dependabot on LittleMe.** Its runs from August on sat queued for 24 hours and were cancelled:
-  "Dependabot on self-hosted runners" was on with no self-hosted runner. The setting is off, and
-  Kissy-Kissy's and LaPointe's runs have succeeded since; LittleMe has not run since. Its next
-  daily run must start and complete (`gh run list -R DriverDigital/LittleMe --event dynamic`); if it
-  queues again, the cause is something else.
 - **After the next release's wave** (stubs past v1.20.0, whose reusables read `.node-version`): each
   repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify `engines.node` (from #86) can land.
   Before then, removing a pin leaves CI on the runner default.
   driver-onboarding#41 adds mise to the setup docs.
+- **The next wave adds files by tier for the first time.** It adds `lint.yml` to driver-onboarding,
+  vite-plugin-shopify-clean, plugins and client-workspaces, and a repo whose own workflows have
+  findings shows a red `actionlint` until they are fixed. It adds the Dependabot stubs to plugins,
+  client-workspaces, studio-sulzer and driver-engineering-app, `dependabot-report` to driver-agents,
+  and `.github/dependabot.yml` with all three stubs to driver-onboarding. Read the dry run before it.
 - **After the next release and wave:** the first Dependabot report names each package with its from
   and to versions; the first file Shopify rejects fails `theme / push` with a file annotation; the
   first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
   first implementer PR on an issue with acceptance criteria has a How to QA section after its
   Bonsai line, pointed at the right preview for the repo's platform.
-- **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds, The-Gathery): CI
+- **`volta.node` repos** (Avara, Kissy-Kissy, LittleMe, LaPointe, Palmers, R-Finds, Team-Laird, The-Gathery): CI
   builds on the pinned Node until the next release's wave, then on the kit's `.node-version`. A red
   implementer or validate build there is most likely the repo's own Node problem.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean after the
@@ -75,6 +91,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
 - **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
+- **The first implementer runs on Team-Laird and The-Gathery.** Team-Laird's build throws without
+  `SANITY_API_READ_TOKEN`, which the implementer never gets; Team-Laird#86 names the no-secrets build
+  in its `CLAUDE.md`. The-Gathery has no preview deploy, so its PRs carry QA steps with no preview link.
 - **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
   of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
   published; check the Morocco store's admin.
@@ -93,9 +112,17 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. Work through the release list under *In flight*, one feature branch and draft PR per session.
-2. Release and wave once it is done. driver-agents #80 then updates its README to match #120.
-3. Settle the open decisions above.
+1. Merge #137 once Macroscope's review is handled.
+2. Switch the four org secrets to private repositories, then update the two docs that say every
+   repo (*In flight* above).
+3. Run #130, the fleet audit, then release and wave (README, *Release + repin order*), reading the
+   dry run first. driver-agents#80 then updates its README to match #120, and driver-agents#93 its
+   CLAUDE.md kit row.
+4. Give each open PR a new event after the wave: merge `main` in or push (close and reopen works for
+   Palmers' draft country PRs). A re-run of an old failed run reuses the old pin and stays red. Every
+   repo on #99's list requires up-to-date, so its PRs read behind; Dependabot's need
+   `@dependabot rebase`.
+5. Settle the open decisions above.
 
 ## Pointers
 

@@ -27,4 +27,8 @@ jobs:
       validate-conclusion: ${{ github.event.workflow_run.conclusion }}
       workflow-event: ${{ github.event.workflow_run.event }}
       triggering-actor: ${{ github.event.workflow_run.actor.login }}
-    secrets: inherit
+    # A map, not inherit: this job runs Claude over a Dependabot build log, so it gets only the two
+    # secrets it uses, never a repo's own (driver-agents holds Bonsai and store credentials).
+    secrets:
+      AGENTS_GH_PAT: ${{ secrets.AGENTS_GH_PAT }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

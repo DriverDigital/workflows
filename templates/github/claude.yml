@@ -1,8 +1,9 @@
 name: Claude Code
 
-# Caller stub for the implementer: triggers, concurrency and permissions live here, and everything
-# else in the reusable it pins, including the actor gate. The store handle is the
-# SHOPIFY_STORE_NAME repository variable.
+# Caller stub for the implementer, on private repos with the agents-pipeline topic only (the reusable
+# refuses a public repo): triggers, concurrency and permissions live here, and everything else in the
+# reusable it pins, including the actor gate. The store handle is the SHOPIFY_STORE_NAME repository
+# variable.
 
 # [created] only: the implementer edits its own comment, and `edited` would re-run it on itself.
 on:
