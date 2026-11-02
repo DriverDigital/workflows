@@ -145,7 +145,8 @@ jobs:
           name=$THEME_NAME
           [ ${#name} -le 50 ] || name="${name:0:41}-$(printf %s "$name" | sha1sum | cut -c1-8)"
           themes=$(shopify theme list --json) || { echo "::error::shopify theme list failed; see the CLI error above. A store-auth error means the store or theme-token secret is wrong or stale."; exit 1; }
-          id=$(jq -r --arg n "$name" '[.[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
+          # CLI 5 wraps the list as {"themes": [...]}; 4.x prints the bare array.
+          id=$(jq -r --arg n "$name" '[(if type == "array" then . else .themes end)[] | select(.name == $n and .role != "live")][0].id // empty' <<<"$themes")
           if [ -n "$id" ]; then
             shopify theme push --theme "$id" --json | tee "$RUNNER_TEMP/theme.json"
           else
@@ -206,6 +207,6 @@ jobs:
           set -euo pipefail
           name=$THEME_NAME
           [ ${#name} -le 50 ] || name="${name:0:41}-$(printf %s "$name" | sha1sum | cut -c1-8)"
-          ids=$(jq -r --arg n "$name" '.[] | select(.name == $n and .role != "live") | .id' themes.json)
+          ids=$(jq -r --arg n "$name" '(if type == "array" then . else .themes end)[] | select(.name == $n and .role != "live") | .id' themes.json)
           [ -n "$ids" ] || { echo "No theme named $name"; exit 0; }
           for id in $ids; do shopify theme delete --theme "$id" --force; done
