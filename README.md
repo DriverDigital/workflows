@@ -107,7 +107,7 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   A platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files a
   repo may carry and its `.node-version`; a repo with none (the internal tools) takes no Node
   version. A repo with two platform topics, a public repo with `agents-pipeline`, or a file above a
-  repo's tier blocks the wave. The lists live in `tools/kit-platforms.sh`; the standards and the
+  repo's tier blocks the wave, and the audit reports each as drift. The lists live in `tools/kit-platforms.sh`; the standards and the
   per-repo cutover in [`docs/branch-model.md`](docs/branch-model.md).
 - **Stubs pin by SHA.** Every `uses: DriverDigital/workflows/...@<sha> # vX.Y.Z` names the release in
   its trailer. The pin and the trailer are one value and always move together.

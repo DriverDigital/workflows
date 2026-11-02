@@ -276,6 +276,14 @@ report="$(
     # archived, so they never count as drift.
     topics_enrolled "${topics//,/ }" || plat="unenrolled"
     tier="$(repo_tier "$priv" "${topics//,/ }")"
+    # The two topic states the wave refuses outright. repo_tier reads a public repo as public whatever
+    # its topics, so without these rows such a repo could read converged.
+    if [ "$plat" != unenrolled ]; then
+      [ "$plat" != several ] || echo "CONTENT $repo@$def topics DRIFT several platform topics, which the wave refuses"
+      if [ "$priv" != true ] && [[ ",$topics," == *",$PIPELINE_TOPIC,"* ]]; then
+        echo "CONTENT $repo@$def topics DRIFT public repo tagged $PIPELINE_TOPIC, which the wave refuses"
+      fi
+    fi
     scan_ref "$repo" "$def" "$plat" "$tier" 1
     if [ "$def" = main ]; then
       gh api --paginate "repos/$ORG/$repo/branches?per_page=100" --jq '.[].name' 2>/dev/null \
