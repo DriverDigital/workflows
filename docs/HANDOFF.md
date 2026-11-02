@@ -123,7 +123,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
    CLAUDE.md kit row.
 6. Give each open PR a new event after the wave: merge `main` in or push (close and reopen works for
    Palmers' draft country PRs). A re-run of an old failed run reuses the old pin and stays red. Every
-   kit branch requires up-to-date, so each PR reads behind; Dependabot's need `@dependabot rebase`.
+   repo on #99's list requires up-to-date, so its PRs read behind; Dependabot's need
+   `@dependabot rebase`.
 7. Settle the open decisions above.
 
 ## Pointers
