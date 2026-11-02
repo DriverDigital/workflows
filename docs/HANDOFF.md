@@ -73,9 +73,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   driver-onboarding#41 adds mise to the setup docs.
 - **The next wave adds files by tier for the first time.** It adds `lint.yml` to driver-onboarding,
   vite-plugin-shopify-clean, plugins and client-workspaces, and a repo whose own workflows have
-  findings shows a red `actionlint` until they are fixed. It adds the PR template and `bonsai-link`
-  to driver-agents, driver-onboarding, driver-engineering-app, Team-Laird and The-Gathery, so a PR
-  there reads red until its `Bonsai task:` line is filled. It adds the Dependabot stubs to plugins,
+  findings shows a red `actionlint` until they are fixed. It adds the Dependabot stubs to plugins,
   client-workspaces, studio-sulzer and driver-engineering-app, `dependabot-report` to driver-agents,
   and `.github/dependabot.yml` with all three stubs to driver-onboarding. Read the dry run before it.
 - **After the next release and wave:** the first Dependabot report names each package with its from

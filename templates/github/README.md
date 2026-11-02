@@ -11,9 +11,9 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 
 | File | Goes to | Does |
 |---|---|---|
-| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — private repos | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
+| `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — repos on the agents pipeline | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
 | `close-linked-issues.yml` | `.github/workflows/close-linked-issues.yml` — every kit repo | On a PR merged into a `main-*` branch (Palmers' country branches), closes the open issues its body names with a closing keyword (`Closes #N`), which GitHub honours only on the default branch. Not a required check. |
-| `pull_request_template.md` | `.github/pull_request_template.md` — private repos | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
+| `pull_request_template.md` | `.github/pull_request_template.md` — repos on the agents pipeline | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
 | `claude-standards.md` | `.github/claude-standards.md` — every kit repo | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, docs shipping with the change, branches and PRs, comments on a PR, closing issues, theme editor changes on a preview, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. |
 | `claude-settings.json` | `.claude/settings.json` — every kit repo | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store, on the agents pipeline | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
@@ -150,10 +150,10 @@ every merge.
    # private repos
    cp templates/github/dependabot-report.yml    .github/workflows/
    cp templates/github/dependabot-keep-current.yml .github/workflows/
-   cp templates/github/pr-bonsai-link.yml       .github/workflows/
-   cp templates/github/pull_request_template.md .github/pull_request_template.md
    # private repos with agents-pipeline
    cp templates/github/claude.yml               .github/workflows/
+   cp templates/github/pr-bonsai-link.yml       .github/workflows/
+   cp templates/github/pull_request_template.md .github/pull_request_template.md
    ```
    The wave covers Palmers' country branches the same way ([fleet operations](../../docs/fleet-operations.md#dependabot-and-the-wave)
    on what Dependabot updates there). It copies whole files, since no kit file carries a per-repo
@@ -171,7 +171,7 @@ every merge.
      that is **`validate / validate`** (`dependabot-validate`).
    - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml`
      **`bonsai-link`**.
-     Before requiring `bonsai-link` on a private repo, check that fork PRs are either disabled or
+     Before requiring `bonsai-link` on a pipeline repo, check that fork PRs are either disabled or
      allowed to run workflows — a fork PR that never runs it waits on "Expected" forever.
 
    Until the wave gives a repo `dependabot-validate`, `actionlint` is the one check that runs on

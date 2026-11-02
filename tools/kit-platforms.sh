@@ -14,9 +14,8 @@
 # kit files on a repo without driver-kit.
 KIT_TOPIC=driver-kit
 PIPELINE_TOPIC=agents-pipeline
-PRIVATE_FILES=(pr-bonsai-link.yml pull_request_template.md dependabot-report.yml dependabot-keep-current.yml
-               shopify-theme.yml vercel-deploy.yml)
-PIPELINE_FILES=(claude.yml shopify-tool-smoke.yml)
+PRIVATE_FILES=(dependabot-report.yml dependabot-keep-current.yml shopify-theme.yml vercel-deploy.yml)
+PIPELINE_FILES=(claude.yml shopify-tool-smoke.yml pr-bonsai-link.yml pull_request_template.md)
 SHOPIFY_FILES=(shopify-tool-smoke.yml shopify-theme.yml)
 VERCEL_FILES=(vercel-deploy.yml)
 # Macroscope check-run agents, written to .macroscope/check-run-agents/ on private Shopify repos (the

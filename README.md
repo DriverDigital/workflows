@@ -101,8 +101,8 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   | Tier | Repos | Kit files |
   |---|---|---|
   | standards | every `driver-kit` repo | `claude-standards.md`, `lint.yml`, `dependabot.yml`, `.node-version`, `close-linked-issues.yml`, `dependabot-validate.yml`, the `.claude/settings.json` attribution keys |
-  | private | private repos | the standards, plus `pr-bonsai-link.yml`, the PR template, `dependabot-report.yml`, `dependabot-keep-current.yml`, the platform stubs and the check-run agents |
-  | pipeline | private repos with `agents-pipeline` | everything, adding `claude.yml` and `shopify-tool-smoke.yml` |
+  | private | private repos | the standards, plus `dependabot-report.yml`, `dependabot-keep-current.yml`, the platform stubs and the check-run agents |
+  | pipeline | private repos with `agents-pipeline` | everything, adding `claude.yml`, `shopify-tool-smoke.yml`, `pr-bonsai-link.yml` and the PR template |
 
   A platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files a
   repo may carry and its `.node-version`; a repo with none (the internal tools) takes no Node
