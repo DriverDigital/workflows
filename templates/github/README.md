@@ -85,7 +85,8 @@ every merge.
 1. **Claude GitHub App**: installed org-wide, so nothing to do per repo. Its identity is what opens
    and pushes PRs.
 2. **Secrets** (repo or org → Settings → Secrets and variables → Actions). The core ones are
-   **org-level** Actions secrets available to every repo — no per-repo setup:
+   **org-level** Actions secrets available to every private repo (public repos see none) — no
+   per-repo setup:
    - `CLAUDE_CODE_OAUTH_TOKEN` — output of `claude setup-token` run as the **Agents** account
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
      override the OAuth token and bill at API rates.
