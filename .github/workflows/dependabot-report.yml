@@ -270,10 +270,11 @@ jobs:
           if [ "$CONCLUSION" != success ]; then held="validate failed"
           elif [ "$verdict" != safe ]; then held="the verdict is $verdict"
           elif [ "$ELIGIBLE" != true ]; then held="${WHY:-the bump could not be read}"
+          elif [ -z "$MERGE_TOKEN" ]; then held="this repo has no DEPENDABOT_MERGE_TOKEN"
           elif ! GH_TOKEN="$ACTIONS_TOKEN" gh api -X POST "repos/$REPO/pulls/$PR/reviews" \
                  -f commit_id="$SHA" -f event=APPROVE -f body="Safe verdict on a patch or minor npm update." >/dev/null; then
             held="the approval failed"
-          elif [ -z "$MERGE_TOKEN" ] || ! GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --repo "$REPO" --auto --merge; then
+          elif ! GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --repo "$REPO" --auto --merge; then
             held="auto-merge could not be enabled"
           fi
           if [ -n "$held" ] && [ -n "$MERGE_TOKEN" ]; then
