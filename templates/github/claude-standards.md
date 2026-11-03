@@ -67,7 +67,12 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   to the branch as often as it likes, then opens one PR at the end as a draft (`gh pr create
   --draft`). It never marks the PR ready for review: the person running the session publishes it, or
   says to, once they have reviewed it. Once a PR is published, collect fixes locally and push them
-  together. The implementer's issue runs open a published PR, since Macroscope's review and the
+  together. One exception: a minor docs-only change may go straight to `main` when no feature branch
+  is open, or when it concerns `main` and not the branch's work. When the session's work is on a
+  feature branch, its docs updates, the end-of-session `docs/HANDOFF.md` included, are committed to
+  that branch and ride in its PR. A docs change that alters how the repo is understood or how future
+  work is done, or spans many files, always goes in a PR, so its conflicts and contradictions get
+  reviewed. The implementer's issue runs open a published PR, since Macroscope's review and the
   revise loop run unattended. PRs land with a merge commit, never a squash, so each commit survives on `main`.
   Deleting a head branch once its PR merges is preferred, but GitHub is not configured to do this on every repository, since some PR authors need to keep longer-lived branches in some repos: delete a branch you created for your own PR once it merges, and
   propose cleanup of other stale branches rather than deleting them.
