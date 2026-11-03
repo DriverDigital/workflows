@@ -171,6 +171,9 @@ Every active repo, under Settings → General → Pull Requests:
   it on for that PR, and it still waits for the required checks and approval. The private forks
   (primavera-shopify-theme, shopify-metadata-app) ignore the setting.
 - **Always suggest updating pull request branches on.**
+- **Allow GitHub Actions to create and approve pull requests on** (Settings → Actions → General,
+  on at org level). `dependabot-report`'s approval needs it; with it off, a safe Dependabot PR waits
+  for its reviewer.
 - **Automatically delete head branches on every site repo** (one with a platform topic), except
   foundrae-blackridge, which keeps long-lived branches such as `main-development` and `testparty/*` that
   open PRs use as heads. Branch protection keeps a protected head branch, so merges between Palmers'

@@ -25,9 +25,10 @@ Two files in `.github/workflows/` are this repo's own CI, not products: `lint.ym
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
 different files** with the same name and the same job id `actionlint` (the required-check context).
 
-PR review is Macroscope's, org-wide. Claude reviews a PR only when a person `@claude`s it. The
-implementer's own `/code-review` pass before it opens a PR is implementing — keep it. Never add an
-automatic Claude review of an opened PR.
+PR review is Macroscope's, org-wide, except Dependabot PRs, which Macroscope skips:
+`dependabot-report`'s verdict is their review and approves the safe patch and minor ones. Otherwise
+Claude reviews a PR only when a person `@claude`s it. The implementer's own `/code-review` pass before
+it opens a PR is implementing — keep it. Never add an automatic Claude review of any other PR.
 
 ## Commands
 
@@ -124,8 +125,8 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
   as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
   the `shopify-theme.yml` reusable's preview gate and PR description link, `dependabot-report`'s
-  approval and verdict check (enabling auto-merge stays on the PAT, so the merge runs the push
-  workflows), and this repo's `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own
+  verdict comment (Claude's text: a PAT-authored `@claude` in it would pass the implementer's actor
+  gate), check and approval, and this repo's `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own
   `DRIVER_AGENTS_READ_TOKEN`, never an org secret, because this repo is public.
 - The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
   `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`

@@ -35,8 +35,8 @@ How a ticket becomes a merged change:
    `Target branch:` line, else the repo's default branch, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
    body carries `Closes #n`, `Bonsai task: <url>`, a `How to QA` section when the issue states
    acceptance criteria, and a `Pre-review:` line.
-4. **Macroscope** reviews every PR in the org. It is the only automatic reviewer; Claude reviews a PR
-   only when a person `@claude`s it.
+4. **Macroscope** reviews every PR in the org except Dependabot's, whose review is
+   `dependabot-report`'s verdict. Otherwise Claude reviews a PR only when a person `@claude`s it.
 5. The dispatcher runs the **revise loop**: while Macroscope has unresolved findings it posts a
    tag-mode `@claude` on the PR, up to three turns, and hands anything still flagged to a person.
 6. The dispatcher moves the task to **Internal Review**, assigns it to the reviewer the ticket names
@@ -169,15 +169,15 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
 - **`claude[bot]`** (the Claude GitHub App, installed org-wide) implements: it authors branches,
   commits and PRs.
 - **`driver-digital-agents`** (`AGENTS_GH_PAT`) dispatches: it authors the dispatcher's issues and
-  revise-loop `@claude` comments, `dependabot-report`'s verdict and reviewer request, and
+  revise-loop `@claude` comments, `dependabot-report`'s reviewer request, and
   `dependabot-keep-current`'s rebase requests. The implementer uses it in its store-provisioning
   step, to clone driver-agents and read the issue for the audit's ticket context, and to request a
   reviewer on an issue with no Bonsai task; `shopify-tool-smoke.yml` uses it for the same clone.
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
   is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, the
-  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link, and this
-  repo's `dependabot-auto-merge.yml`.
+  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link,
+  `dependabot-report`'s verdict comment, check and approval, and this repo's `dependabot-auto-merge.yml`.
 
 Org-level Actions secrets, visible to every private repo and to no public one, so a new private repo
 needs no secret setup: `CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`,
@@ -241,4 +241,4 @@ created, and a required context with no check run for the head commit blocks the
 GitHub does accept a check run that concludes `skipped`; what matters is whether a check run exists for
 the head SHA.
 
-Which exact context to require, with up-to-date branches and a human approver: kit README, install step 5.
+Which exact context to require, with up-to-date branches and one approving review: kit README, install step 5.

@@ -49,8 +49,9 @@ already carries it; the first copy comes from the repo's canary or cutover commi
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
 | `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
-**PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org,
-and the dispatcher's revise loop answers its findings. Claude reviews a PR only when a person
+**PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org
+except Dependabot's (`dependabot-report`'s verdict reviews those), and the dispatcher's revise loop
+answers its findings. Otherwise Claude reviews a PR only when a person
 `@claude`s it (optionally naming `/code-review`); the implementer's own `/code-review` pass before it
 opens a PR is part of implementing. A repo outside the org gets no automatic review. How Macroscope
 behaves on a PR: [`../../README.md`](../../README.md#macroscope-on-a-pr).
@@ -91,7 +92,7 @@ every merge.
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
      override the OAuth token and bill at API rates.
    - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT: `GH_TOKEN` for
-     `dependabot-report`'s verdict comment and reviewer request, `dependabot-keep-current`'s rebase
+     `dependabot-report`'s reviewer request, `dependabot-keep-current`'s rebase
      requests, the implementer's `driver-agents` clone on store repos, and its reviewer request on
      an issue with no Bonsai task. A few `claude.yml` steps
      use the default token on purpose (central `README.md`, *Identities and secrets*).
