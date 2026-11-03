@@ -181,7 +181,10 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
 
 Org-level Actions secrets, visible to every private repo and to no public one, so a new private repo
 needs no secret setup: `CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`,
-`FIGMA_MCP_SECRET` and `SHOPIFY_ALERT_WEBHOOK`. `BONSAI_API_KEY` (the dispatcher's) goes to selected
+`FIGMA_MCP_SECRET`, `SHOPIFY_ALERT_WEBHOOK` and `DEPENDABOT_MERGE_TOKEN`. The last is a second
+`driver-digital-agents` fine-grained PAT with Contents and Pull requests write, so it can merge; only
+the `dependabot-report` stub passes it, to enable auto-merge on a safe verdict, and `AGENTS_GH_PAT`
+stays unable to push code. `BONSAI_API_KEY` (the dispatcher's) goes to selected
 repos only. Store repos add their own store
 secrets and the `SHOPIFY_STORE_NAME` variable (kit README, install step 2). This repo's own
 `lint.yml` reads driver-agents with `DRIVER_AGENTS_READ_TOKEN`, a repository secret: a fine-grained
@@ -202,8 +205,8 @@ with `Read`, `Glob`, `Grep` and `Write` and no `gh`. Artifact content is never i
 `run:` line. **Never use `pull_request_target`.**
 
 The agent's verdict alone never merges. A trusted step approves the PR (as github-actions[bot],
-pinned to the validated commit) and enables auto-merge (with the PAT, so the merge commit's push
-workflows run) only when validate succeeded, the verdict is exactly `safe`, and every bump is a
+pinned to the validated commit) and enables auto-merge (with `DEPENDABOT_MERGE_TOKEN`, so the merge
+commit's push workflows run) only when validate succeeded, the verdict is exactly `safe`, and every bump is a
 patch or minor npm update. It reads that last fact from Dependabot's own PR body and branch name
 through the API, never from the artifact, which install scripts could rewrite. A 0.x minor counts
 as a major. Majors and every other case wait for the reviewer. The `Dependabot verdict` check is

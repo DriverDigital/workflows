@@ -39,6 +39,7 @@ on:
     secrets:
       AGENTS_GH_PAT:           { required: true }
       CLAUDE_CODE_OAUTH_TOKEN: { required: true }
+      DEPENDABOT_MERGE_TOKEN:  { required: false } # absent: a safe PR waits for its reviewer
 
 permissions:
   pull-requests: write # the approval on a safe verdict is github-actions[bot]'s
@@ -228,14 +229,16 @@ jobs:
       # Auto-merge needs all four: validate succeeded, Claude's verdict is exactly "safe", the trusted
       # facts say a patch or minor npm update, and the PR head is still the validated commit. Anything
       # else, a missing or malformed verdict.json included, turns auto-merge off and asks a person.
-      # github-actions[bot] approves, pinned to the validated commit; the PAT enables auto-merge so the
-      # merge commit's push workflows run (a GITHUB_TOKEN merge starts none).
+      # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
+      # token here that can merge) enables auto-merge, so the merge commit's push workflows run, which a
+      # GITHUB_TOKEN merge would not start.
       # shortcut: an approval survives a later push until #99's ruleset dismisses stale approvals.
       - name: Post verdict, verdict check and merge decision (real outcomes only)
         if: ${{ always() && steps.provenance.outputs.report == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           ACTIONS_TOKEN: ${{ github.token }}
+          MERGE_TOKEN: ${{ secrets.DEPENDABOT_MERGE_TOKEN }}
           PR: ${{ inputs.pr-number }}
           REPO: ${{ github.repository }}
           HANDLE: ${{ steps.reviewer.outputs.handle }}
@@ -270,11 +273,11 @@ jobs:
           elif ! GH_TOKEN="$ACTIONS_TOKEN" gh api -X POST "repos/$REPO/pulls/$PR/reviews" \
                  -f commit_id="$SHA" -f event=APPROVE -f body="Safe verdict on a patch or minor npm update." >/dev/null; then
             held="the approval failed"
-          elif ! gh pr merge "$PR" --repo "$REPO" --auto --merge; then
+          elif [ -z "$MERGE_TOKEN" ] || ! GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --repo "$REPO" --auto --merge; then
             held="auto-merge could not be enabled"
           fi
-          if [ -n "$held" ]; then
-            gh pr merge "$PR" --repo "$REPO" --disable-auto >/dev/null 2>&1 || true
+          if [ -n "$held" ] && [ -n "$MERGE_TOKEN" ]; then
+            GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --repo "$REPO" --disable-auto >/dev/null 2>&1 || true
             echo "::notice::auto-merge off: $held"
           fi
 
