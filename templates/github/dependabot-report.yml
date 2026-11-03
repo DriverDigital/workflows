@@ -1,7 +1,8 @@
 name: Dependabot report
 
-# Caller stub: after Dependabot validate completes, the privileged reusable reads its build log,
-# posts a verdict and requests a reviewer. The run context goes in as inputs because the reusable's
+# Caller stub: after Dependabot validate completes, the privileged reusable reads its build log and
+# posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm
+# update approves the PR and enables auto-merge; anything else requests a reviewer. The run context goes in as inputs because the reusable's
 # provenance check is written against them.
 
 on:
@@ -11,6 +12,7 @@ on:
 
 permissions:
   pull-requests: write
+  checks: write
   actions: read
 
 concurrency:

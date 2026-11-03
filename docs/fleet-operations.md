@@ -129,7 +129,8 @@ it ships fleet-wide, pilot it with these rules:
 
 **The standard, on every kit branch:**
 
-- **A human approver.** `required_approving_review_count` of at least 1.
+- **One approving review.** `required_approving_review_count` of at least 1. A bot's approval counts:
+  Macroscope's on any PR, and `dependabot-report`'s on a Dependabot PR it judged safe.
 - **Branches up to date before merging.** `required_status_checks.strict: true`. Strict applies only
   against required checks, so it needs at least one: a check that runs on every PR: `validate / validate` where the repo carries `dependabot-validate`, else `actionlint` where it carries `lint.yml`. Never require a context the branch
   does not run; it blocks every merge.

@@ -31,7 +31,7 @@ place the version is recorded.
 |---|---|
 | `claude.yml` | The implementer, on private repos with the `agents-pipeline` topic; the reusable fails the run on a public repo. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line, a `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line. The model requests no reviewer. The dispatcher requests the ticket's reviewer at hand-off; on an issue with no Bonsai task the workflow requests its author. Either is requested only when driver-agents `pipeline/reviewers.json` lists them, and the no-ticket path falls back to `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
-| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment + human reviewer request. Passes the reusable its two secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
+| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment and `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. Passes the reusable its two secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
 | `dependabot-keep-current.yml` | Private repos. After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 
 ### Platform stubs (one platform each)
@@ -187,8 +187,8 @@ every merge.
    all** (e.g. a `pull_request` list without `synchronize`) — a required context with no check run
    is **missing**, not skipped, and blocks the merge indefinitely. (A job that *runs* and reports
    `skipped` is a different case; GitHub accepts that — reason from whether a check run exists for
-   the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
-   (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
+   the head commit, not from the word "skipped".) Require one approving review. A bot's approval
+   counts: Macroscope's on any PR, and `dependabot-report`'s on a Dependabot PR it judged safe.
 
 6. **Route tickets to it.** Once the repo carries `agents-pipeline` and `claude.yml` is live on the
    default branch, add the client's Bonsai

@@ -123,8 +123,9 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
   default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
   as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
-  the `shopify-theme.yml` reusable's preview gate and PR description link, and this repo's
-  `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own
+  the `shopify-theme.yml` reusable's preview gate and PR description link, `dependabot-report`'s
+  approval and verdict check (enabling auto-merge stays on the PAT, so the merge runs the push
+  workflows), and this repo's `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own
   `DRIVER_AGENTS_READ_TOKEN`, never an org secret, because this repo is public.
 - The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
   `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`

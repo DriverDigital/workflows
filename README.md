@@ -72,7 +72,7 @@ How a ticket becomes a merged change:
 |---|---|---|---|
 | `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer, on private repos only (it fails the run on a public one). An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
-| `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
+| `dependabot-report.yml` | PAT + OAuth token; write token (approval, check) | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 | `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link) and `read` (the preview gate) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
 | `vercel-deploy.yml` | the main deploy hook | `push` on `main` | Vercel sites: fires the main deploy hook when the pusher is outside the Vercel team. The build is staged; production is a promotion in Vercel. |
@@ -197,9 +197,17 @@ stub passes no `secrets:`, and the reusable declares none.
 `dependabot-report` holds the secrets and **never checks out or runs PR code**. It first asserts
 provenance (event `pull_request`, actor `dependabot[bot]`, a PR number, a same-repo head, and a
 validate run that succeeded or failed rather than cancelled), then its agent reads only the inert
-artifact (`build.log`, `result.json`, `registry.json`, `bumps.txt`) with `Read`, `Glob`, `Grep`
-and `Write` and no `gh`. Artifact content is never interpolated into a `run:` line. **Never use
-`pull_request_target`.**
+artifact (`build.log`, `result.json`, `registry.json`) and Dependabot's PR body and commit message
+with `Read`, `Glob`, `Grep` and `Write` and no `gh`. Artifact content is never interpolated into a
+`run:` line. **Never use `pull_request_target`.**
+
+The agent's verdict alone never merges. A trusted step approves the PR (as github-actions[bot],
+pinned to the validated commit) and enables auto-merge (with the PAT, so the merge commit's push
+workflows run) only when validate succeeded, the verdict is exactly `safe`, and every bump is a
+patch or minor npm update. It reads that last fact from Dependabot's own PR body and branch name
+through the API, never from the artifact, which install scripts could rewrite. A 0.x minor counts
+as a major. Majors and every other case wait for the reviewer. The `Dependabot verdict` check is
+not required in branch protection: human PRs never get one.
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
 `dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the reviewer
