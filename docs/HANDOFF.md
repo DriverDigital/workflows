@@ -33,14 +33,18 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **Each repo's `todo` to drop its Volta pin, stray `.nvmrc` or Shopify `engines.node`** (from #86)
-  can land now: CI builds on the kit's `.node-version`. A red implementer or validate build on a
-  repo that still pins Volta is most likely the repo's own Node problem. driver-onboarding#41 adds
-  mise to the setup docs.
+- **The Node-pin to-dos** (from #86) have merged everywhere but three open PRs: Kissy-Kissy#82,
+  R-Finds#55 and LittleMe#61. foundrae's `main-development` PR (#256) is also open; its theme push
+  fails on that branch's own files (`.shopifyignore` lacks `assets/.vite/*`, and
+  `templates/page.all_components.liquid` has a Liquid error). driver-onboarding#41 adds mise to the
+  setup docs.
+- **Stores at Shopify's 100-theme limit.** LittleMe hit it (LittleMe#61's push failed). While the
+  CLI 5 bug was live, every closed PR's cleanup failed too, so stale `DRIVER/<branch>` themes may
+  have piled up on other stores. Delete them in the admin; a push that fails on the limit clears on
+  a re-run.
 - **First wave of `lint.yml`** on driver-onboarding, vite-plugin-shopify-clean, plugins and
   client-workspaces: a red `actionlint` there is a finding in the repo's own workflows.
-- **After the v1.21.0 wave:** the first file Shopify rejects fails `theme / push` with a file annotation; the
-  first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
+- **After the v1.21.0 wave:** the first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
   first implementer PR on an issue with acceptance criteria has a How to QA section after its
   Bonsai line, pointed at the right preview for the repo's platform.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean's Dependabot
@@ -48,10 +52,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **`claude-standards.md` on the comment path** is unverified (the issues path loads it). Have a
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
-- **The first implementer run after the wave** must show `--model opus --advisor fable` in its log.
-- **The first implementer runs on Team-Laird and The-Gathery.** Team-Laird's build throws without
-  `SANITY_API_READ_TOKEN`, which the implementer never gets; Team-Laird#86 names the no-secrets build
-  in its `CLAUDE.md`. The-Gathery has no preview deploy, so its PRs carry QA steps with no preview link.
+- **Team-Laird and The-Gathery on the implementer.** Team-Laird's build throws without
+  `SANITY_API_READ_TOKEN`, which the implementer never gets; until Team-Laird#86 names the no-secrets
+  build in its `CLAUDE.md`, say so in the `@claude` request. The-Gathery has no preview deploy, so its
+  PRs carry QA steps with no preview link.
 - **Palmers' `DRIVER/main-ma`** was created afresh at the cutover: the push found no unpublished theme
   of that name, though July's deploy had updated one (id 163173007417). It was deleted, renamed or
   published; check the Morocco store's admin.
