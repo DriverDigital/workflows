@@ -93,8 +93,9 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
 - **Figma designs on a PR** — When a PR implements a Figma design, put the design link in its
   description and add the `figma` label (`gh pr create --label figma`, or `gh pr edit <n> --add-label
   figma`): Macroscope runs its design fidelity check only on PRs with that label. If you cannot add
-  it, tell the person to. The check trusts a link in the description only when an org member or the
-  implementer opened the PR; anyone else also puts the link on the Bonsai ticket.
+  it, tell the person to. The check reads a link in the PR description only when an organisation
+  member opened the PR; the implementer's link counts through its issue. For anyone else, put the
+  link on the Bonsai ticket.
 - **Client team memory** — A client repo's `CLAUDE.md` links the client's folder in the Clients
   shared drive, where driver-skills' `team-memory` keeps the client's CLAUDE, HANDOFF, MEMORY and
   ARTIFACTS docs; each repo adds its own link. Read them for client context when useful. When a
