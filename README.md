@@ -21,7 +21,7 @@ subset of these conventions: [`CLAUDE.md`](CLAUDE.md).
 | Repo | Role |
 |---|---|
 | **workflows** (this repo, public) | The GitHub rails the fleet runs (the implementer, Dependabot, platform deploys) and the kit each repo takes by its tier. |
-| [**driver-agents**](https://github.com/DriverDigital/driver-agents) (private) | The pipeline dispatcher, the Shopify admin-tool wrapper and the canonical Shopify instructions (the implementer clones its `main`), the read-only Figma and Bonsai MCP servers, the Macroscope Check Run agent prompts and the nightly audit publisher. |
+| [**driver-agents**](https://github.com/DriverDigital/driver-agents) (private) | The pipeline dispatcher, the Shopify admin-tool wrapper and the canonical Shopify instructions (the implementer clones its `main`), the read-only Figma and Bonsai MCP servers, Macroscope's policy (`.macroscope/`: the ignore file and Check Run agents every repo inherits) and the nightly audit publisher. |
 | [**driver-engineering-app**](https://github.com/DriverDigital/driver-engineering-app) (private) | The "Driver Engineering" Shopify app installed in each client org. Its client id and secret are the credentials the implementer's store tooling mints Admin API tokens from, and its app home shows clients what the agents did. |
 
 How a ticket becomes a merged change:
@@ -122,6 +122,8 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   repo's tier either: that is a PR on the repo.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
   Dependabot also bumps the stub pins on a repo the wave skipped. It scans the default branch only.
+  A pin bump moves only the SHA, so a release that changes a stub's permissions or secrets (v1.22.0's
+  report stub did) must go by the wave: close Dependabot's bump of that stub rather than merge it.
 - **The audit proves convergence.** `tools/fleet-pin-audit.sh` compares every deployed pin and kit
   file against the latest tag and `templates/`, and exits non-zero on any drift.
 
@@ -208,14 +210,16 @@ with `Read`, `Glob`, `Grep` and `Write` and no `gh`. Artifact content is never i
 The agent's verdict alone never merges. A trusted step approves the PR (as github-actions[bot],
 pinned to the validated commit) and enables auto-merge (with `DEPENDABOT_MERGE_TOKEN`, so the merge
 commit's push workflows run) only when validate succeeded, the verdict is exactly `safe`, and every bump is a
-patch or minor npm update. It reads that last fact from Dependabot's own PR body and branch name
-through the API, never from the artifact, which install scripts could rewrite. A 0.x minor counts
-as a major. Majors and every other case wait for the reviewer. The `Dependabot verdict` check is
+patch or minor npm update. It reads that last fact from Dependabot's own PR body, branch name and
+commit message through the API, never from the artifact, which install scripts could rewrite. A 0.x
+minor, any 0.0.x change and a prerelease count as majors, and a body whose bumps do not match the
+commit's dependency list (Dependabot truncated it) is not eligible. Majors and every other case wait
+for the reviewer. The `Dependabot verdict` check is
 not required in branch protection: human PRs never get one.
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
-`dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the reviewer
-request. The reviewer is `mcarter-astronautdev` unless the repo sets the `PR_REVIEWER_HANDLE`
+`dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the report:
+no verdict, no approval, no auto-merge and no reviewer request. The reviewer is `mcarter-astronautdev` unless the repo sets the `PR_REVIEWER_HANDLE`
 variable, which also names the implementer's reviewer on an issue with no Bonsai task.
 
 ### Per-repo validation override (`.github/agent-validate.json`)
