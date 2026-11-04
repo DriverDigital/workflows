@@ -6,21 +6,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **The `next-release` branch** carries #99's docs, #129 and #85 (the Dependabot verdict check, approval and
-  auto-merge), #142, #143 (the wave stops installing check-run agents and deletes their copies),
-  #144 (the `figma` label) and #145 (client team memory in the house standards). It needs a tag and
-  a wave: the report reusable and its stub changed together.
-
-## Release gates, in order
-
-1. **Release by the wave only.** The report stub gains `checks: write` and a third secret, and a
-   called workflow cannot widen its caller, so a Dependabot pin bump of `dependabot-report.yml` to
-   the new tag breaks the report there. Close those Dependabot PRs; the wave writes the stubs whole.
-2. **Canary one repo** (`--only`), then check its next safe patch or minor npm PR: the
-   `Dependabot verdict` check, github-actions[bot]'s approval, the merge by
-   `DEPENDABOT_MERGE_TOKEN`, the push workflows on the merge commit (the `DRIVER/main` theme push or
-   Vercel hook, `close-linked-issues`, keep-current). A merge that starts no push run means the
-   token is wrong. Then wave the rest.
+- **v1.22.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Safe patch and
+  minor npm Dependabot PRs now approve and merge themselves on private kit repos (README, *The
+  Dependabot security split*). Avara#264 went through end to end: verdict check, github-actions[bot]
+  approval, the merge by `driver-digital-agents`, and the `Shopify theme` push on the merge commit.
+- **Docs elsewhere** describe the old behaviour: driver-onboarding#46 and plugins#62.
 
 ## Blocked or gated
 
@@ -39,9 +29,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **Dependabot PRs after the wave.** A grouped PR whose body Dependabot truncated, or whose head is a
-  merge from "Update branch", waits for a person by design. Avara#263 and Palmers#175 lost their old
-  Macroscope approvals when the ruleset went live; the next verdict decides #263, and #175 is a major.
+- **The first auto-merges on the other repos.** A grouped PR whose body Dependabot truncated, or whose
+  head is a merge from "Update branch", waits for a person by design. A merge that starts no push run
+  on its merge commit means `DEPENDABOT_MERGE_TOKEN` lost its org approval or its access.
 - **The Node-pin to-dos** (from #86) have merged everywhere but three open PRs: Kissy-Kissy#82,
   R-Finds#55 and LittleMe#61. foundrae's `main-development` PR (#256) is also open; its theme push
   fails on that branch's own files (`.shopifyignore` lacks `assets/.vite/*`, and
@@ -75,10 +65,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
-- **Figma fidelity runs need the `figma` label only after this release's wave** deletes the theme
-  repos' agent copies, which have no label filter and override the policy file. A PR opened before
-  the wave keeps the old copy on its branch until it merges its base. After that, the first ticket
-  with a design should show the label on its PR and one fidelity check.
+- **Figma fidelity runs need the `figma` label.** A theme PR opened before the v1.22.0 wave keeps the
+  old, unlabelled agent copy on its branch until it merges `main`. The first ticket with a design
+  should show the label on its PR and one fidelity check.
 - **A PR whose head is `main` or a `main-*` branch** would delete that branch's own `DRIVER/<branch>`
   theme when it closes: `shopify-theme.yml`'s cleanup deletes every non-live theme named after the
   head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
@@ -87,9 +76,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. The release gates above, then the release (README, *Release + repin order*).
-2. Each client repo adds its team-memory folder link to `CLAUDE.md` by hand (#145 stays open for it).
-3. Settle the open decisions above.
+1. Each client repo adds its team-memory folder link to `CLAUDE.md` by hand (#145).
+2. Settle the open decisions above.
 
 ## Pointers
 
