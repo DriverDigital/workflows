@@ -27,9 +27,9 @@
 #                                                 templates/github/node-version/<platform>
 #   bonsai-status-sync.yml                     <- deleted if present (not a kit file)
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (an unused theme deploy workflow)
-#   AGENT_FILES (tools/kit-platforms.sh)       <- private Shopify repos only: written to
-#                                                 .macroscope/check-run-agents/ from driver-agents
-#                                                 main; RETIRED_AGENT_FILES deleted there if present
+#   RETIRED_AGENT_FILES (tools/kit-platforms.sh) <- deleted from .macroscope/check-run-agents/ on
+#                                                 Shopify repos (the agents inherit from driver-agents)
+#   the figma label                            <- created or updated on every target repo
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -128,8 +128,6 @@ dest() {
 
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
-mkdir "$TMP/agents"
-fetch_agents "$TMP/agents" || { echo "could not read the check-run agents from driver-agents main" >&2; exit 2; }
 
 api() { gh api "$@"; }
 # A typo in --skip would skip nothing and wave the repo it was meant to spare — the one outcome the
@@ -353,22 +351,8 @@ plan_and_push() {
     fi
   done
 
-  # Check-run agents: private Shopify repos only, installed where missing and refreshed where present.
+  # Retired check-run agent copies, which would override driver-agents' policy files.
   if agent_platform "$plat"; then
-    for f in "${AGENT_FILES[@]}"; do
-      ft=$(file_tier "$f")
-      if ! tier_allows "$tier" "$ft"; then
-        if grep -qxF "$(dest "$f")" <<<"$existing"; then
-          echo "  $repo@$branch $f: a $ft-tier file on a $tier repo" >&2
-          BLOCKED=1
-        fi
-        continue
-      fi
-      cur="$tmp/deployed-$f"; : > "$cur"
-      if grep -qxF "$(dest "$f")" <<<"$existing"; then raw "$repo" "$branch" "$f" > "$cur"; fi
-      cp "$TMP/agents/$f" "$tmp/$f"
-      cmp -s "$cur" "$tmp/$f" || { tree+=("$f"); changes=1; echo "  write  $f"; }
-    done
     for f in "${RETIRED_AGENT_FILES[@]}"; do
       if grep -qxF "$(dest "$f")" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f"; fi
     done
@@ -436,10 +420,18 @@ if [ "$DRY" -eq 0 ]; then
   [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
 fi
 n=0
+labelled=" "
 while read -r repo branch plat tier found; do
   [ -n "$repo" ] || continue
   echo "== $repo@$branch ($plat, $tier$([ "$found" = kit ] || echo ", no kit yet"))"
   plan_and_push "$repo" "$branch" "$plat" "$tier" "$found"; n=$((n+1))
+  # Macroscope's design fidelity check runs only on PRs labelled figma, so every kit repo has the label.
+  if [ "$DRY" -eq 0 ] && [[ "$labelled" != *" $repo "* ]]; then
+    gh label create figma --repo "$ORG/$repo" --color A259FF --force \
+      --description "Runs Macroscope's Figma design fidelity check on this PR" >/dev/null \
+      || echo "  $repo: could not create the figma label" >&2
+    labelled="$labelled$repo "
+  fi
 done <<<"$TARGETS"
 echo "targets: $n"
 [ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }

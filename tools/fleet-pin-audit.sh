@@ -14,7 +14,7 @@
 #
 # Scans every non-archived DriverDigital repo's .github/, .claude/settings.json, the root .node-version
 # (and, on Vercel repos, package.json's engines.node major beside it) and, on Shopify repos,
-# .macroscope/check-run-agents/, whose files are compared with driver-agents main (default branch,
+# .macroscope/check-run-agents/ for retired agent copies, which would override driver-agents' policy files (default branch,
 # plus, when that is main, every main-* branch — Palmers installs the kit per country branch, foundrae
 # on main-development). Kit files on a repo without the driver-kit topic are listed apart as unenrolled and
 # never count as drift. A platform file on a repo whose topic names another platform, or none, and a file
@@ -72,9 +72,6 @@ reference="$(
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-mkdir "$TMP/agents"
-fetch_agents "$TMP/agents" \
-  || { echo "FATAL: could not read the check-run agents from driver-agents main — this run proves nothing." >&2; exit 2; }
 
 content_row() {  # repo ref file [kit source, default $KIT/file] — $TMP/raw holds the deployed bytes
   local repo="$1" ref="$2" f="$3" src="${4:-$KIT/$3}"
@@ -179,28 +176,11 @@ scan_ref() {  # repo ref platform tier is_default
       echo "CONTENT $repo@$ref $f DRIFT missing"
     fi
   done
-  # Check-run agents, on Shopify repos of the private tier, compared with driver-agents main.
-  local macro="" agents="" listed=1
+  # Retired check-run agent copies: one left behind overrides driver-agents' policy file.
   if agent_platform "$plat" && grep -qx "dir .macroscope" <<<"$root"; then
-    macro="$(gh api "repos/$ORG/$repo/contents/.macroscope?ref=$ref" --jq '.[] | "\(.type) \(.name)"' 2>/dev/null)" || listed=0
-    if [ "$listed" = 1 ] && grep -qx "dir check-run-agents" <<<"$macro"; then
-      agents="$(gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents?ref=$ref" --jq '.[].name' 2>/dev/null)" || listed=0
-    fi
-  fi
-  if agent_platform "$plat" && [ "$listed" = 1 ]; then
-    for f in "${AGENT_FILES[@]}"; do
-      ft="$(file_tier "$f")"
-      if grep -qx "$f" <<<"$agents"; then
-        if ! tier_allows "$tier" "$ft"; then
-          echo "CONTENT $repo@$ref $f DRIFT tier: a $ft-tier file on a $tier repo"
-        else
-          gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents/$f?ref=$ref" \
-            -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
-            && content_row "$repo" "$ref" "$f" "$TMP/agents/$f"
-        fi
-      elif [ "$waved" = 1 ] && tier_allows "$tier" "$ft"; then
-        echo "CONTENT $repo@$ref $f DRIFT missing"
-      fi
+    agents="$(gh api "repos/$ORG/$repo/contents/.macroscope/check-run-agents?ref=$ref" --jq '.[].name' 2>/dev/null)" || agents=""
+    for f in "${RETIRED_AGENT_FILES[@]}"; do
+      if grep -qx "$f" <<<"$agents"; then echo "CONTENT $repo@$ref $f DRIFT retired: overrides the policy repo's copy"; fi
     done
   fi
   # .github/dependabot.yml and .node-version are compared only where the wave writes them: an

@@ -18,12 +18,10 @@ PRIVATE_FILES=(dependabot-report.yml dependabot-keep-current.yml shopify-theme.y
 PIPELINE_FILES=(claude.yml shopify-tool-smoke.yml pr-bonsai-link.yml pull_request_template.md)
 SHOPIFY_FILES=(shopify-tool-smoke.yml shopify-theme.yml)
 VERCEL_FILES=(vercel-deploy.yml)
-# Macroscope check-run agents, written to .macroscope/check-run-agents/ on private Shopify repos (the
-# private tier). The wave and the audit read them from driver-agents main; this repo holds no copy.
-# The agents are stack-specific, so a Vercel one needs its own list here.
-AGENT_FILES=(figma-design-fidelity-shopify.md)
-# Agent files the wave deletes where present.
-RETIRED_AGENT_FILES=(figma-design-fidelity.md)
+# Macroscope check-run agents reach every repo from driver-agents, Macroscope's policy repo, so the
+# kit carries none. A repo's own copy at the same path would override the policy file: the wave
+# deletes these from .macroscope/check-run-agents/ on Shopify repos, and the audit reports one found.
+RETIRED_AGENT_FILES=(figma-design-fidelity.md figma-design-fidelity-shopify.md)
 
 # The platform a kit file belongs to, or nothing for the shared kit.
 file_platform() {
@@ -32,16 +30,7 @@ file_platform() {
 }
 
 agent_platform() { [ "$1" = shopify ]; }
-is_agent() { case " ${AGENT_FILES[*]} ${RETIRED_AGENT_FILES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
-
-# Fetch every check-run agent from driver-agents main into directory $1; non-zero if any read fails.
-fetch_agents() {
-  local f
-  for f in "${AGENT_FILES[@]}"; do
-    gh api "repos/DriverDigital/driver-agents/contents/.macroscope/check-run-agents/$f" \
-      -H 'Accept: application/vnd.github.raw' > "$1/$f" || return 1
-  done
-}
+is_agent() { case " ${RETIRED_AGENT_FILES[*]} " in *" $1 "*) return 0 ;; esac; return 1; }
 
 # Whether a repo takes the kit, from its topics (space- or newline-separated).
 topics_enrolled() {
@@ -61,7 +50,6 @@ repo_tier() {  # is_private topics
 
 # The tier a kit file needs: standards (every kit repo), private or pipeline.
 file_tier() {
-  if is_agent "$1"; then echo private; return; fi
   case " ${PIPELINE_FILES[*]} " in *" $1 "*) echo pipeline; return ;; esac
   case " ${PRIVATE_FILES[*]} " in *" $1 "*) echo private; return ;; esac
   echo standards

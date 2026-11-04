@@ -25,9 +25,10 @@ Two files in `.github/workflows/` are this repo's own CI, not products: `lint.ym
 `dependabot-auto-merge.yml`. **`.github/workflows/lint.yml` and `templates/github/lint.yml` are
 different files** with the same name and the same job id `actionlint` (the required-check context).
 
-PR review is Macroscope's, org-wide. Claude reviews a PR only when a person `@claude`s it. The
-implementer's own `/code-review` pass before it opens a PR is implementing — keep it. Never add an
-automatic Claude review of an opened PR.
+PR review is Macroscope's, org-wide, except Dependabot PRs, which Macroscope skips:
+`dependabot-report`'s verdict is their review and approves the safe patch and minor ones. Otherwise
+Claude reviews a PR only when a person `@claude`s it. The implementer's own `/code-review` pass before
+it opens a PR is implementing — keep it. Never add an automatic Claude review of any other PR.
 
 ## Commands
 
@@ -66,7 +67,7 @@ clean and then audits as stale everywhere.
 
 A new reusable's stub lands in step 2 of the release that tags it, never in the PR that adds the
 reusable. A kit-only change needs no tag and no wave. A driver-agents change to a check-run agent
-reads as audit drift until a wave from `main` with `--message` carries it. Wave mechanics:
+needs neither: repos inherit it from driver-agents, Macroscope's policy repo. Wave mechanics:
 `docs/fleet-operations.md`.
 
 ## Invariants that fail silently
@@ -83,8 +84,9 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   `lint.yml` compares it with driver-agents `main`, whitespace collapsed (the copy flattens one
   paragraph break); a red check there means re-copy, then release.
 - The implementer and the kit's `shopify-tool-smoke.yml` clone driver-agents `main` for the Shopify
-  admin tool, and the wave and the audit read the check-run agents (`AGENT_FILES` in
-  `tools/kit-platforms.sh`) from it too: driver-agents' PR review is the only gate on that code. The
+  admin tool, and Macroscope reads its `.macroscope/` as the policy every repo inherits:
+  driver-agents' PR review is the only gate on that code and config. The wave deletes the retired
+  agent copies (`RETIRED_AGENT_FILES` in `tools/kit-platforms.sh`) that would override it. The
   store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store
   tooling. The implementer also reads `pipeline/reviewers.json` from it (`.reviewers[].login`); a
   renamed key or a failed read falls back to `PR_REVIEWER_HANDLE` with a warning and a green run.
@@ -121,10 +123,11 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   the run when the collaborator list cannot be read — never fall back to an empty filter, which
   includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
-  default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
-  as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
-  the `shopify-theme.yml` reusable's preview gate and PR description link, and this repo's
-  `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own
+  default token: `claude.yml`'s trusted-authors check, its no-PR check, its `figma` label step and its
+  failed-run notice (posts as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
+  the `shopify-theme.yml` reusable's preview gate and PR description link, `dependabot-report`'s
+  verdict comment (Claude's text: a PAT-authored `@claude` in it would pass the implementer's actor
+  gate), check and approval, and this repo's `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own
   `DRIVER_AGENTS_READ_TOKEN`, never an org secret, because this repo is public.
 - The `claude.yml` stub's `issue_comment` and `pull_request_review_comment` triggers stay
   `types: [created]`. The implementer's final answer edits its own comment; subscribing to `edited`

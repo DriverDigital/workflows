@@ -58,11 +58,11 @@ link. Promoting it (the deployment's Promote action, or `vercel promote <url>`) 
 live without rebuilding. Undoing an Instant Rollback (Undo Rollback, or `vercel promote` during a
 rollback) turns auto-assign back on; turn it off again right after.
 
-Every long-lived branch, on every platform, requires branches to be up to date before merging
-(`required_status_checks.strict: true`). Strict compares only against required checks, so it does
-nothing on a branch with none: set it together with at least one required check (kit README, install
-step 5). One org ruleset will enforce it (#99). Until then, how to set it per repo:
-[fleet operations](fleet-operations.md#branch-protection).
+Every long-lived branch, on every platform, requires branches to be up to date before merging. Up to
+date compares only against required checks, so it does nothing on a branch with none. The org ruleset
+*Driver branch rules* enforces it on the default branch and every `main-*`
+branch, with `validate / validate` as the required check
+([fleet operations](fleet-operations.md#branch-protection)).
 
 An enrolled repo with no platform topic takes no platform files and no `.node-version`, as the
 internal tools do. The-Gathery
@@ -191,12 +191,9 @@ have its own.
      studio. A registered studio syncs its schema into the dataset, and the staged one would
      overwrite the live schema before the promotion.
    - The open PRs target `main`.
-   - `main` requires one review. The rename carries `develop`'s or `staging`'s rule over; set it
-     where none came across (Team-Laird, whose `develop` is unprotected, and every repo already on
-     `main` that lacks it, Palmers' `main*` branches included).
-   - `main` requires at least one check and up-to-date branches ([The standards](#the-standards)).
-     The rename carries `develop`'s protection over, so a branch that lacked strict still lacks it.
-     On Palmers, set it on every `main*` branch.
+   - Set the repo's `driver-ruleset` property, so the org ruleset protects `main` (and any `main-*`
+     branch), then delete the classic protection the rename carried over from `develop` or
+     `staging` ([fleet operations](fleet-operations.md#branch-protection)).
    - `tools/fleet-pin-audit.sh` shows the repo's row.
    - Close the repo's cutover to-do.
 8. **Every clone,** each engineer's included. Check a local `main` for unpushed work first, since

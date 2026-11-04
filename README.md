@@ -33,10 +33,10 @@ How a ticket becomes a merged change:
    person with a `⚠️ Needs a human:` comment.
 3. The repo's **`claude.yml`** (the implementer, on private repos with the `agents-pipeline` topic) branches `issue-<n>` from the issue's
    `Target branch:` line, else the repo's default branch, implements, pre-reviews its own diff with `/code-review`, and opens a PR whose
-   body carries `Closes #n`, `Bonsai task: <url>`, a `How to QA` section when the issue states
-   acceptance criteria, and a `Pre-review:` line.
-4. **Macroscope** reviews every PR in the org. It is the only automatic reviewer; Claude reviews a PR
-   only when a person `@claude`s it.
+   body carries `Closes #n`, `Bonsai task: <url>`, a `Figma:` line when the issue links a design, a
+   `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line.
+4. **Macroscope** reviews every PR in the org except Dependabot's, whose review is
+   `dependabot-report`'s verdict. Otherwise Claude reviews a PR only when a person `@claude`s it.
 5. The dispatcher runs the **revise loop**: while Macroscope has unresolved findings it posts a
    tag-mode `@claude` on the PR, up to three turns, and hands anything still flagged to a person.
 6. The dispatcher moves the task to **Internal Review**, assigns it to the reviewer the ticket names
@@ -72,7 +72,7 @@ How a ticket becomes a merged change:
 |---|---|---|---|
 | `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer, on private repos only (it fails the run on a public one). An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
-| `dependabot-report.yml` | PAT + OAuth token | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and requests a human reviewer. |
+| `dependabot-report.yml` | PAT + OAuth token; write token (approval, check) | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed | After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 | `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link) and `read` (the preview gate) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
 | `vercel-deploy.yml` | the main deploy hook | `push` on `main` | Vercel sites: fires the main deploy hook when the pusher is outside the Vercel team. The build is staged; production is a promotion in Vercel. |
@@ -101,7 +101,7 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   | Tier | Repos | Kit files |
   |---|---|---|
   | standards | every `driver-kit` repo | `claude-standards.md`, `lint.yml`, `dependabot.yml`, `.node-version`, `close-linked-issues.yml`, `dependabot-validate.yml`, the `.claude/settings.json` attribution keys |
-  | private | private repos | the standards, plus `dependabot-report.yml`, `dependabot-keep-current.yml`, the platform stubs and the check-run agents |
+  | private | private repos | the standards, plus `dependabot-report.yml`, `dependabot-keep-current.yml` and the platform stubs |
   | pipeline | private repos with `agents-pipeline` | everything, adding `claude.yml`, `shopify-tool-smoke.yml`, `pr-bonsai-link.yml` and the PR template |
 
   A platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files a
@@ -115,8 +115,9 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   carries and adds every file the tier and platform allow that it lacks: `.github/dependabot.yml`
   from the variant `tools/kit-platforms.sh` picks (and the Dependabot stubs with it), the root
   `.node-version` from `templates/github/node-version/<platform>`, the `.claude/settings.json`
-  attribution keys, and on private Shopify repos the check-run agents, read from driver-agents
-  `main`. It never adds a platform stub or `shopify-tool-smoke.yml`, which need the repo's secrets
+  attribution keys. It deletes the retired check-run agent copies from Shopify repos: Macroscope's
+  check-run agents and ignore file reach every repo from driver-agents, its policy repo, and a copy
+  in the repo would override them. It never adds a platform stub or `shopify-tool-smoke.yml`, which need the repo's secrets
   first; those arrive with the repo's canary or cutover commit. It never deletes a file above a
   repo's tier either: that is a PR on the repo.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
@@ -149,9 +150,9 @@ kit's `attribution` keys.
 deployed has to move, and the change rides with the next release. Cutting a tag is what creates the
 obligation to wave, because the audit compares every stub against the latest tag. The audit also
 compares each deployed kit file against `templates/`, so between a kit-only merge and the next wave
-it reports content drift on the changed files; that is expected and clears with the wave. The
-check-run agents are compared with driver-agents `main` instead, so a change merged there reads as
-drift until a wave from `main` with `--message` carries it; no tag is needed.
+it reports content drift on the changed files; that is expected and clears with the wave. A
+check-run agent change merged in driver-agents reaches every repo through Macroscope's policy
+inheritance, with no wave.
 
 ## Action refs
 
@@ -169,19 +170,22 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
 - **`claude[bot]`** (the Claude GitHub App, installed org-wide) implements: it authors branches,
   commits and PRs.
 - **`driver-digital-agents`** (`AGENTS_GH_PAT`) dispatches: it authors the dispatcher's issues and
-  revise-loop `@claude` comments, `dependabot-report`'s verdict and reviewer request, and
+  revise-loop `@claude` comments, `dependabot-report`'s reviewer request, and
   `dependabot-keep-current`'s rebase requests. The implementer uses it in its store-provisioning
   step, to clone driver-agents and read the issue for the audit's ticket context, and to request a
   reviewer on an issue with no Bonsai task; `shopify-tool-smoke.yml` uses it for the same clone.
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
-  is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, the
-  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link, and this
-  repo's `dependabot-auto-merge.yml`.
+  is not needed: `claude.yml`'s trusted-authors check, its no-PR check, its `figma` label step and its failed-run notice, the
+  kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link,
+  `dependabot-report`'s verdict comment, check and approval, and this repo's `dependabot-auto-merge.yml`.
 
 Org-level Actions secrets, visible to every private repo and to no public one, so a new private repo
 needs no secret setup: `CLAUDE_CODE_OAUTH_TOKEN` (subscription billing), `AGENTS_GH_PAT`,
-`FIGMA_MCP_SECRET` and `SHOPIFY_ALERT_WEBHOOK`. `BONSAI_API_KEY` (the dispatcher's) goes to selected
+`FIGMA_MCP_SECRET`, `SHOPIFY_ALERT_WEBHOOK` and `DEPENDABOT_MERGE_TOKEN`. The last is a second
+`driver-digital-agents` fine-grained PAT with Contents and Pull requests write, so it can merge; only
+the `dependabot-report` stub passes it, to enable auto-merge on a safe verdict, and `AGENTS_GH_PAT`
+stays unable to push code. `BONSAI_API_KEY` (the dispatcher's) goes to selected
 repos only. Store repos add their own store
 secrets and the `SHOPIFY_STORE_NAME` variable (kit README, install step 2). This repo's own
 `lint.yml` reads driver-agents with `DRIVER_AGENTS_READ_TOKEN`, a repository secret: a fine-grained
@@ -197,9 +201,17 @@ stub passes no `secrets:`, and the reusable declares none.
 `dependabot-report` holds the secrets and **never checks out or runs PR code**. It first asserts
 provenance (event `pull_request`, actor `dependabot[bot]`, a PR number, a same-repo head, and a
 validate run that succeeded or failed rather than cancelled), then its agent reads only the inert
-artifact (`build.log`, `result.json`, `registry.json`, `bumps.txt`) with `Read`, `Glob`, `Grep`
-and `Write` and no `gh`. Artifact content is never interpolated into a `run:` line. **Never use
-`pull_request_target`.**
+artifact (`build.log`, `result.json`, `registry.json`) and Dependabot's PR body and commit message
+with `Read`, `Glob`, `Grep` and `Write` and no `gh`. Artifact content is never interpolated into a
+`run:` line. **Never use `pull_request_target`.**
+
+The agent's verdict alone never merges. A trusted step approves the PR (as github-actions[bot],
+pinned to the validated commit) and enables auto-merge (with `DEPENDABOT_MERGE_TOKEN`, so the merge
+commit's push workflows run) only when validate succeeded, the verdict is exactly `safe`, and every bump is a
+patch or minor npm update. It reads that last fact from Dependabot's own PR body and branch name
+through the API, never from the artifact, which install scripts could rewrite. A 0.x minor counts
+as a major. Majors and every other case wait for the reviewer. The `Dependabot verdict` check is
+not required in branch protection: human PRs never get one.
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
 `dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the reviewer
@@ -233,4 +245,5 @@ created, and a required context with no check run for the head commit blocks the
 GitHub does accept a check run that concludes `skipped`; what matters is whether a check run exists for
 the head SHA.
 
-Which exact context to require, with up-to-date branches and a human approver: kit README, install step 5.
+The org ruleset requires `validate / validate`, up-to-date branches and one approving review on every
+kit branch: [fleet operations](docs/fleet-operations.md#branch-protection).

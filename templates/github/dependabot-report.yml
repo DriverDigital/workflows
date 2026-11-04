@@ -1,7 +1,8 @@
 name: Dependabot report
 
-# Caller stub: after Dependabot validate completes, the privileged reusable reads its build log,
-# posts a verdict and requests a reviewer. The run context goes in as inputs because the reusable's
+# Caller stub: after Dependabot validate completes, the privileged reusable reads its build log and
+# posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm
+# update approves the PR and enables auto-merge; anything else requests a reviewer. The run context goes in as inputs because the reusable's
 # provenance check is written against them.
 
 on:
@@ -11,6 +12,7 @@ on:
 
 permissions:
   pull-requests: write
+  checks: write
   actions: read
 
 concurrency:
@@ -27,8 +29,9 @@ jobs:
       validate-conclusion: ${{ github.event.workflow_run.conclusion }}
       workflow-event: ${{ github.event.workflow_run.event }}
       triggering-actor: ${{ github.event.workflow_run.actor.login }}
-    # A map, not inherit: this job runs Claude over a Dependabot build log, so it gets only the two
+    # A map, not inherit: this job runs Claude over a Dependabot build log, so it gets only the
     # secrets it uses, never a repo's own (driver-agents holds Bonsai and store credentials).
     secrets:
       AGENTS_GH_PAT: ${{ secrets.AGENTS_GH_PAT }}
       CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      DEPENDABOT_MERGE_TOKEN: ${{ secrets.DEPENDABOT_MERGE_TOKEN }}

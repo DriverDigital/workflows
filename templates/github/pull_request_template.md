@@ -10,6 +10,10 @@ Bonsai task: <url> | none
      Give each issue its own keyword (`Closes #1, closes #2`): GitHub closes only the issue right
      after one. -->
 
+**Figma:** <link>
+<!-- The design this PR implements, and add the `figma` label so Macroscope runs the design fidelity
+     check. Delete the line when there is no design. -->
+
 ## Testing
 <!-- how this was verified -->
 

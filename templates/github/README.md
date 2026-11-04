@@ -14,7 +14,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 | `pr-bonsai-link.yml` | `.github/workflows/pr-bonsai-link.yml` — repos on the agents pipeline | Checks the Bonsai link in a PR body. A PR body that never mentions `hellobonsai.com` is skipped (grey, never red). The PR template mentions it, so a templated PR reads red until its `Bonsai task:` line is filled in. One that mentions it must carry an `app.hellobonsai.com/tasks/<uuid>` URL, a board link ending `task=<uuid>`, or `Bonsai task: none`. Check-run context is the job id, **`bonsai-link`**. |
 | `close-linked-issues.yml` | `.github/workflows/close-linked-issues.yml` — every kit repo | On a PR merged into a `main-*` branch (Palmers' country branches), closes the open issues its body names with a closing keyword (`Closes #N`), which GitHub honours only on the default branch. Not a required check. |
 | `pull_request_template.md` | `.github/pull_request_template.md` — repos on the agents pipeline | Gives human PRs the `Bonsai task: <url> \| none` line `bonsai-link` checks for, and prompts them to **link the Bonsai issue** (`Closes #N`) so the dispatcher can resolve the task. AI PRs write both themselves. |
-| `claude-standards.md` | `.github/claude-standards.md` — every kit repo | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, docs shipping with the change, branches and PRs, comments on a PR, closing issues, theme editor changes on a preview, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. |
+| `claude-standards.md` | `.github/claude-standards.md` — every kit repo | The house standards: commits, comments, to-dos, `docs/HANDOFF.md`, docs shipping with the change, branches and PRs, comments on a PR, closing issues, theme editor changes on a preview, Figma designs on a PR, client team memory, `ponytail:` comments, subagents, replies. The repo's `CLAUDE.md` imports it with `@.github/claude-standards.md` (replacing any pasted copy). On a PR run the import resolves to the PR head's copy, so it carries style only. |
 | `claude-settings.json` | `.claude/settings.json` — every kit repo | Shared Claude Code project settings: turns off the commit `Co-Authored-By` trailer and the PR "Generated with" footer in interactive sessions (CI sets the same keys). The kit owns only its `attribution` keys: the wave merges them into a repo's existing file and the audit compares only them, so the repo keeps the rest. |
 | `shopify-tool-smoke.yml` | `.github/workflows/` — Shopify repos with a store, on the agents pipeline | Manual (`workflow_dispatch`) diagnostic for the Shopify admin tool: secrets → `driver-agents` clone of `main` → token mint → Admin API, read-only. Fails **loudly** where `claude.yml` degrades — that's the point. |
 | `dependabot/<variant>.yml` | `.github/dependabot.yml` — every kit repo | The Dependabot config, one whole file per kind of repo: `npm.yml` (a root `package.json`), `actions.yml` (no root `package.json`; every kit repo has workflows once waved), and one per repo with its own exceptions (`driver-agents.yml`, `vite-plugin-shopify-clean.yml`). `tools/kit-platforms.sh` picks the variant; a new exception becomes a variant, not a hand edit. Its `github-actions` block is also the updater for the stub pins, which nothing else bumps between waves. |
@@ -29,9 +29,9 @@ place the version is recorded.
 
 | File | Rail |
 |---|---|
-| `claude.yml` | The implementer, on private repos with the `agents-pipeline` topic; the reusable fails the run on a public repo. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line, a `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line. The model requests no reviewer. The dispatcher requests the ticket's reviewer at hand-off; on an issue with no Bonsai task the workflow requests its author. Either is requested only when driver-agents `pipeline/reviewers.json` lists them, and the no-ticket path falls back to `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
+| `claude.yml` | The implementer, on private repos with the `agents-pipeline` topic; the reusable fails the run on a public repo. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line, a `Figma:` line when the issue links a design, a `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line. When the issue carries the `figma` label, the workflow adds it to the PR, so Macroscope runs its design fidelity check; the wave creates the label in every kit repo. The model requests no reviewer. The dispatcher requests the ticket's reviewer at hand-off; on an issue with no Bonsai task the workflow requests its author. Either is requested only when driver-agents `pipeline/reviewers.json` lists them, and the no-ticket path falls back to `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
-| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment + human reviewer request. Passes the reusable its two secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
+| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment and `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. Passes the reusable its three secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
 | `dependabot-keep-current.yml` | Private repos. After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 
 ### Platform stubs (one platform each)
@@ -49,8 +49,9 @@ already carries it; the first copy comes from the repo's canary or cutover commi
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
 | `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
-**PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org,
-and the dispatcher's revise loop answers its findings. Claude reviews a PR only when a person
+**PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org
+except Dependabot's (`dependabot-report`'s verdict reviews those), and the dispatcher's revise loop
+answers its findings. Otherwise Claude reviews a PR only when a person
 `@claude`s it (optionally naming `/code-review`); the implementer's own `/code-review` pass before it
 opens a PR is part of implementing. A repo outside the org gets no automatic review. How Macroscope
 behaves on a PR: [`../../README.md`](../../README.md#macroscope-on-a-pr).
@@ -91,10 +92,13 @@ every merge.
      (subscription billing). Keep any `ANTHROPIC_API_KEY` secret OUT of these repos — it would
      override the OAuth token and bill at API rates.
    - `AGENTS_GH_PAT` — the `driver-digital-agents` fine-grained PAT: `GH_TOKEN` for
-     `dependabot-report`'s verdict comment and reviewer request, `dependabot-keep-current`'s rebase
+     `dependabot-report`'s reviewer request, `dependabot-keep-current`'s rebase
      requests, the implementer's `driver-agents` clone on store repos, and its reviewer request on
      an issue with no Bonsai task. A few `claude.yml` steps
      use the default token on purpose (central `README.md`, *Identities and secrets*).
+   - `DEPENDABOT_MERGE_TOKEN` — a second `driver-digital-agents` fine-grained PAT, with Contents and
+     Pull requests write, so it can merge. Only `dependabot-report` gets it, to enable auto-merge on
+     a safe verdict. If it is absent, a safe Dependabot PR waits for its reviewer.
    - `FIGMA_MCP_SECRET` — the bearer for driver-agents' Figma MCP server, which the implementer
      reads design files through (`../../docs/figma-mcp-in-ci.md`).
    - `SHOPIFY_ALERT_WEBHOOK` — destructive, failed or refused store-tool calls alert to
@@ -163,32 +167,25 @@ every merge.
    does not hold — set the variable first.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
-5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
-   check context GitHub reports**. Copy the literal string from the first run's checks list; the
-   workflow display **name** is never part of it. Turn on **require branches to be up to date
-   before merging** at the same time: every repo requires it, and it applies only against required checks.
-   Two shapes:
-   - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
-     that is **`validate / validate`** (`dependabot-validate`).
-   - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml`
-     **`bonsai-link`**.
-     Before requiring `bonsai-link` on a pipeline repo, check that fork PRs are either disabled or
-     allowed to run workflows — a fork PR that never runs it waits on "Expected" forever.
+5. **Turn on the org ruleset.** Run a test PR (one human, one Dependabot) and confirm
+   `validate / validate` reports on both. Then set the repo's `driver-ruleset` property: the org
+   ruleset requires that check, up-to-date branches and one approving review on the default branch
+   and every `main-*` branch ([fleet operations](../../docs/fleet-operations.md#branch-protection)).
+   A bot's approval counts: Macroscope's on any PR, and `dependabot-report`'s on a Dependabot PR it
+   judged safe.
 
-   Until the wave gives a repo `dependabot-validate`, `actionlint` is the one check that runs on
-   every PR unconditionally, so it is the right thing to require — but **run it once and let it go
-   green before you pin it**. `lint.yml` lints every workflow the repo already has, not just the
-   ones this kit ships, so a repo with its own hand-written workflows can have findings to fix on
-   day one. (`actionlint` fails on *info*-level shellcheck findings too. The kit excludes
-   `SC2015`, which the runner's shellcheck reports and current shellcheck does not; add
-   further exclusions to `SHELLCHECK_OPTS` in that repo's copy if it needs them.)
+   A check only one repo needs goes in that repo's classic protection beside the ruleset (driver-agents
+   requires its own `actionlint`, `tests` and `mcp`). Copy the literal context from the first run's
+   checks list: a **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>`, a **local**
+   job its bare job id (`lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml` **`bonsai-link`**).
+   Before requiring `bonsai-link`, check that fork PRs are either disabled or allowed to run
+   workflows — a fork PR that never runs it waits on "Expected" forever.
 
    Never require a context whose workflow's trigger list can leave a head SHA with **no run at
    all** (e.g. a `pull_request` list without `synchronize`) — a required context with no check run
    is **missing**, not skipped, and blocks the merge indefinitely. (A job that *runs* and reports
    `skipped` is a different case; GitHub accepts that — reason from whether a check run exists for
-   the head commit, not from the word "skipped".) Also add a rule requiring a **human** approver
-   (e.g. CODEOWNERS) so no bot signal satisfies the merge gate.
+   the head commit, not from the word "skipped".)
 
 6. **Route tickets to it.** Once the repo carries `agents-pipeline` and `claude.yml` is live on the
    default branch, add the client's Bonsai

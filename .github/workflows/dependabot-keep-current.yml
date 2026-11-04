@@ -15,7 +15,7 @@ name: Dependabot keep current (reusable)
 # (behind-but-mergeable PRs never report BEHIND) — which is correct: they merge fine.
 #
 # Trigger (in the caller): `on: pull_request: types: [closed]`. We act only on a
-# real MERGE, from a SAME-REPO, NON-Dependabot author, and scope to the merged PR's
+# real MERGE of a SAME-REPO PR not merged by Dependabot itself, and scope to the merged PR's
 # base.ref, so one stub is branch-agnostic (main / develop / staging all work).
 #
 # IDENTITY: must post as a real USER with push access (driver-digital-agents via
@@ -43,12 +43,13 @@ concurrency:
 
 jobs:
   rebase-stale:
-    # Real merge, same-repo, non-Dependabot author. Fork PRs get no secrets
-    # (AGENTS_GH_PAT empty) and a Dependabot-authored event runs with the restricted
-    # Dependabot token — both are skipped here; the next normal merge catches up.
+    # Real merge, same-repo. Fork PRs get no secrets (AGENTS_GH_PAT empty), and an event whose
+    # actor is Dependabot runs with its restricted token, so both are skipped. The actor of a merge
+    # is the merger, not the PR author: a Dependabot PR auto-merged by the report job still runs
+    # this, which keeps a run of Dependabot PRs moving under strict.
     if: >-
       github.event.pull_request.merged == true &&
-      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.actor != 'dependabot[bot]' &&
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
