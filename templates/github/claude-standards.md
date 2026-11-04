@@ -95,10 +95,10 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   it, tell the person to.
 - **Client team memory** — A client repo's `CLAUDE.md` links the client's folder in the Clients
   shared drive, where driver-skills' `team-memory` keeps the client's CLAUDE, HANDOFF, MEMORY and
-  ARTIFACTS docs; if the link is missing, ask for it and add it. When a session produces something
-  the team needs before the next client meeting (what is ready to deploy, which PRs wait for review),
-  add it to that HANDOFF doc with `team-memory`. This needs the Google Drive and Docs connectors;
-  without them, tell the person what to add.
+  ARTIFACTS docs; each repo adds its own link. Read them for client context when useful. When a
+  session produces something the team needs before the next client meeting (what is ready to deploy,
+  which PRs wait for review), add it to that HANDOFF doc with `team-memory`; without the Google Drive
+  and Docs connectors, tell the person what to add. The implementer's issue runs skip this.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.

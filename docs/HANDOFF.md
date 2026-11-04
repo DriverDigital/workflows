@@ -92,7 +92,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Next steps
 
 1. The release gates above, then the release (README, *Release + repin order*).
-2. Each client repo adds its team-memory folder link to `CLAUDE.md` (#145's rule asks sessions to).
+2. Each client repo adds its team-memory folder link to `CLAUDE.md` by hand (#145).
 3. Settle the open decisions above.
 
 ## Pointers

@@ -232,7 +232,6 @@ jobs:
       # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
       # token here that can merge) enables auto-merge, so the merge commit's push workflows run, which a
       # GITHUB_TOKEN merge would not start.
-      # shortcut: an approval survives a later push until #99's ruleset dismisses stale approvals.
       - name: Post verdict, verdict check and merge decision (real outcomes only)
         if: ${{ always() && steps.provenance.outputs.report == 'true' }}
         env:

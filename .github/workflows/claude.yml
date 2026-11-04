@@ -552,10 +552,12 @@ jobs:
           ISSUE: ${{ github.event.issue.number }}
           BRANCH: issue-${{ github.event.issue.number }}
         run: |
-          gh issue view "$ISSUE" --repo "$REPO" --json labels --jq '.labels[].name' | grep -qx figma || exit 0
-          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')
-          gh api -X POST "repos/$REPO/issues/$pr/labels" -f 'labels[]=figma' >/dev/null \
-            || echo "::warning::could not label PR #$pr figma"
+          labels=$(gh issue view "$ISSUE" --repo "$REPO" --json labels --jq '.labels[].name') \
+            || { echo "::warning::could not read the labels on #$ISSUE, so its PR is not labelled figma"; exit 0; }
+          grep -qx figma <<<"$labels" || exit 0
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty') \
+            && [ -n "$pr" ] && gh api -X POST "repos/$REPO/issues/$pr/labels" -f 'labels[]=figma' >/dev/null \
+            || echo "::warning::could not label the PR from $BRANCH figma"
 
       # A Bonsai ticket's PR gets its reviewer from the dispatcher at hand-off; an issue a person opened
       # with no task never reaches the dispatcher. Ask its author when driver-agents

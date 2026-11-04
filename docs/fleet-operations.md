@@ -16,7 +16,7 @@ A wave pushes one commit straight to each target branch, with the CI-skip token 
   already reviewed here.
 - **No deploys.** Theme and Vercel deploy workflows fire on push to the branches a wave touches; the
   skip-ci token suppresses them.
-- **No round-trip.** `enforce_admins` is `false` on every protected kit branch, so the push lands as an
+- **No round-trip.** Org admins bypass the *Driver branch rules* ruleset, so the push lands as an
   admin without approval.
 
 Use a PR wave only for a change that wants per-repo review. A byte-identical kit change does not.
