@@ -13,16 +13,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Release gates, in order
 
-1. **`DEPENDABOT_MERGE_TOKEN`.** Create the second `driver-digital-agents` fine-grained PAT
-   (Contents and Pull requests write) and store it as an org secret for private repos. Without it a
-   safe Dependabot PR is not approved and waits for its reviewer.
-2. **driver-agents#99 merged, and driver-agents set as the policy repo** in Macroscope for the private repos,
-   with Macroscope set to skip Dependabot PRs. The wave deletes the fidelity agent copies (#143), so
-   a wave before this leaves the theme repos with no fidelity check.
-3. **Release by the wave only.** The report stub gains `checks: write` and a third secret, and a
+1. **Release by the wave only.** The report stub gains `checks: write` and a third secret, and a
    called workflow cannot widen its caller, so a Dependabot pin bump of `dependabot-report.yml` to
    the new tag breaks the report there. Close those Dependabot PRs; the wave writes the stubs whole.
-4. **Canary one repo** (`--only`), then check its next safe patch or minor npm PR: the
+2. **Canary one repo** (`--only`), then check its next safe patch or minor npm PR: the
    `Dependabot verdict` check, github-actions[bot]'s approval, the merge by
    `DEPENDABOT_MERGE_TOKEN`, the push workflows on the merge commit (the `DRIVER/main` theme push or
    Vercel hook, `close-linked-issues`, keep-current). A merge that starts no push run means the
