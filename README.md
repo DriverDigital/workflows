@@ -101,7 +101,7 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   | Tier | Repos | Kit files |
   |---|---|---|
   | standards | every `driver-kit` repo | `claude-standards.md`, `lint.yml`, `dependabot.yml`, `.node-version`, `close-linked-issues.yml`, `dependabot-validate.yml`, the `.claude/settings.json` attribution keys |
-  | private | private repos | the standards, plus `dependabot-report.yml`, `dependabot-keep-current.yml`, the platform stubs and the check-run agents |
+  | private | private repos | the standards, plus `dependabot-report.yml`, `dependabot-keep-current.yml` and the platform stubs |
   | pipeline | private repos with `agents-pipeline` | everything, adding `claude.yml`, `shopify-tool-smoke.yml`, `pr-bonsai-link.yml` and the PR template |
 
   A platform topic (`shopify-theme`, `vercel-site`, `wordpress-site`) decides which platform files a
@@ -115,8 +115,9 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   carries and adds every file the tier and platform allow that it lacks: `.github/dependabot.yml`
   from the variant `tools/kit-platforms.sh` picks (and the Dependabot stubs with it), the root
   `.node-version` from `templates/github/node-version/<platform>`, the `.claude/settings.json`
-  attribution keys, and on private Shopify repos the check-run agents, read from driver-agents
-  `main`. It never adds a platform stub or `shopify-tool-smoke.yml`, which need the repo's secrets
+  attribution keys. It deletes the retired check-run agent copies from Shopify repos: Macroscope's
+  check-run agents and ignore file reach every repo from driver-agents, its policy repo, and a copy
+  in the repo would override them. It never adds a platform stub or `shopify-tool-smoke.yml`, which need the repo's secrets
   first; those arrive with the repo's canary or cutover commit. It never deletes a file above a
   repo's tier either: that is a PR on the repo.
 - **Dependabot is the backstop.** Each `dependabot.yml` variant carries a `github-actions` block, so
@@ -149,9 +150,9 @@ kit's `attribution` keys.
 deployed has to move, and the change rides with the next release. Cutting a tag is what creates the
 obligation to wave, because the audit compares every stub against the latest tag. The audit also
 compares each deployed kit file against `templates/`, so between a kit-only merge and the next wave
-it reports content drift on the changed files; that is expected and clears with the wave. The
-check-run agents are compared with driver-agents `main` instead, so a change merged there reads as
-drift until a wave from `main` with `--message` carries it; no tag is needed.
+it reports content drift on the changed files; that is expected and clears with the wave. A
+check-run agent change merged in driver-agents reaches every repo through Macroscope's policy
+inheritance, with no wave.
 
 ## Action refs
 

@@ -67,7 +67,7 @@ clean and then audits as stale everywhere.
 
 A new reusable's stub lands in step 2 of the release that tags it, never in the PR that adds the
 reusable. A kit-only change needs no tag and no wave. A driver-agents change to a check-run agent
-reads as audit drift until a wave from `main` with `--message` carries it. Wave mechanics:
+needs neither: repos inherit it from driver-agents, Macroscope's policy repo. Wave mechanics:
 `docs/fleet-operations.md`.
 
 ## Invariants that fail silently
@@ -84,8 +84,9 @@ reads as audit drift until a wave from `main` with `--message` carries it. Wave 
   `lint.yml` compares it with driver-agents `main`, whitespace collapsed (the copy flattens one
   paragraph break); a red check there means re-copy, then release.
 - The implementer and the kit's `shopify-tool-smoke.yml` clone driver-agents `main` for the Shopify
-  admin tool, and the wave and the audit read the check-run agents (`AGENT_FILES` in
-  `tools/kit-platforms.sh`) from it too: driver-agents' PR review is the only gate on that code. The
+  admin tool, and Macroscope reads its `.macroscope/` as the policy every repo inherits:
+  driver-agents' PR review is the only gate on that code and config. The wave deletes the retired
+  agent copies (`RETIRED_AGENT_FILES` in `tools/kit-platforms.sh`) that would override it. The
   store handle is the `SHOPIFY_STORE_NAME` repository variable, read by both; unset = no store
   tooling. The implementer also reads `pipeline/reviewers.json` from it (`.reviewers[].login`); a
   renamed key or a failed read falls back to `PR_REVIEWER_HANDLE` with a warning and a green run.
