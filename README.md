@@ -244,4 +244,5 @@ created, and a required context with no check run for the head commit blocks the
 GitHub does accept a check run that concludes `skipped`; what matters is whether a check run exists for
 the head SHA.
 
-Which exact context to require, with up-to-date branches and one approving review: kit README, install step 5.
+The org ruleset requires `validate / validate`, up-to-date branches and one approving review on every
+kit branch: [fleet operations](docs/fleet-operations.md#branch-protection).

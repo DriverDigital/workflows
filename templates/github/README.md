@@ -167,32 +167,25 @@ every merge.
    does not hold — set the variable first.
    **And check for an existing `.github/workflows/lint.yml`** — a repo that hand-rolled its own would
    be silently clobbered by the kit's; it is the one kit *workflow* name likely to already exist.
-5. **Pin the required check.** Run a test PR (one human, one Dependabot), then pin the **exact
-   check context GitHub reports**. Copy the literal string from the first run's checks list; the
-   workflow display **name** is never part of it. Turn on **require branches to be up to date
-   before merging** at the same time: every repo requires it, and it applies only against required checks.
-   Two shapes:
-   - A **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>` — for the full kit
-     that is **`validate / validate`** (`dependabot-validate`).
-   - A **local** job reports its bare job id — `lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml`
-     **`bonsai-link`**.
-     Before requiring `bonsai-link` on a pipeline repo, check that fork PRs are either disabled or
-     allowed to run workflows — a fork PR that never runs it waits on "Expected" forever.
+5. **Turn on the org ruleset.** Run a test PR (one human, one Dependabot) and confirm
+   `validate / validate` reports on both. Then set the repo's `driver-ruleset` property: the org
+   ruleset requires that check, up-to-date branches and one approving review on the default branch
+   and every `main-*` branch ([fleet operations](../../docs/fleet-operations.md#branch-protection)).
+   A bot's approval counts: Macroscope's on any PR, and `dependabot-report`'s on a Dependabot PR it
+   judged safe.
 
-   Until the wave gives a repo `dependabot-validate`, `actionlint` is the one check that runs on
-   every PR unconditionally, so it is the right thing to require — but **run it once and let it go
-   green before you pin it**. `lint.yml` lints every workflow the repo already has, not just the
-   ones this kit ships, so a repo with its own hand-written workflows can have findings to fix on
-   day one. (`actionlint` fails on *info*-level shellcheck findings too. The kit excludes
-   `SC2015`, which the runner's shellcheck reports and current shellcheck does not; add
-   further exclusions to `SHELLCHECK_OPTS` in that repo's copy if it needs them.)
+   A check only one repo needs goes in that repo's classic protection beside the ruleset (driver-agents
+   requires its own `actionlint`, `tests` and `mcp`). Copy the literal context from the first run's
+   checks list: a **reusable-workflow** job reports `<caller-job-id> / <reusable-job-id>`, a **local**
+   job its bare job id (`lint.yml` reports **`actionlint`**, `pr-bonsai-link.yml` **`bonsai-link`**).
+   Before requiring `bonsai-link`, check that fork PRs are either disabled or allowed to run
+   workflows — a fork PR that never runs it waits on "Expected" forever.
 
    Never require a context whose workflow's trigger list can leave a head SHA with **no run at
    all** (e.g. a `pull_request` list without `synchronize`) — a required context with no check run
    is **missing**, not skipped, and blocks the merge indefinitely. (A job that *runs* and reports
    `skipped` is a different case; GitHub accepts that — reason from whether a check run exists for
-   the head commit, not from the word "skipped".) Require one approving review. A bot's approval
-   counts: Macroscope's on any PR, and `dependabot-report`'s on a Dependabot PR it judged safe.
+   the head commit, not from the word "skipped".)
 
 6. **Route tickets to it.** Once the repo carries `agents-pipeline` and `claude.yml` is live on the
    default branch, add the client's Bonsai

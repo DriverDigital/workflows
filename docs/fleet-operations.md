@@ -127,39 +127,41 @@ it ships fleet-wide, pilot it with these rules:
 
 ## Branch protection
 
-**The standard, on every kit branch:**
+One org ruleset, **Driver branch rules**, protects the default branch and every `main-*` branch
+(Palmers' country branches, foundrae's `main-development`) of each repo whose `driver-ruleset` custom
+property is true:
 
-- **One approving review.** `required_approving_review_count` of at least 1. A bot's approval counts:
-  Macroscope's on any PR, and `dependabot-report`'s on a Dependabot PR it judged safe.
-- **Branches up to date before merging.** `required_status_checks.strict: true`. Strict applies only
-  against required checks, so it needs at least one: a check that runs on every PR: `validate / validate` where the repo carries `dependabot-validate`, else `actionlint` where it carries `lint.yml`. Never require a context the branch
-  does not run; it blocks every merge.
-- **`enforce_admins: false`.** Waves and this repo's releases are direct admin pushes.
+- **One approving review.** A push that changes the PR's diff dismisses earlier approvals; an update
+  from `main` that touches other files keeps them. A bot's approval counts: Macroscope's on any PR,
+  and `dependabot-report`'s on a Dependabot PR it judged safe.
+- **Branches up to date before merging,** against one required check, `validate / validate` from
+  GitHub Actions. Every kit repo runs it on every PR. The property on a repo without
+  `dependabot-validate` blocks every merge there.
+- **No deletion, no force push.**
+- **Org admins bypass.** Waves and this repo's releases are direct admin pushes, and an admin can
+  merge past a red check or a missing approval.
 
-**Edit an existing rule through its subresource with `PATCH`.** `PUT /branches/{branch}/protection`
-replaces the whole object and silently drops every field left out of the body, the review rule
-included:
+A repo joins with its topics, after a test PR shows `validate / validate` reporting:
+
+```bash
+jq -n '{repository_names: ["<repo>"], properties: [{property_name: "driver-ruleset", value: "true"}]}' \
+  | gh api -X PATCH orgs/DriverDigital/properties/values --input -
+gh api repos/DriverDigital/<repo>/rules/branches/main --jq '[.[].type]'   # confirm
+```
+
+Classic branch protection is off those branches. Two classic rules remain: driver-agents `main`
+requires its own `actionlint`, `tests` and `mcp` checks beside the ruleset, and this repo, which the
+ruleset does not cover, keeps `actionlint`, strict and one approval on `main`. Edit a classic rule
+through its subresource with `PATCH`: `PUT /branches/{branch}/protection` replaces the whole object
+and silently drops every field left out of the body, the review rule included:
 
 ```bash
 gh api -X PATCH repos/DriverDigital/<repo>/branches/<branch>/protection/required_status_checks \
-  -F strict=true -f 'contexts[]=validate / validate'
+  -F strict=true -f 'contexts[]=actionlint'
 ```
 
-`PATCH` only edits a status-check rule that exists; a branch with none returns 404. Creating one takes
-a `PUT` of the whole protection object, so read it first, carry every field into the body, and diff
-it after.
-
-The context is the job id, not the workflow's `name:`. GitHub binds it to the Actions app, so only an
-Actions check run satisfies it. Diff the full protection object before and after any change.
-
-`enforce_admins: false` means an admin can merge past a red check and a missing approval. A required
-check still blocks everyone else, and puts a red X in front of the admin.
-
-This repo's `main` meets the standard (`actionlint`, strict, one approval).
-
-**The gap:** driver-onboarding, plugins, client-workspaces and vite-plugin-shopify-clean set strict
-with no required check, so nothing is enforced there. One org ruleset will enforce the up-to-date rule fleet-wide (#99);
-the current state is in [`HANDOFF.md`](HANDOFF.md).
+A check's context is the job id, not the workflow's `name:`, and GitHub binds it to the Actions app,
+so only an Actions check run satisfies it.
 
 ## Repository settings
 
