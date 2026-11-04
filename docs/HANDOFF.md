@@ -75,8 +75,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
-- **Figma fidelity runs** now need the `figma` label (driver-agents#99). The first ticket with a
-  design should show the label on its PR and one fidelity check; an unlabelled PR gets none.
+- **Figma fidelity runs need the `figma` label only after this release's wave** deletes the theme
+  repos' agent copies, which have no label filter and override the policy file. A PR opened before
+  the wave keeps the old copy on its branch until it merges its base. After that, the first ticket
+  with a design should show the label on its PR and one fidelity check.
 - **A PR whose head is `main` or a `main-*` branch** would delete that branch's own `DRIVER/<branch>`
   theme when it closes: `shopify-theme.yml`'s cleanup deletes every non-live theme named after the
   head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
@@ -86,7 +88,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 ## Next steps
 
 1. The release gates above, then the release (README, *Release + repin order*).
-2. Each client repo adds its team-memory folder link to `CLAUDE.md` by hand (#145).
+2. Each client repo adds its team-memory folder link to `CLAUDE.md` by hand (#145 stays open for it).
 3. Settle the open decisions above.
 
 ## Pointers

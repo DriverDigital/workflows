@@ -67,8 +67,9 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   to the branch as often as it likes, then opens one PR at the end as a draft (`gh pr create
   --draft`). It never marks the PR ready for review: the person running the session publishes it, or
   says to, once they have reviewed it. Once a PR is published, collect fixes locally and push them
-  together. One exception: a minor docs-only change may go straight to `main` when no feature branch
-  is open, or when it concerns `main` and not the branch's work. When the session's work is on a
+  together. One exception, for an org admin, who can bypass branch protection: a minor docs-only
+  change may go straight to `main` when no feature branch is open, or when it concerns `main` and not
+  the branch's work; anyone else opens a PR for it. When the session's work is on a
   feature branch, its docs updates, the end-of-session `docs/HANDOFF.md` included, are committed to
   that branch and ride in its PR. A docs change that alters how the repo is understood or how future
   work is done, or spans many files, always goes in a PR, so its conflicts and contradictions get
@@ -92,7 +93,8 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
 - **Figma designs on a PR** — When a PR implements a Figma design, put the design link in its
   description and add the `figma` label (`gh pr create --label figma`, or `gh pr edit <n> --add-label
   figma`): Macroscope runs its design fidelity check only on PRs with that label. If you cannot add
-  it, tell the person to.
+  it, tell the person to. The check trusts a link in the description only when an org member or the
+  implementer opened the PR; anyone else also puts the link on the Bonsai ticket.
 - **Client team memory** — A client repo's `CLAUDE.md` links the client's folder in the Clients
   shared drive, where driver-skills' `team-memory` keeps the client's CLAUDE, HANDOFF, MEMORY and
   ARTIFACTS docs; each repo adds its own link. Read them for client context when useful. When a

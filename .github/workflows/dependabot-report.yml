@@ -104,12 +104,13 @@ jobs:
           sed -nE 's/^Bumps \[([^]]+)\]\([^)]*\) from ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]) to ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]).*$/\1 \2 \3/p
                    s/^Updates \x60([^ ]+)\x60 from ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]) to ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]).*$/\1 \2 \3/p' \
             lines.txt > parsed.txt
-          # A 0.x minor is a major under semver's rules for 0.x.
+          # Under semver a 0.x minor, any 0.0.x change and any prerelease may break, so each counts as a major.
           : > bumps.ndjson
           majors=0
           while read -r name from to; do
             IFS=. read -r fa fb _ <<<"$from"; IFS=. read -r ta tb _ <<<"$to"
-            if [ "$fa" != "$ta" ] || { [ "$fa" = 0 ] && [ "$fb" != "$tb" ]; }; then class="major"; majors=$((majors + 1))
+            if [ "$fa" != "$ta" ] || { [ "$fa" = 0 ] && { [ "$fb" != "$tb" ] || [ "$fb" = 0 ]; }; } \
+               || [[ "$from$to" == *-* ]]; then class="major"; majors=$((majors + 1))
             elif [ "$fb" != "$tb" ]; then class="minor"
             else class="patch"; fi
             jq -cn --arg n "$name" --arg f "$from" --arg t "$to" --arg c "$class" \
@@ -273,7 +274,7 @@ jobs:
           elif ! GH_TOKEN="$ACTIONS_TOKEN" gh api -X POST "repos/$REPO/pulls/$PR/reviews" \
                  -f commit_id="$SHA" -f event=APPROVE -f body="Safe verdict on a patch or minor npm update." >/dev/null; then
             held="the approval failed"
-          elif ! GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --repo "$REPO" --auto --merge; then
+          elif ! GH_TOKEN="$MERGE_TOKEN" gh pr merge "$PR" --repo "$REPO" --auto --merge --match-head-commit "$SHA"; then
             held="auto-merge could not be enabled"
           fi
           if [ -n "$held" ] && [ -n "$MERGE_TOKEN" ]; then

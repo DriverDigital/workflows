@@ -428,7 +428,7 @@ while read -r repo branch plat tier found; do
   # Macroscope's design fidelity check runs only on PRs labelled figma, so every kit repo has the label.
   if [ "$DRY" -eq 0 ] && [[ "$labelled" != *" $repo "* ]]; then
     gh label create figma --repo "$ORG/$repo" --color A259FF --force \
-      --description "Implements a Figma design: runs Macroscope's design fidelity check" >/dev/null \
+      --description "Runs Macroscope's Figma design fidelity check on this PR" >/dev/null \
       || echo "  $repo: could not create the figma label" >&2
     labelled="$labelled$repo "
   fi
