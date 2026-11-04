@@ -58,10 +58,9 @@ link. Promoting it (the deployment's Promote action, or `vercel promote <url>`) 
 live without rebuilding. Undoing an Instant Rollback (Undo Rollback, or `vercel promote` during a
 rollback) turns auto-assign back on; turn it off again right after.
 
-Every long-lived branch, on every platform, requires branches to be up to date before merging
-(`required_status_checks.strict: true`). Strict compares only against required checks, so it does
-nothing on a branch with none: set it together with at least one required check (kit README, install
-step 5). The org ruleset *Driver branch rules* enforces it on the default branch and every `main-*`
+Every long-lived branch, on every platform, requires branches to be up to date before merging. Up to
+date compares only against required checks, so it does nothing on a branch with none. The org ruleset
+*Driver branch rules* enforces it on the default branch and every `main-*`
 branch, with `validate / validate` as the required check
 ([fleet operations](fleet-operations.md#branch-protection)).
 
