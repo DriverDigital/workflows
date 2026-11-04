@@ -6,18 +6,27 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **v1.21.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Every site repo
-  is on `main`, and the wave and the audit cover every `main-*` branch of a repo on `main`.
-  - Pipeline repos (`agents-pipeline`): the ten Shopify repos, studio-sulzer, Driver-Digital-Website,
-    Team-Laird and The-Gathery. Team-Laird and The-Gathery got `claude.yml` in this wave; their
-    entries in driver-agents' repo map are separate work there.
-  - A `shopify-theme.yml` stub copied from an older template fails at startup (the push job needs
-    `pull-requests: write`).
-- **The next release:** #129, then #85 (make the Dependabot verdict a real check, then auto-merge on
-  it), in their own session.
-- **#99, the up-to-date org ruleset.** Not tied to a release. Its comments list the six repos whose
-  required check to set first. First confirm every targeted branch reports the required check; a
-  required context with no run blocks every merge.
+- **The `next-release` branch** carries #99's docs, #129 and #85 (the Dependabot verdict check, approval and
+  auto-merge), #142, #143 (the wave stops installing check-run agents and deletes their copies),
+  #144 (the `figma` label) and #145 (client team memory in the house standards). It needs a tag and
+  a wave: the report reusable and its stub changed together.
+
+## Release gates, in order
+
+1. **`DEPENDABOT_MERGE_TOKEN`.** Create the second `driver-digital-agents` fine-grained PAT
+   (Contents and Pull requests write) and store it as an org secret for private repos. Without it a
+   safe Dependabot PR is not approved and waits for its reviewer.
+2. **driver-agents#99 merged, and driver-agents set as the policy repo** in Macroscope for the private repos,
+   with Macroscope set to skip Dependabot PRs. The wave deletes the fidelity agent copies (#143), so
+   a wave before this leaves the theme repos with no fidelity check.
+3. **Release by the wave only.** The report stub gains `checks: write` and a third secret, and a
+   called workflow cannot widen its caller, so a Dependabot pin bump of `dependabot-report.yml` to
+   the new tag breaks the report there. Close those Dependabot PRs; the wave writes the stubs whole.
+4. **Canary one repo** (`--only`), then check its next safe patch or minor npm PR: the
+   `Dependabot verdict` check, github-actions[bot]'s approval, the merge by
+   `DEPENDABOT_MERGE_TOKEN`, the push workflows on the merge commit (the `DRIVER/main` theme push or
+   Vercel hook, `close-linked-issues`, keep-current). A merge that starts no push run means the
+   token is wrong. Then wave the rest.
 
 ## Blocked or gated
 
@@ -30,9 +39,15 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **npm or pnpm (#132).** Weighed on its own, not tied to the next wave.
 - **#79 (ticket-assets screenshots) is tabled** until #95's Figma paragraph has run on real tickets
   (driver-agents #47 is the live test). `AGENTS_GH_PAT` can read `ticket-assets` if it is needed.
+- **Macroscope's policy on public repos.** Its docs do not say whether a private policy repo serves a
+  public one. Set the policy on vite-plugin-shopify-clean and open a PR touching only an ignored path
+  to find out, if the public repos should share it.
 
 ## Watch-items
 
+- **Dependabot PRs after the wave.** A grouped PR whose body Dependabot truncated, or whose head is a
+  merge from "Update branch", waits for a person by design. Avara#263 and Palmers#175 lost their old
+  Macroscope approvals when the ruleset went live; the next verdict decides #263, and #175 is a major.
 - **The Node-pin to-dos** (from #86) have merged everywhere but three open PRs: Kissy-Kissy#82,
   R-Finds#55 and LittleMe#61. foundrae's `main-development` PR (#256) is also open; its theme push
   fails on that branch's own files (`.shopifyignore` lacks `assets/.vite/*`, and
@@ -44,11 +59,14 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   a re-run.
 - **First wave of `lint.yml`** on driver-onboarding, vite-plugin-shopify-clean, plugins and
   client-workspaces: a red `actionlint` there is a finding in the repo's own workflows.
+- **First PRs under the ruleset** on client-workspaces, plugins, driver-onboarding, studio-sulzer and
+  driver-engineering-app, which had not run `validate / validate` on a PR yet. A PR stuck on
+  "Expected" there means the stub did not start; an org admin can merge past it.
 - **After the v1.21.0 wave:** the first `@claude` issue a person opens with no Bonsai task ends with a review request on its PR; the
   first implementer PR on an issue with acceptance criteria has a How to QA section after its
   Bonsai line, pointed at the right preview for the repo's platform.
 - **The kit-tag cooldown exemption** is unverified live. Watch vite-plugin-shopify-clean's Dependabot
-  PR for the v1.21.0 stub pins.
+  PR for the next tag's stub pins.
 - **`claude-standards.md` on the comment path** is unverified (the issues path loads it). Have a
   collaborator's `@claude` ask the implementer to quote the attachment header; bot comments do not
   reach it.
@@ -63,9 +81,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
   step must pass. Never print the token cache to prove the mask.
-- **Figma check-run agent spend.** It runs on PRs that touch theme or front-end paths in the pipeline
-  Shopify repos, at most 4 runs a PR. A run with no design cost $0.27–$1.31 on Avara, more for bigger
-  diffs; a run with a design is unmeasured (capped at $6 a run, $24 a PR).
+- **Figma fidelity runs** now need the `figma` label (driver-agents#99). The first ticket with a
+  design should show the label on its PR and one fidelity check; an unlabelled PR gets none.
 - **A PR whose head is `main` or a `main-*` branch** would delete that branch's own `DRIVER/<branch>`
   theme when it closes: `shopify-theme.yml`'s cleanup deletes every non-live theme named after the
   head branch. None exists today (a foundrae `main-development` → `main` PR would be the first); the
@@ -74,10 +91,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Next steps
 
-1. driver-agents#80 updates its README to match #120, and driver-agents#93 its `CLAUDE.md` kit row.
-2. Add Team-Laird and The-Gathery to driver-agents' repo map (driver-agents#96).
-3. #99: set the required checks its comments list, then the org ruleset.
-4. Settle the open decisions above.
+1. The release gates above, then the release (README, *Release + repin order*).
+2. Each client repo adds its team-memory folder link to `CLAUDE.md` (#145's rule asks sessions to).
+3. Settle the open decisions above.
 
 ## Pointers
 
@@ -86,5 +102,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - [`fleet-operations.md`](fleet-operations.md): wave mechanics, what the pin audit cannot see, branch
   protection.
 - [`branch-model.md`](branch-model.md): the platform standards, the topics, and the cutover runbook.
-- `driver-agents`: the dispatcher, the ticket map and the canonical Shopify instructions.
+- `driver-agents`: the dispatcher, the ticket map, the canonical Shopify instructions and Macroscope's
+  policy (`.macroscope/`).
 - The optional `repository_dispatch` trigger for the revise loop is #98.
