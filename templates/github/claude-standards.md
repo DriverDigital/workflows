@@ -89,6 +89,16 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   file differs from the last pushed commit and the branch has not changed it since, take the preview's
   version and commit it ("Pull theme editor changes"). Where both changed, stop and ask. Skip this
   when the CLI has no access to the store, and say so.
+- **Figma designs on a PR** — When a PR implements a Figma design, put the design link in its
+  description and add the `figma` label (`gh pr create --label figma`, or `gh pr edit <n> --add-label
+  figma`): Macroscope runs its design fidelity check only on PRs with that label. If you cannot add
+  it, tell the person to.
+- **Client team memory** — A client repo's `CLAUDE.md` links the client's folder in the Clients
+  shared drive, where driver-skills' `team-memory` keeps the client's CLAUDE, HANDOFF, MEMORY and
+  ARTIFACTS docs; if the link is missing, ask for it and add it. When a session produces something
+  the team needs before the next client meeting (what is ready to deploy, which PRs wait for review),
+  add it to that HANDOFF doc with `team-memory`. This needs the Google Drive and Docs connectors;
+  without them, tell the person what to add.
 - **`ponytail:` comments** — One line naming a ceiling someone could realistically hit (e.g. a
   hardcoded limit that mirrors a setting elsewhere, or an unpaginated cap). Other simplifications
   need no comment.

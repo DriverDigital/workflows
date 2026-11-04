@@ -29,6 +29,7 @@
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (an unused theme deploy workflow)
 #   RETIRED_AGENT_FILES (tools/kit-platforms.sh) <- deleted from .macroscope/check-run-agents/ on
 #                                                 Shopify repos (the agents inherit from driver-agents)
+#   the figma label                            <- created or updated on every target repo
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -419,10 +420,18 @@ if [ "$DRY" -eq 0 ]; then
   [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
 fi
 n=0
+labelled=" "
 while read -r repo branch plat tier found; do
   [ -n "$repo" ] || continue
   echo "== $repo@$branch ($plat, $tier$([ "$found" = kit ] || echo ", no kit yet"))"
   plan_and_push "$repo" "$branch" "$plat" "$tier" "$found"; n=$((n+1))
+  # Macroscope's design fidelity check runs only on PRs labelled figma, so every kit repo has the label.
+  if [ "$DRY" -eq 0 ] && [[ "$labelled" != *" $repo "* ]]; then
+    gh label create figma --repo "$ORG/$repo" --color A259FF --force \
+      --description "Implements a Figma design: runs Macroscope's design fidelity check" >/dev/null \
+      || echo "  $repo: could not create the figma label" >&2
+    labelled="$labelled$repo "
+  fi
 done <<<"$TARGETS"
 echo "targets: $n"
 [ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }

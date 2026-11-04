@@ -123,8 +123,8 @@ needs neither: repos inherit it from driver-agents, Macroscope's policy repo. Wa
   the run when the collaborator list cannot be read — never fall back to an empty filter, which
   includes everyone.
 - `GH_TOKEN` on `gh` steps is `AGENTS_GH_PAT` (`driver-digital-agents`). Deliberate exceptions use the
-  default token: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice (posts
-  as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
+  default token: `claude.yml`'s trusted-authors check, its no-PR check, its `figma` label step and its
+  failed-run notice (posts as github-actions[bot] so it cannot re-trigger the workflow), the kit's `close-linked-issues.yml`,
   the `shopify-theme.yml` reusable's preview gate and PR description link, `dependabot-report`'s
   verdict comment (Claude's text: a PAT-authored `@claude` in it would pass the implementer's actor
   gate), check and approval, and this repo's `dependabot-auto-merge.yml`. This repo's `lint.yml` blockquote check uses its own

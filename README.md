@@ -176,7 +176,7 @@ Two refs stay manual: the `DriverDigital/workflows` stub pins (the wave) and the
   reviewer on an issue with no Bonsai task; `shopify-tool-smoke.yml` uses it for the same clone.
   The implementer's actor gate keys on this split, so keep the two apart.
 - **The default `GITHUB_TOKEN`** is used where a post must not trigger another run and where the PAT
-  is not needed: `claude.yml`'s trusted-authors check, its no-PR check and its failed-run notice, the
+  is not needed: `claude.yml`'s trusted-authors check, its no-PR check, its `figma` label step and its failed-run notice, the
   kit's `close-linked-issues.yml`, the `shopify-theme.yml` reusable's preview gate and PR description link,
   `dependabot-report`'s verdict comment, check and approval, and this repo's `dependabot-auto-merge.yml`.
 
