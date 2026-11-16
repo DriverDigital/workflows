@@ -11,6 +11,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Dependabot security split*). Avara#264 went through end to end: verdict check, github-actions[bot]
   approval, the merge by `driver-digital-agents`, and the `Shopify theme` push on the merge commit.
 - **Docs elsewhere** describe the old behaviour: driver-onboarding#46 and plugins#62.
+- **Preview link at the top of the PR description** (`shopify-theme.yml`) reaches the fleet only
+  with the next release and wave. Until then, a PR on v1.22.0 still gets the line at the end.
 
 ## Blocked or gated
 

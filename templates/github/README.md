@@ -45,7 +45,7 @@ already carries it; the first copy comes from the repo's canary or cutover commi
 
 | File | Platform | Rail |
 |---|---|---|
-| `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (pushed on open and every push, draft or ready, linked at the end of the PR description, deleted on close; none for a PR that changes only `.github/`, `.claude/`, `docs/` or Markdown files) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
+| `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (pushed on open and every push, draft or ready, linked at the top of the PR description, deleted on close; none for a PR that changes only `.github/`, `.claude/`, `docs/` or Markdown files) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
 | `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 

@@ -2,7 +2,7 @@ name: Shopify theme (reusable)
 
 # Every theme push a Shopify site makes, called by the kit stub templates/github/shopify-theme.yml:
 #   pull_request, open         build, then push the preview theme DRIVER/<head branch>, draft or ready,
-#                              and append its preview and editor links to the PR description once;
+#                              and put its preview and editor links at the top of the PR description;
 #                              skipped for a PR that changes no theme files
 #   pull_request, closed       delete DRIVER/<head branch>
 #   push to main / main-*      build, then push DRIVER/<branch> (the stub skips Shopify's sync commits)
@@ -152,8 +152,8 @@ jobs:
           else
             shopify theme push --unpublished --theme "$name" --json | tee "$RUNNER_TEMP/theme.json"
           fi
-      # Appended once per theme: later pushes find the line. A close deletes the theme and a reopen
-      # creates a new one, which appends a second line under the dead one. The default token's edit
+      # First line of the body, so it sits above Macroscope's summary. Later pushes find the line and
+      # leave it; a reopen's new theme replaces the dead one's line. The default token's edit
       # wakes no workflow, and a failure here leaves the deploy green. driver-agents' dispatch.sh
       # (pr-view) parses this exact line for the Internal Review comment: change both together.
       - name: Link the preview theme in the PR description
@@ -168,7 +168,8 @@ jobs:
           line=$(jq -r '.theme | "**Preview theme:** [preview](\(.preview_url // .previewUrl)) · [theme editor](\(.editor_url // .editorUrl))"' "$RUNNER_TEMP/theme.json")
           body=$(gh api "repos/$GH_REPO/pulls/$PR" --jq '.body // ""')
           grep -qF "$line" <<<"$body" && exit 0
-          gh api -X PATCH "repos/$GH_REPO/pulls/$PR" -f body="$body"$'\n\n'"$line" --silent
+          body=$(grep -vF '**Preview theme:**' <<<"$body" || true)
+          gh api -X PATCH "repos/$GH_REPO/pulls/$PR" -f body="$line"$'\n\n'"$body" --silent
       # theme push can exit 0 when Shopify rejects files. CLI 4.x names them in .theme.errors and sets
       # .theme.warning; 5.x sets status "partial" and lists .issues. Output in neither shape would
       # pass a partial push, so it fails too. After the link step, so the link lands.
