@@ -1,11 +1,13 @@
 name: Dependabot keep current
 
-# Caller stub: rebases open Dependabot PRs left out of date when a merge lands on their base. It
-# acts only where branch protection requires up-to-date branches, and covers every base branch.
+# Caller stub: rebases open Dependabot PRs left out of date when a merge lands on their base, or
+# when the fleet wave dispatches it after a push. It acts only where branch protection requires
+# up-to-date branches, and covers every base branch.
 
 on:
   pull_request:
     types: [closed]
+  workflow_dispatch:
 
 permissions:
   contents: read

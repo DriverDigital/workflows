@@ -26,7 +26,10 @@ is expected.
 
 **Open PRs pick up a wave only on their next event.** A PR runs the stubs from its merge with the
 base, so it needs a push after the wave: "Update branch" (`PUT pulls/<n>/update-branch`) does it and
-clears "behind" too, and Dependabot's PRs take `@dependabot rebase`. A re-run reuses the old pin and
+clears "behind" too. Dependabot's PRs need nothing: after its last push the wave dispatches
+`dependabot-keep-current` on each private branch it pushed, which asks Dependabot to rebase the ones
+left behind. Never "Update branch" a Dependabot PR: the report then refuses it, since its actor is no
+longer `dependabot[bot]`, and Dependabot stops maintaining it. A re-run reuses the old pin and
 stays red. Marking a draft ready does not run the theme stub, and closing a PR fires its cleanup job,
 which deletes the PR's preview theme.
 

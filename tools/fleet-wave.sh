@@ -30,6 +30,10 @@
 #   RETIRED_AGENT_FILES (tools/kit-platforms.sh) <- deleted from .macroscope/check-run-agents/ on
 #                                                 Shopify repos (the agents inherit from driver-agents)
 #   the figma label                            <- created or updated on every target repo
+#   dependabot-keep-current.yml                <- dispatched on each pushed private branch once every
+#                                                 push is done: a [skip ci] commit starts no workflow,
+#                                                 so nothing else rebases the Dependabot PRs it leaves
+#                                                 behind
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -399,6 +403,7 @@ plan_and_push() {
   # fast-forward-only update — it fails rather than clobbering a branch that moved under us.
   api -X PATCH "repos/$ORG/$repo/git/refs/heads/$branch" -f sha="$new_commit" -F force=false --jq .object.sha >/dev/null
   echo "  pushed $new_commit"
+  if tier_allows "$tier" private; then PUSHED+=("$repo $branch"); fi
 }
 
 echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"
@@ -421,6 +426,7 @@ if [ "$DRY" -eq 0 ]; then
 fi
 n=0
 labelled=" "
+PUSHED=()
 while read -r repo branch plat tier found; do
   [ -n "$repo" ] || continue
   echo "== $repo@$branch ($plat, $tier$([ "$found" = kit ] || echo ", no kit yet"))"
@@ -433,5 +439,11 @@ while read -r repo branch plat tier found; do
     labelled="$labelled$repo "
   fi
 done <<<"$TARGETS"
+for p in ${PUSHED[@]+"${PUSHED[@]}"}; do
+  read -r repo branch <<<"$p"
+  gh workflow run dependabot-keep-current.yml --repo "$ORG/$repo" --ref "$branch" >/dev/null \
+    && echo "rebase check started: $repo@$branch" \
+    || echo "  $repo@$branch: could not start dependabot-keep-current" >&2
+done
 echo "targets: $n"
 [ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }
