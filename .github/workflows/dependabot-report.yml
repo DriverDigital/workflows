@@ -229,10 +229,11 @@ jobs:
           DEFAULT_HANDLE: ${{ inputs.default-reviewer-handle }}
         run: echo "handle=${OVERRIDE:-$DEFAULT_HANDLE}" >> "$GITHUB_OUTPUT"
 
-      # Auto-merge needs all four: validate succeeded, Claude's verdict is exactly "safe", the trusted
-      # facts say a patch or minor npm update, and the PR head is still the validated commit. Anything
-      # else, a missing or malformed verdict.json included, turns auto-merge off, and asks and assigns
-      # a person.
+      # Auto-merge needs all five: validate succeeded, Claude's verdict is exactly "safe", the trusted
+      # facts say a patch or minor npm update, the PR head is still the validated commit, and the repo
+      # is not a vercel-site, where Vercel blocks the build of a merge by anyone outside its team.
+      # Anything else, a missing or malformed verdict.json included, turns auto-merge off, and asks
+      # and assigns a person.
       # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
       # token here that can merge) enables auto-merge, so the merge commit's push workflows run, which a
       # GITHUB_TOKEN merge would not start.
@@ -273,6 +274,9 @@ jobs:
           if [ "$CONCLUSION" != success ]; then held="validate failed"
           elif [ "$verdict" != safe ]; then held="the verdict is $verdict"
           elif [ "$ELIGIBLE" != true ]; then held="${WHY:-the bump could not be read}"
+          elif ! vercel=$(gh api "repos/$REPO" --jq '.topics | any(. == "vercel-site")'); then
+            held="the repo's topics could not be read"
+          elif [ "$vercel" = true ]; then held="Vercel builds a merge only when a member of its team makes it"
           elif [ -z "$MERGE_TOKEN" ]; then held="this repo has no DEPENDABOT_MERGE_TOKEN"
           elif ! GH_TOKEN="$ACTIONS_TOKEN" gh api -X POST "repos/$REPO/pulls/$PR/reviews" \
                  -f commit_id="$SHA" -f event=APPROVE -f body="Safe verdict on a patch or minor npm update." >/dev/null; then
