@@ -44,6 +44,10 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    # @types/node matches the Node major in .node-version and moves by hand with it, never ahead.
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       tailwind:
         patterns: ["tailwindcss*", "@tailwindcss*"]
