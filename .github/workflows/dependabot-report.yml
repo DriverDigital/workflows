@@ -81,8 +81,10 @@ jobs:
 
       # The merge gate's facts come from Dependabot's own metadata through the API, never from the
       # artifact: install scripts run on the validate runner and can rewrite anything it uploads.
-      # Default deny: a body line that names a change but does not parse makes the PR ineligible, and
-      # so does a body Dependabot truncated, caught by counting the commit's updated-dependencies.
+      # The bump lines come from the commit message, since Dependabot truncates a large group's PR
+      # body. Default deny: a line that names a change but does not parse makes the PR ineligible, and
+      # so does a count that differs from the updated-dependencies block, which catches a truncated
+      # message too.
       - name: Read the bump from Dependabot's metadata (trusted)
         id: facts
         if: steps.provenance.outputs.report == 'true'
@@ -100,7 +102,7 @@ jobs:
           gh pr view "$PR" --repo "$REPO" --json headRefName,body > pr.json
           jq -r .body pr.json | tr -d '\r' > _facts/pr-body.md
           gh api "repos/$REPO/commits/$sha" --jq .commit.message > _facts/commit-message.txt
-          grep -P '^(Bumps \[|Updates \x60|Updates the requirements|Removes )' _facts/pr-body.md > lines.txt || true
+          grep -P '^(Bumps \[|Updates \x60|Updates the requirements|Removes )' _facts/commit-message.txt > lines.txt || true
           sed -nE 's/^Bumps \[([^]]+)\]\([^)]*\) from ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]) to ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]).*$/\1 \2 \3/p
                    s/^Updates \x60([^ ]+)\x60 from ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]) to ([0-9][0-9A-Za-z.+-]*[0-9A-Za-z]).*$/\1 \2 \3/p' \
             lines.txt > parsed.txt
@@ -125,7 +127,7 @@ jobs:
           esac
           deps=$(grep -c '^- dependency-name:' _facts/commit-message.txt || true)
           if [ -z "$why" ] && { [ "$lines" -eq 0 ] || [ "$lines" -ne "$parsed" ] || [ "$parsed" -ne "$deps" ]; }; then
-            why="could not read every bump's versions from the PR body"
+            why="could not read every bump's versions from the commit message"
           fi
           [ -z "$why" ] && [ "$majors" -gt 0 ] && why="a major version bump"
           echo "why=$why" >> "$GITHUB_OUTPUT"
@@ -193,7 +195,7 @@ jobs:
             A Dependabot PR (#${{ inputs.pr-number }}) in ${{ github.repository }} was validated by a
             separate UNPRIVILEGED job (validate conclusion: ${{ inputs.validate-conclusion }}). Read
             _facts/facts.json first: every bumped package with its from and to versions and its semver
-            class, read from Dependabot's own PR body (an empty list means none could be read). Also in
+            class, read from Dependabot's commit message (an empty list means none could be read). Also in
             _facts/: commit-message.txt, whose updated-dependencies block gives each package's
             dependency-type (direct:production ships to the site, direct:development is tooling), and
             pr-body.md, Dependabot's PR body with the upstream release notes and changelogs. Then read
