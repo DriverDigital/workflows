@@ -19,8 +19,8 @@ name: Dependabot report (reusable)
 #   • The caller passes the triggering-run context via `with:` BY DESIGN — the `github`
 #     context in a called workflow is the caller's, so `github.event.workflow_run.*` would
 #     resolve here too; explicit inputs are what the provenance assertion is written against.
-#   • Runs on BOTH real validate outcomes (success + failure): a person is pinged unless the
-#     PR auto-merges; any other outcome (cancelled/skipped/timed-out) posts nothing.
+#   • Runs on every validate outcome but a superseded or skipped one (cancelled/skipped/neutral):
+#     a person is pinged unless the PR auto-merges, so a timed-out validate still reaches someone.
 # ─────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -69,11 +69,10 @@ jobs:
           [ -n "$PR" ] || { echo "::warning::empty pr-number (workflow_run.pull_requests was unpopulated)"; ok=false; }
           echo "ok=$ok" >> "$GITHUB_OUTPUT"
           [ "$ok" = "true" ] || echo "::notice::provenance check failed — skipping the privileged report."
-          # Only success/failure are real validate outcomes worth a verdict. A cancelled/skipped/timed-out
-          # run may never have uploaded the validation artifact, so gate the privileged steps off entirely —
-          # otherwise the artifact download ERRORs the job instead of posting nothing (per the contract above).
+          # A cancelled run was superseded by a newer one, which reports. Every other outcome, a timeout
+          # included, reaches a person: Dependabot assigns no one, so this report is the only ping.
           real=false
-          case "$CONCLUSION" in success|failure) real=true ;; esac
+          case "$CONCLUSION" in cancelled|skipped|neutral) ;; *) real=true ;; esac
           [ "$real" = "true" ] || echo "::notice::validate conclusion '$CONCLUSION' is not a real result; nothing to report."
           report=false
           [ "$ok" = "true" ] && [ "$real" = "true" ] && report=true
@@ -231,7 +230,8 @@ jobs:
 
       # Auto-merge needs all five: validate succeeded, Claude's verdict is exactly "safe", the trusted
       # facts say a patch or minor npm update, the PR head is still the validated commit, and the repo
-      # is not a vercel-site, where Vercel blocks the build of a merge by anyone outside its team.
+      # is not a vercel-site, where Vercel blocks the build of a merge by driver-digital-agents, a
+      # user with no seat on its team.
       # Anything else, a missing or malformed verdict.json included, turns auto-merge off, and asks
       # and assigns a person.
       # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
@@ -276,7 +276,7 @@ jobs:
           elif [ "$ELIGIBLE" != true ]; then held="${WHY:-the bump could not be read}"
           elif ! vercel=$(gh api "repos/$REPO" --jq '.topics | any(. == "vercel-site")'); then
             held="the repo's topics could not be read"
-          elif [ "$vercel" = true ]; then held="Vercel builds a merge only when a member of its team makes it"
+          elif [ "$vercel" = true ]; then held="Vercel blocks a merge by driver-digital-agents, which has no seat on its team"
           elif [ -z "$MERGE_TOKEN" ]; then held="this repo has no DEPENDABOT_MERGE_TOKEN"
           elif ! GH_TOKEN="$ACTIONS_TOKEN" gh api -X POST "repos/$REPO/pulls/$PR/reviews" \
                  -f commit_id="$SHA" -f event=APPROVE -f body="Safe verdict on a patch or minor npm update." >/dev/null; then
@@ -315,5 +315,5 @@ jobs:
 
           if [ -n "$held" ] && [ -n "$HANDLE" ]; then
             gh pr edit "$PR" --repo "$REPO" --add-reviewer "$HANDLE" || echo "::warning::could not add reviewer '$HANDLE'"
-            gh pr edit "$PR" --repo "$REPO" --add-assignee "$HANDLE" || echo "::warning::could not assign '$HANDLE'"
+            gh pr edit "$PR" --repo "$REPO" --add-assignee "$HANDLE" || { echo "::error::could not assign '$HANDLE'"; exit 1; }
           fi

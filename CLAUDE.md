@@ -16,7 +16,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 The GitHub side of Driver's agentic pipeline: the reusable workflows in `.github/workflows/` (the
-implementer `claude.yml`, three Dependabot rails, one rail per hosting platform) and the onboarding
+implementer `claude.yml`, three Dependabot rails, the Shopify theme rail) and the onboarding
 kit in `templates/github/` that fleet repos install. `driver-agents` (private) holds the dispatcher
 that feeds the implementer and the canonical Shopify instructions it runs with. README,
 *Where it sits in the pipeline*, has the whole picture.

@@ -3,7 +3,7 @@
 The GitHub side of Driver's agentic pipeline. Two products live here:
 
 - **Reusable workflows** in `.github/workflows/` (`workflow_call` only): the implementer that turns a
-  ticket into a pull request, the three Dependabot rails, and one CI/CD rail per hosting platform.
+  ticket into a pull request, the three Dependabot rails, and the Shopify theme rail.
 - **The onboarding kit** in [`templates/github/`](templates/github/README.md): the caller stubs and
   whole-file workflows a client repo installs, plus the house standards every repo's `CLAUDE.md`
   imports.

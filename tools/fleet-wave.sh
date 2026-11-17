@@ -133,7 +133,19 @@ dest() {
 }
 
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
+PUSHED=()
+dispatch_pushed() {
+  local p repo branch
+  for p in ${PUSHED[@]+"${PUSHED[@]}"}; do
+    read -r repo branch <<<"$p"
+    gh workflow run dependabot-keep-current.yml --repo "$ORG/$repo" --ref "$branch" >/dev/null \
+      && echo "rebase check started: $repo@$branch" \
+      || echo "  $repo@$branch: could not start dependabot-keep-current" >&2
+  done
+}
+# On exit, so a wave that stops partway still rebases behind the branches it already pushed: a
+# re-run finds them current and would never add them.
+trap 'dispatch_pushed; rm -rf "$TMP"' EXIT
 
 api() { gh api "$@"; }
 # A typo in --skip would skip nothing and wave the repo it was meant to spare — the one outcome the
@@ -427,7 +439,6 @@ if [ "$DRY" -eq 0 ]; then
 fi
 n=0
 labelled=" "
-PUSHED=()
 while read -r repo branch plat tier found; do
   [ -n "$repo" ] || continue
   echo "== $repo@$branch ($plat, $tier$([ "$found" = kit ] || echo ", no kit yet"))"
@@ -440,11 +451,5 @@ while read -r repo branch plat tier found; do
     labelled="$labelled$repo "
   fi
 done <<<"$TARGETS"
-for p in ${PUSHED[@]+"${PUSHED[@]}"}; do
-  read -r repo branch <<<"$p"
-  gh workflow run dependabot-keep-current.yml --repo "$ORG/$repo" --ref "$branch" >/dev/null \
-    && echo "rebase check started: $repo@$branch" \
-    || echo "  $repo@$branch: could not start dependabot-keep-current" >&2
-done
 echo "targets: $n"
 [ "$BLOCKED" -eq 0 ] || { echo "blocked targets above — a real wave would stop before writing anything" >&2; exit 3; }

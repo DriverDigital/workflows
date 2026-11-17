@@ -11,12 +11,13 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   only on a held PR (#156), safe Dependabot PRs held for a person on Vercel sites (#157), the
   `@types/node` major ignore (#159), keep-current dispatched by the wave (#154), only the minted
   token in the store env file (#133), and `vercel-deploy` removed from the kit (#158). Release it in
-  README *Release + repin order*; canary with `tools/fleet-wave.sh --only Driver-Digital-Website`
-  first: its stub is deleted, `rebase check started` prints for it, and Dependabot acts on the
-  `@dependabot rebase` comments.
+  README *Release + repin order*. Canary with `tools/fleet-wave.sh --only Driver-Digital-Website`
+  (its `vercel-deploy.yml` is deleted), then `--only` a private repo with a Dependabot PR behind
+  its base (LaPointe#172 today): `rebase check started` prints, and Dependabot acts on the
+  `@dependabot rebase` comment.
 - **After the v1.23.0 wave, by hand:** delete the `main` deploy hook in each Vercel project
   (studio-sulzer, Team-Laird, Driver-Digital-Website) and the `VERCEL_DEPLOY_HOOK_MAIN` secret on
-  each repo; close open `@types/node` major PRs (studio-sulzer#88).
+  each repo.
 - **Docs elsewhere** describe the old behaviour: driver-onboarding#46 and plugins#62.
 
 ## Blocked or gated

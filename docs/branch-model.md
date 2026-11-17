@@ -16,7 +16,7 @@ each platform and each tier adds.
 | `driver-kit` | The repo takes the kit. `tools/fleet-wave.sh` targets nothing without it, so a stale repo receives nothing further without being archived. |
 | `agents-pipeline` | The repo takes Bonsai tickets: adds the implementer. Private repos only; the wave refuses a public repo that carries it. |
 | `shopify-theme` | A Shopify site: adds the Shopify files on a private repo. |
-| `vercel-site` | A Vercel site: adds the Vercel files on a private repo. |
+| `vercel-site` | A Vercel site: the shared kit plus the root `.node-version`. |
 | `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
@@ -46,14 +46,14 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | Topic | `shopify-theme` | `vercel-site` |
 | Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
 | Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
-| Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | None: Vercel's GitHub app builds every push and PR |
-| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | A staged production deployment for each push to `main` and a preview for each PR commit, when the commit's author has a seat on the project's Vercel team. |
+| Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | None: Vercel's GitHub app builds pushes and PRs |
+| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | A staged production deployment for each push to `main` and a preview for each PR commit, when the commit's author has a seat on the project's Vercel team or is a GitHub App bot (`dependabot[bot]`, `claude[bot]`). |
 | Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | None |
 | Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | None |
 
-Vercel builds a commit only when its author has a seat on the project's team, and blocks anyone
-else's with a failing `Vercel` status. Since about May 2026 it applies the same check to deploy
-hooks and CLI deploys, so no workflow here can build a commit for an author without a seat. Anyone
+Vercel builds a commit only when its author has a seat on the project's team or is a GitHub App bot,
+and blocks any other user's with a failing `Vercel` status. Since about May 2026 it applies the same
+check to deploy hooks and CLI deploys, so neither can build a commit the GitHub app blocked. Anyone
 can open a PR, but a team member merges into `main`, with a merge commit, so the commit Vercel
 builds is theirs. A team member can redeploy a blocked preview in Vercel. Dependabot's safe updates
 wait for that person too (README, *The Dependabot security split*).
