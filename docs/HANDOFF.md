@@ -6,13 +6,18 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **v1.22.0 is released and waved; `fleet-pin-audit.sh --stale` reads converged.** Safe patch and
-  minor npm Dependabot PRs now approve and merge themselves on private kit repos (README, *The
-  Dependabot security split*). Avara#264 went through end to end: verdict check, github-actions[bot]
-  approval, the merge by `driver-digital-agents`, and the `Shopify theme` push on the merge commit.
+- **v1.23.0 is built on `next-release`, not yet released.** It carries the preview link at the top of
+  the PR description (#152), Dependabot bump lines read from the commit message (#155), assignment
+  only on a held PR (#156), safe Dependabot PRs held for a person on Vercel sites (#157), the
+  `@types/node` major ignore (#159), keep-current dispatched by the wave (#154), only the minted
+  token in the store env file (#133), and `vercel-deploy` removed from the kit (#158). Release it in
+  README *Release + repin order*; canary with `tools/fleet-wave.sh --only Driver-Digital-Website`
+  first: its stub is deleted, `rebase check started` prints for it, and Dependabot acts on the
+  `@dependabot rebase` comments.
+- **After the v1.23.0 wave, by hand:** delete the `main` deploy hook in each Vercel project
+  (studio-sulzer, Team-Laird, Driver-Digital-Website) and the `VERCEL_DEPLOY_HOOK_MAIN` secret on
+  each repo; close open `@types/node` major PRs (studio-sulzer#88).
 - **Docs elsewhere** describe the old behaviour: driver-onboarding#46 and plugins#62.
-- **Preview link at the top of the PR description** (`shopify-theme.yml`) reaches the fleet only
-  with the next release and wave. Until then, a PR on v1.22.0 still gets the line at the end.
 
 ## Blocked or gated
 
@@ -31,9 +36,11 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## Watch-items
 
-- **The first auto-merges on the other repos.** A grouped PR whose body Dependabot truncated, or whose
-  head is a merge from "Update branch", waits for a person by design. A merge that starts no push run
-  on its merge commit means `DEPENDABOT_MERGE_TOKEN` lost its org approval or its access.
+- **The first auto-merges on the other repos.** A PR whose head is a merge from "Update branch" waits
+  for a person by design. A merge that starts no push run on its merge commit means
+  `DEPENDABOT_MERGE_TOKEN` lost its org approval or its access.
+- **Dependabot sometimes ignores `@dependabot rebase`** (Driver-Digital-Website #196-#198 on 11-03,
+  #198 on 11-16), cause unknown. If the v1.23.0 canary's rebase comments go unanswered, file it.
 - **The Node-pin to-dos** (from #86) have merged everywhere but three open PRs: Kissy-Kissy#82,
   R-Finds#55 and LittleMe#61. foundrae's `main-development` PR (#256) is also open; its theme push
   fails on that branch's own files (`.shopifyignore` lacks `assets/.vite/*`, and
@@ -66,7 +73,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **The first real ticket through the implementer.** The guard steps should stay quiet; if one
   fires, the failure note lands on the issue and, on a private repo, the transcript is in the run log.
   On Avara the log must read `Provisioned store 'avara'` and the "Mint the store token as a log mask"
-  step must pass. Never print the token cache to prove the mask.
+  step must pass with no warning (from v1.23.0 it also swaps the app credentials for the token), and
+  a store call from Claude must still work. Never print the token cache or the env file to prove it.
 - **Figma fidelity runs need the `figma` label.** A theme PR opened before the v1.22.0 wave keeps the
   old, unlabelled agent copy on its branch until it merges `main`. The first ticket with a design
   should show the label on its PR and one fidelity check.

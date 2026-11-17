@@ -72,7 +72,7 @@ How a ticket becomes a merged change:
 |---|---|---|---|
 | `claude.yml` | OAuth token, PAT, optional store, alert and Figma secrets; write token | `issues` opened, `issue_comment` created, `pull_request_review` submitted, `pull_request_review_comment` created | The implementer, on private repos only (it fails the run on a public one). An `@claude`'d issue becomes a dev-linked branch and a PR; `@claude` on a PR runs tag mode on its branch. |
 | `dependabot-validate.yml` | **none** (credential-less) | `pull_request` | Install, build, test (plus optional theme check and dev smoke) and npm registry facts → an inert artifact. Non-Dependabot PRs pass green. |
-| `dependabot-report.yml` | PAT + OAuth token; write token (approval, check) | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. |
+| `dependabot-report.yml` | PAT + OAuth token; write token (approval, check) | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge, except on a Vercel site; anything else requests a human reviewer and assigns them. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed; `workflow_dispatch`, which the wave sends after its pushes | After a merge or a wave push, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 | `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link) and `read` (the preview gate) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
 
@@ -208,13 +208,15 @@ with `Read`, `Glob`, `Grep` and `Write` and no `gh`. Artifact content is never i
 
 The agent's verdict alone never merges. A trusted step approves the PR (as github-actions[bot],
 pinned to the validated commit) and enables auto-merge (with `DEPENDABOT_MERGE_TOKEN`, so the merge
-commit's push workflows run) only when validate succeeded, the verdict is exactly `safe`, and every bump is a
-patch or minor npm update. It reads that last fact from Dependabot's own PR body, branch name and
-commit message through the API, never from the artifact, which install scripts could rewrite. A 0.x
-minor, any 0.0.x change and a prerelease count as majors, and a body whose bumps do not match the
-commit's dependency list (Dependabot truncated it) is not eligible. Majors and every other case wait
-for the reviewer. The `Dependabot verdict` check is
-not required in branch protection: human PRs never get one.
+commit's push workflows run) only when validate succeeded, the verdict is exactly `safe`, every bump is a
+patch or minor npm update, and the repo is not a `vercel-site`. It reads the bumps from Dependabot's
+own commit message and branch name through the API, never from the artifact, which install scripts
+could rewrite, and never from the PR body, which Dependabot truncates on a large group. A 0.x minor,
+any 0.0.x change and a prerelease count as majors, and a message whose bump lines do not match its
+dependency list is not eligible. A Vercel site waits because Vercel blocks the build of a merge by
+`driver-digital-agents`, which has no seat on the team (#157). Majors and every other case wait for
+the reviewer, who is also assigned; Dependabot itself assigns no one. The `Dependabot verdict` check
+is not required in branch protection: human PRs never get one.
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
 `dependabot-report`'s `workflow_run` trigger matches it by name and a drift silently stops the report:
