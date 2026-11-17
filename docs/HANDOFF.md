@@ -18,7 +18,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **After the v1.23.0 wave, by hand:** delete the `main` deploy hook in each Vercel project
   (studio-sulzer, Team-Laird, Driver-Digital-Website) and the `VERCEL_DEPLOY_HOOK_MAIN` secret on
   each repo.
-- **Docs elsewhere** describe the old behaviour: driver-onboarding#46 and plugins#62.
+- **Docs elsewhere** still describe `vercel-deploy` and auto-merge on Vercel sites: Team-Laird#89,
+  Driver-Digital-Website#203, studio-sulzer#99 and driver-onboarding#52.
 
 ## Blocked or gated
 
