@@ -147,7 +147,7 @@ scan_ref() {  # repo ref platform tier is_default
   fi
   grep -qx workflows <<<"$dotgithub" && [ -z "$files" ] && wf_listed=0
   # The wave targets every default branch and any other that already carries a kit file.
-  if [ "$is_default" = 1 ] || grep -qxE '(claude|dependabot-validate|lint|shopify-theme|vercel-deploy)\.yml' <<<"$files" \
+  if [ "$is_default" = 1 ] || grep -qxE '(claude|dependabot-validate|lint|shopify-theme)\.yml' <<<"$files" \
      || grep -qx claude-standards.md <<<"$dotgithub"; then
     waved=1
   fi

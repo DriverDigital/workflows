@@ -14,9 +14,10 @@ name: Dependabot keep current (reusable)
 # which would multiply CI churn for no benefit. On a NON-strict repo this is inert
 # (behind-but-mergeable PRs never report BEHIND) — which is correct: they merge fine.
 #
-# Trigger (in the caller): `on: pull_request: types: [closed]`. We act only on a
-# real MERGE of a SAME-REPO PR not merged by Dependabot itself, and scope to the merged PR's
-# base.ref, so one stub is branch-agnostic (main / develop / staging all work).
+# Triggers (in the caller): `pull_request: types: [closed]`, where we act only on a real MERGE of
+# a SAME-REPO PR not merged by Dependabot itself and scope to the merged PR's base.ref; and
+# `workflow_dispatch`, scoped to the dispatched ref. The fleet wave dispatches it after each push:
+# its [skip ci] commits start no workflow, and would otherwise leave every Dependabot PR behind.
 #
 # IDENTITY: must post as a real USER with push access (driver-digital-agents via
 # AGENTS_GH_PAT). Dependabot ignores `@dependabot` commands from GitHub Apps /
@@ -38,7 +39,7 @@ permissions:
 concurrency:
   # Serialize (never CANCEL) runs for the same base: a cancelled run could be killed
   # mid comment-loop and silently drop PRs. The job is cheap + idempotent, so queue.
-  group: dependabot-keep-current-${{ github.event.pull_request.base.ref }}
+  group: dependabot-keep-current-${{ github.event.pull_request.base.ref || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -46,18 +47,20 @@ jobs:
     # Real merge, same-repo. Fork PRs get no secrets (AGENTS_GH_PAT empty), and an event whose
     # actor is Dependabot runs with its restricted token, so both are skipped. The actor of a merge
     # is the merger, not the PR author: a Dependabot PR auto-merged by the report job still runs
-    # this, which keeps a run of Dependabot PRs moving under strict.
+    # this, which keeps a run of Dependabot PRs moving under strict. A dispatch comes from someone
+    # with write access, so it needs no gate.
     if: >-
-      github.event.pull_request.merged == true &&
-      github.actor != 'dependabot[bot]' &&
-      github.event.pull_request.head.repo.full_name == github.repository
+      github.event_name == 'workflow_dispatch' || (
+        github.event.pull_request.merged == true &&
+        github.actor != 'dependabot[bot]' &&
+        github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
       - name: Rebase Dependabot PRs blocked by being behind this base
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
           REPO: ${{ github.repository }}
-          BASE: ${{ github.event.pull_request.base.ref }}
+          BASE: ${{ github.event.pull_request.base.ref || github.ref_name }}
         run: |
           set -euo pipefail
           # Track non-fatal-per-PR problems and FAIL the run at the end if any

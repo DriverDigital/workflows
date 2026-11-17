@@ -8,7 +8,7 @@ platform topic also brings a root `.node-version` from `templates/github/node-ve
 
 ## Which repos get what
 
-Five GitHub topics on each repo and its visibility decide it. `tools/kit-platforms.sh` lists the files
+Five GitHub topics on each repo and its visibility decide it; a sixth, `maintenance-paused`, changes only who is asked to review. `tools/kit-platforms.sh` lists the files
 each platform and each tier adds.
 
 | Topic | Means |
@@ -16,8 +16,9 @@ each platform and each tier adds.
 | `driver-kit` | The repo takes the kit. `tools/fleet-wave.sh` targets nothing without it, so a stale repo receives nothing further without being archived. |
 | `agents-pipeline` | The repo takes Bonsai tickets: adds the implementer. Private repos only; the wave refuses a public repo that carries it. |
 | `shopify-theme` | A Shopify site: adds the Shopify files on a private repo. |
-| `vercel-site` | A Vercel site: adds the Vercel files on a private repo. |
+| `vercel-site` | A Vercel site: the shared kit plus the root `.node-version`. |
 | `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
+| `maintenance-paused` | Driver has no maintenance agreement for the site. Dependabot still runs and safe updates still auto-merge, but a PR the report holds gets no reviewer or assignee. Remove the topic when the client asks for help again. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
 
@@ -46,10 +47,18 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | Topic | `shopify-theme` | `vercel-site` |
 | Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
 | Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
-| Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | `vercel-deploy.yml` → reusable `vercel-deploy.yml` |
-| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | Each push to `main` fires the main deploy hook, skipped for members of the Vercel team (Vercel's GitHub app has already built their push). Either way the build is a staged production deployment. Vercel's GitHub app builds a preview for every open PR, whoever opens it. |
-| Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | `VERCEL_DEPLOY_HOOK_MAIN` |
-| Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | `VERCEL_TEAM_LOGINS`, per repo: space-separated GitHub logins with a seat on that project's Vercel team. When it's unset, `mcarter-astronautdev` alone is used |
+| Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | None: Vercel's GitHub app builds pushes and PRs |
+| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | A staged production deployment for each push to `main` and a preview for each PR commit, when the commit's author has a seat on the project's Vercel team. Previews of commits by GitHub App bots (`dependabot[bot]`, `claude[bot]`) build too. |
+| Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | None |
+| Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | None |
+
+Vercel builds a commit only when its author has a seat on the project's team, and blocks any other
+user's with a failing `Vercel` status. Previews of commits by GitHub App bots build too; a production
+build of a bot's commit has not been seen. Since about May 2026 it applies the same
+check to deploy hooks and CLI deploys, so neither can build a commit the GitHub app blocked. Anyone
+can open a PR, but a team member merges into `main`, with a merge commit, so the commit Vercel
+builds is theirs. A team member can redeploy a blocked preview in Vercel. Dependabot's safe updates
+wait for that person too (README, *The Dependabot security split*).
 
 On Vercel, `main` stays the project's production branch with "Auto-assign Custom Production
 Domains" off (Settings → Environments → Production). A push builds with production environment
@@ -75,7 +84,7 @@ only, so a branch rename never touches a live storefront.
 ## Where branch names are hard-coded
 
 This repo names branches only where a standard does. The Shopify stub filters on `main`/`main-*`,
-the Vercel stub on `main`, and `templates/github/lint.yml` runs on `push: [main]`. Nothing else does:
+and `templates/github/lint.yml` runs on `push: [main]`. Nothing else does:
 the implementer bases its branch and PR on the repo's default branch, or on the `Target branch:` line
 the dispatcher writes when the ticket or its map entry names a branch (only Palmers' entries do); the Dependabot reusables follow the PR; and the wave and the
 audit follow each repo's default branch, plus every Palmers branch named `main*`. On Palmers the
@@ -117,8 +126,7 @@ have its own.
 
 **Before each cutover:**
 - The repo carries the shared kit.
-- The kit's platform stub pins a release whose reusable matches it. The main-only Vercel stub needs
-  the release that carries the main-only reusable.
+- A Shopify repo's platform stub pins a release whose reusable matches it.
 - A Shopify repo with no build script passes `shopify theme check --fail-level error`, which its build
   job runs on every push and on every PR that changes theme files.
 - No wave is running. The wave reads `default_branch` live, so one that runs mid-cutover commits to
@@ -157,10 +165,8 @@ have its own.
    with `new_name=main`. GitHub retargets its open PRs, moves its protection rule and makes it the
    default. It does not touch workflow branch filters, Vercel or Dependabot settings, or rulesets
    (see step 9). Remove any `target-branch: develop` the wave has not.
-5. **Vercel only: swap the hooks.** In Vercel, delete the `develop` hook and create a `main` hook
-   where there is none (studio-sulzer). On the repo, set `VERCEL_DEPLOY_HOOK_MAIN`, delete
-   `VERCEL_DEPLOY_HOOK_DEVELOP`. `VERCEL_TEAM_LOGINS` stays unset on all three: its fallback,
-   `mcarter-astronautdev`, is the only Vercel team member who merges. A login left out deploys twice.
+5. **Vercel only: delete the hooks.** In Vercel, delete the project's deploy hooks; on the repo,
+   delete their `VERCEL_DEPLOY_HOOK_*` secrets.
 6. **Merge one switch-over PR into `main`.** Open it as a draft from a `cutover/<stub>` branch, and
    leave `skip-ci` out. On a Shopify repo the draft runs the new stub (and not the deleted
    workflows); it changes no theme files, so it builds and pushes no preview. Merging it deploys
@@ -171,7 +177,7 @@ have its own.
    either in a follow-up PR. Palmers takes one PR per `main*` branch. The commit:
    - deletes the old deploy workflows: every theme workflow in the table above, or the Vercel
      `deploy.yml`
-   - adds the platform stub
+   - adds the platform stub (Shopify)
    - adds `lint.yml` where it's missing, now that the workflows it would fail on are gone
    - adds the `@.github/claude-standards.md` import to `CLAUDE.md` where it's missing; a repo with
      no `CLAUDE.md` gets one holding only that line, and its to-do keeps `/init` for the rest
@@ -181,8 +187,7 @@ have its own.
    - Shopify: the push run updated `DRIVER/<branch>` (`DRIVER/main` outside Palmers), and the next
      PR that changes theme files deploys its preview.
    - Vercel: the push staged a build and the production domain still serves the previous
-     deployment. A push by a login in `VERCEL_TEAM_LOGINS` skips the hook, so fire
-     `VERCEL_DEPLOY_HOOK_MAIN` once by hand and confirm Vercel stages that build too. Promote once,
+     deployment. Promote once,
      then confirm auto-assign is still off. That first promotion ships everything the working branch
      gained since old `main` was last promoted, not only the switch-over PR (38 commits on
      Team-Laird); read `compare/<live deployment's commit>...main` first.

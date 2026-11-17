@@ -23,7 +23,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 
 ### Caller stubs (thin — they call the central reusables at a pinned SHA)
 
-All go to `.github/workflows/` unchanged; the two platform stubs are below. Each pins
+All go to `.github/workflows/` unchanged; the platform stubs are below. Each pins
 `DriverDigital/workflows/...@<sha>`; the trailing `# vX.Y.Z` comment on the `uses:` line is the only
 place the version is recorded.
 
@@ -31,13 +31,14 @@ place the version is recorded.
 |---|---|
 | `claude.yml` | The implementer, on private repos with the `agents-pipeline` topic; the reusable fails the run on a public repo. On an `@claude`'d issue it creates a **development-linked branch** `issue-<n>` from the issue's `Target branch:` (else the default branch), honours an "Instructions from the ticket" section, implements, pre-reviews its own diff with the built-in `/code-review`, and opens a **real PR** whose body carries `Closes #n`, a `Bonsai task:` line, a `Figma:` line when the issue links a design, a `How to QA` section when the issue states acceptance criteria, and a `Pre-review:` line. When the issue carries the `figma` label, the workflow adds it to the PR, so Macroscope runs its design fidelity check; the wave creates the label in every kit repo. The model requests no reviewer. The dispatcher requests the ticket's reviewer at hand-off; on an issue with no Bonsai task the workflow requests its author. Either is requested only when driver-agents `pipeline/reviewers.json` lists them, and the no-ticket path falls back to `PR_REVIEWER_HANDLE`. `@claude` on a PR (standalone comment, review, or inline comment) runs tag mode on its branch. Issue runs carry no attribution trailer on commits and no PR footer; a human's tag-mode `@claude` can add a `Co-authored-by` naming that person. The stub holds the triggers, a coarse `@claude` filter, the concurrency group, the permissions and `secrets: inherit`; the actor gate and everything else are in the reusable. |
 | `dependabot-validate.yml` | Credential-less install/build/test → uploads an inert artifact. Carries **no `secrets:` line** — deliberate, do not add one. |
-| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment and `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. Passes the reusable its three secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
-| `dependabot-keep-current.yml` | Private repos. After a merge, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
+| `dependabot-report.yml` | Private repos. Reasons over that artifact → verdict comment and `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge, except on a Vercel site; anything else requests a human reviewer and assigns them, unless the repo has the `maintenance-paused` topic. Passes the reusable its three secrets by name, never `inherit`, so a repo's own credentials stay out of a job that reads Dependabot output. |
+| `dependabot-keep-current.yml` | Private repos. After a merge, or when the fleet wave dispatches it after a push, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 
 ### Platform stubs (one platform each)
 
 A repo takes the kit only with the `driver-kit` topic, and these only when it is private. Its
-platform topic, `shopify-theme`, `vercel-site` or `wordpress-site` (no platform files), decides
+platform topic, `shopify-theme`, `vercel-site` or `wordpress-site` (the last two have no platform
+files), decides
 which of these it may carry; the wave never writes one to a public repo or to a repo of another
 platform or of none (`tools/kit-platforms.sh`). The wave refreshes a platform stub only where a repo
 already carries it; the first copy comes from the repo's canary or cutover commit. The standards and the cutover steps:
@@ -47,7 +48,6 @@ already carries it; the first copy comes from the repo's canary or cutover commi
 |---|---|---|
 | `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (pushed on open and every push, draft or ready, linked at the top of the PR description, deleted on close; none for a PR that changes only `.github/`, `.claude/`, `docs/` or Markdown files) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
-| `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
 **PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org
 except Dependabot's (`dependabot-report`'s verdict reviews those), and the dispatcher's revise loop

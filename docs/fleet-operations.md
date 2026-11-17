@@ -14,8 +14,9 @@ A wave pushes one commit straight to each target branch, with the CI-skip token 
 
 - **No review spend.** A PR per target would spend a Macroscope review in every repo on a change
   already reviewed here.
-- **No deploys.** Theme and Vercel deploy workflows fire on push to the branches a wave touches; the
-  skip-ci token suppresses them.
+- **No deploys.** Shopify theme workflows fire on push to the branches a wave touches; the skip-ci
+  token suppresses them. Vercel's GitHub app ignores it, so a wave stages a production build on each
+  Vercel site, which goes live only if someone promotes it.
 - **No round-trip.** Org admins bypass the *Driver branch rules* ruleset, so the push lands as an
   admin without approval.
 
@@ -26,7 +27,10 @@ is expected.
 
 **Open PRs pick up a wave only on their next event.** A PR runs the stubs from its merge with the
 base, so it needs a push after the wave: "Update branch" (`PUT pulls/<n>/update-branch`) does it and
-clears "behind" too, and Dependabot's PRs take `@dependabot rebase`. A re-run reuses the old pin and
+clears "behind" too. Dependabot's PRs on private repos need nothing: when it finishes, the wave
+dispatches `dependabot-keep-current` on each private branch it pushed, which asks Dependabot to rebase
+the ones left behind. On a public repo, comment `@dependabot rebase` on each one. Never "Update branch" a Dependabot PR: the report then refuses it, since its actor is no
+longer `dependabot[bot]`, and Dependabot stops maintaining it. A re-run reuses the old pin and
 stays red. Marking a draft ready does not run the theme stub, and closing a PR fires its cleanup job,
 which deletes the PR's preview theme.
 

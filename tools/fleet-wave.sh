@@ -27,9 +27,15 @@
 #                                                 templates/github/node-version/<platform>
 #   bonsai-status-sync.yml                     <- deleted if present (not a kit file)
 #   Production-Deploy.yml, production-deploy.yml <- deleted if present (an unused theme deploy workflow)
+#   vercel-deploy.yml                          <- deleted if present (Vercel blocks a hook build the
+#                                                 way it blocks a push by a commit author without a seat)
 #   RETIRED_AGENT_FILES (tools/kit-platforms.sh) <- deleted from .macroscope/check-run-agents/ on
 #                                                 Shopify repos (the agents inherit from driver-agents)
 #   the figma label                            <- created or updated on every target repo
+#   dependabot-keep-current.yml                <- dispatched on each pushed private branch once every
+#                                                 push is done: a [skip ci] commit starts no workflow,
+#                                                 so nothing else rebases the Dependabot PRs it leaves
+#                                                 behind
 # A platform's files (tools/kit-platforms.sh) are written only to repos whose topic names that
 # platform; the cutover to a platform's stubs installs them, and the wave keeps them current.
 #
@@ -108,11 +114,11 @@ fi
 # reports any per-repo edit as drift, so nothing the kit does not ship should outlive a wave. No kit
 # file carries a per-repo value: the store handle is the SHOPIFY_STORE_NAME repository variable
 # (guard 4).
-FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml vercel-deploy.yml lint.yml
+FULL_FILES=(claude.yml shopify-tool-smoke.yml shopify-theme.yml lint.yml
             pr-bonsai-link.yml close-linked-issues.yml dependabot-keep-current.yml dependabot-report.yml
             dependabot-validate.yml pull_request_template.md claude-standards.md claude-settings.json
             dependabot.yml node-version)
-DELETE_FILES=(bonsai-status-sync.yml Production-Deploy.yml production-deploy.yml)
+DELETE_FILES=(bonsai-status-sync.yml Production-Deploy.yml production-deploy.yml vercel-deploy.yml)
 # Where a kit file lives in a target repo: the PR template, the house standards and the Dependabot
 # config sit in .github/, the shared Claude Code project settings are the repo's .claude/settings.json,
 # and the platform's Node version is the root .node-version.
@@ -127,7 +133,19 @@ dest() {
 }
 
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
+PUSHED=()
+dispatch_pushed() {
+  local p repo branch
+  for p in ${PUSHED[@]+"${PUSHED[@]}"}; do
+    read -r repo branch <<<"$p"
+    gh workflow run dependabot-keep-current.yml --repo "$ORG/$repo" --ref "$branch" >/dev/null \
+      && echo "rebase check started: $repo@$branch" \
+      || echo "  $repo@$branch: could not start dependabot-keep-current" >&2
+  done
+}
+# On exit, so a wave that stops partway still rebases behind the branches it already pushed: a
+# re-run finds them current and would never add them.
+trap 'dispatch_pushed; rm -rf "$TMP"' EXIT
 
 api() { gh api "$@"; }
 # A typo in --skip would skip nothing and wave the repo it was meant to spare — the one outcome the
@@ -234,8 +252,7 @@ targets() {
          || api "repos/$ORG/$r/contents/.github/workflows/dependabot-validate.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
          || api "repos/$ORG/$r/contents/.github/claude-standards.md?ref=$b" --jq .sha >/dev/null 2>&1 \
          || api "repos/$ORG/$r/contents/.github/workflows/lint.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
-         || api "repos/$ORG/$r/contents/.github/workflows/shopify-theme.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
-         || api "repos/$ORG/$r/contents/.github/workflows/vercel-deploy.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
+         || api "repos/$ORG/$r/contents/.github/workflows/shopify-theme.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
         echo "$r $b $plat $tier kit"
       elif [ "$b" = "$def" ]; then
         echo "$r $b $plat $tier new"
@@ -399,6 +416,7 @@ plan_and_push() {
   # fast-forward-only update — it fails rather than clobbering a branch that moved under us.
   api -X PATCH "repos/$ORG/$repo/git/refs/heads/$branch" -f sha="$new_commit" -F force=false --jq .object.sha >/dev/null
   echo "  pushed $new_commit"
+  if tier_allows "$tier" private; then PUSHED+=("$repo $branch"); fi
 }
 
 echo "kit tag: $TAG ($TAG_SHA)   dry-run: $DRY   message: $MSG"

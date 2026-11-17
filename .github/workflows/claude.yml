@@ -282,6 +282,7 @@ jobs:
             echo "DRIVER_AGENTS_DIR=$RUNNER_TEMP/driver-agents"
             echo "SHOPIFY_STORE_DIR=$RUNNER_TEMP/shopify-stores"
             echo "SHOPIFY_AUDIT_DIR=$RUNNER_TEMP/shopify-audit"
+            echo "SHOPIFY_TOKEN_CACHE_DIR=$RUNNER_TEMP/shopify-tokens"
           } >> "$GITHUB_ENV"
           if [ -n "$SHOPIFY_ALERT_WEBHOOK" ]; then
             printf '%s\n' "$SHOPIFY_ALERT_WEBHOOK" > "$RUNNER_TEMP/shopify-alert-webhook"
@@ -323,13 +324,25 @@ jobs:
       # The wrapper registers its access token as a log mask only from a run: step; inside Claude its
       # output is transcript text, not a workflow command. So mint the token here, before the
       # transcript starts. If that fails, drop the credentials: a token the implementer minted itself
-      # would reach the log unmasked.
+      # would reach the log unmasked. Once minted, the env file keeps only SHOP and the token, which
+      # expires within 24h, so the implementer never holds the app's long-lived credentials. A token
+      # the wrapper's cache cannot give back leaves the file as provisioned rather than costing the
+      # run its store access.
       - name: Mint the store token as a log mask
         if: ${{ env.DRIVER_AGENTS_DIR != '' }}
         run: |
+          env_file="$SHOPIFY_STORE_DIR/$SHOPIFY_STORE_NAME.env"
           if ! "$DRIVER_AGENTS_DIR/tools/shopify/admin-graphql.sh" --store "$SHOPIFY_STORE_NAME" -q '{ shop { name } }' >/dev/null; then
-            rm -f "$SHOPIFY_STORE_DIR/$SHOPIFY_STORE_NAME.env"
+            rm -f "$env_file"
             echo "::warning::Could not mint the store token ahead of the run, so store credentials were removed — this run proceeds WITHOUT store access"
+            exit 0
+          fi
+          shop=$(sed -n 's/^SHOP=//p' "$env_file")
+          token=$(jq -r '.access_token // empty' "$SHOPIFY_TOKEN_CACHE_DIR/$SHOPIFY_STORE_NAME.json" 2>/dev/null) || token=""
+          if [ -n "$shop" ] && [ -n "$token" ]; then
+            printf 'SHOP=%s\nTOKEN=%s\n' "$shop" "$token" > "$env_file"
+          else
+            echo "::warning::Could not read the minted store token back, so the store app's credentials stay in the env file for this run"
           fi
       # Install Claude Code ourselves (latest STABLE channel), then hand it to the action below via
       # path_to_claude_code_executable (which makes the action SKIP its own install). Two reasons:
