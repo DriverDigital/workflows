@@ -6,16 +6,21 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 ## In flight
 
-- **v1.23.0 is built on `next-release`, not yet released.** It carries the preview link at the top of
-  the PR description (#152), Dependabot bump lines read from the commit message (#155), assignment
-  only on a held PR (#156) and never on a repo with the `maintenance-paused` topic, safe Dependabot
-  PRs held for a person on Vercel sites (#157), the `@types/node` major ignore (#159), keep-current
-  dispatched by the wave (#154), only the minted token in the store env file (#133), and
-  `vercel-deploy` removed from the kit (#158). Release it in
-  README *Release + repin order*. Canary with `tools/fleet-wave.sh --only Driver-Digital-Website`
-  (its `vercel-deploy.yml` is deleted), then `--only` a private repo with a Dependabot PR behind
-  its base (LaPointe#172 today): `rebase check started` prints, and Dependabot acts on the
-  `@dependabot rebase` comment.
+- **v1.23.0 is merged to `main` (#160) but not tagged or waved, on hold.** The release waits until
+  the CTO's open PRs across the fleet are merged, so the wave does not land on top of them; ask
+  before starting. It carries the preview link at the top of the PR description (#152), Dependabot
+  bump lines read from the commit message (#155), assignment only on a held PR (#156) and never on a
+  repo with the `maintenance-paused` topic, safe Dependabot PRs held for a person on Vercel sites
+  (#157), the `@types/node` major ignore (#159), keep-current dispatched by the wave (#154), only
+  the minted token in the store env file (#133), and `vercel-deploy` removed from the kit (#158).
+  Release it in README *Release + repin order*. Canary with `tools/fleet-wave.sh --only
+  Driver-Digital-Website` (its `vercel-deploy.yml` is deleted), then `--only` a private repo with a
+  Dependabot PR behind its base (LaPointe#172 when this was written): `rebase check started`
+  prints, and Dependabot acts on the `@dependabot rebase` comment. A "could not start" right after
+  the push may be timing; rerun `gh workflow run dependabot-keep-current.yml` by hand first.
+- **`maintenance-paused` is set on 13 repos** (`gh repo list DriverDigital --topic
+  maintenance-paused`) and takes effect with the v1.23.0 wave. Until then their held Dependabot PRs
+  still request and assign the reviewer.
 - **After the v1.23.0 wave, by hand:** delete the `main` deploy hook in each Vercel project
   (studio-sulzer, Team-Laird, Driver-Digital-Website) and the `VERCEL_DEPLOY_HOOK_MAIN` secret on
   each repo.
