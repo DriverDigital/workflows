@@ -75,7 +75,6 @@ How a ticket becomes a merged change:
 | `dependabot-report.yml` | PAT + OAuth token; write token (approval, check) | `workflow_run` on `Dependabot validate` | Reads the artifact, posts a verdict comment and a `Dependabot verdict` check. A safe verdict on a patch or minor npm update approves the PR and enables auto-merge; anything else requests a human reviewer. |
 | `dependabot-keep-current.yml` | PAT (its token is read-only) | `pull_request` closed; `workflow_dispatch`, which the wave sends after its pushes | After a merge or a wave push, asks Dependabot to rebase its PRs on that base that conflict, or that fell behind on a branch requiring up-to-date merges. Inert otherwise. |
 | `shopify-theme.yml` | theme token; GitHub token with `pull-requests: write` (the PR description link) and `read` (the preview gate) | `pull_request` to and `push` on `main` / `main-*` | Shopify sites: an unpublished preview theme `DRIVER/<branch>` per PR (none for a PR that changes no theme files) and per release branch. The build runs in a job with no secrets. |
-| `vercel-deploy.yml` | the main deploy hook | `push` on `main` | Vercel sites: fires the main deploy hook when the pusher is outside the Vercel team. The build is staged; production is a promotion in Vercel. |
 
 The kit — every stub, whole-file workflow and standards file, where each goes and how to install it —
 is documented in [`templates/github/README.md`](templates/github/README.md).

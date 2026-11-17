@@ -5,7 +5,8 @@
 #   driver-kit                  the repo takes the kit at all; the wave targets nothing without it,
 #                               so a stale repo stays untouched without having to be archived
 #   shopify-theme / vercel-site its hosting platform, which adds that platform's files
-#   / wordpress-site            (WordPress has only its .node-version: see node_version_source)
+#   / wordpress-site            (Vercel and WordPress have only their .node-version: see
+#                               node_version_source)
 #   agents-pipeline             the repo is on the Bonsai ticket pipeline: it takes the implementer
 # A repo's tier is the most of the kit it may carry: public repos the standards only, private repos
 # the private files too, private repos with agents-pipeline everything (repo_tier, file_tier).
@@ -14,10 +15,9 @@
 # kit files on a repo without driver-kit.
 KIT_TOPIC=driver-kit
 PIPELINE_TOPIC=agents-pipeline
-PRIVATE_FILES=(dependabot-report.yml dependabot-keep-current.yml shopify-theme.yml vercel-deploy.yml)
+PRIVATE_FILES=(dependabot-report.yml dependabot-keep-current.yml shopify-theme.yml)
 PIPELINE_FILES=(claude.yml shopify-tool-smoke.yml pr-bonsai-link.yml pull_request_template.md)
 SHOPIFY_FILES=(shopify-tool-smoke.yml shopify-theme.yml)
-VERCEL_FILES=(vercel-deploy.yml)
 # Macroscope check-run agents reach every repo from driver-agents, Macroscope's policy repo, so the
 # kit carries none. A repo's own copy at the same path would override the policy file: the wave
 # deletes these from .macroscope/check-run-agents/ on Shopify repos, and the audit reports one found.
@@ -25,8 +25,7 @@ RETIRED_AGENT_FILES=(figma-design-fidelity.md figma-design-fidelity-shopify.md)
 
 # The platform a kit file belongs to, or nothing for the shared kit.
 file_platform() {
-  case " ${SHOPIFY_FILES[*]} " in *" $1 "*) echo shopify; return ;; esac
-  case " ${VERCEL_FILES[*]} " in *" $1 "*) echo vercel ;; esac
+  case " ${SHOPIFY_FILES[*]} " in *" $1 "*) echo shopify ;; esac
 }
 
 agent_platform() { [ "$1" = shopify ]; }
@@ -65,7 +64,7 @@ tier_allows() {  # repo_tier file_tier
 # secrets set up first, so they arrive with the repo's cutover; .node-version needs a platform.
 wave_adds() {  # file node_version_source
   case "$1" in
-    shopify-theme.yml|vercel-deploy.yml|shopify-tool-smoke.yml) return 1 ;;
+    shopify-theme.yml|shopify-tool-smoke.yml) return 1 ;;
     node-version) [ -n "$2" ] ;;
     *) return 0 ;;
   esac

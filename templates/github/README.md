@@ -23,7 +23,7 @@ take it from there. The dispatcher owns every Bonsai status move; no workflow he
 
 ### Caller stubs (thin — they call the central reusables at a pinned SHA)
 
-All go to `.github/workflows/` unchanged; the two platform stubs are below. Each pins
+All go to `.github/workflows/` unchanged; the platform stubs are below. Each pins
 `DriverDigital/workflows/...@<sha>`; the trailing `# vX.Y.Z` comment on the `uses:` line is the only
 place the version is recorded.
 
@@ -37,7 +37,8 @@ place the version is recorded.
 ### Platform stubs (one platform each)
 
 A repo takes the kit only with the `driver-kit` topic, and these only when it is private. Its
-platform topic, `shopify-theme`, `vercel-site` or `wordpress-site` (no platform files), decides
+platform topic, `shopify-theme`, `vercel-site` or `wordpress-site` (the last two have no platform
+files), decides
 which of these it may carry; the wave never writes one to a public repo or to a repo of another
 platform or of none (`tools/kit-platforms.sh`). The wave refreshes a platform stub only where a repo
 already carries it; the first copy comes from the repo's canary or cutover commit. The standards and the cutover steps:
@@ -47,7 +48,6 @@ already carries it; the first copy comes from the repo's canary or cutover commi
 |---|---|---|
 | `shopify-theme.yml` | Shopify | PR preview theme `DRIVER/<branch>` (pushed on open and every push, draft or ready, linked at the top of the PR description, deleted on close; none for a PR that changes only `.github/`, `.claude/`, `docs/` or Markdown files) and `DRIVER/<branch>` on push to `main` / `main-*`; the build runs in a job with no secrets, and a live theme is never touched. |
 | `shopify-tool-smoke.yml` | Shopify (store repos) | A whole file, not a stub; see the whole-files table. |
-| `vercel-deploy.yml` | Vercel | Fires the main deploy hook on push to `main` when the pusher is not in `VERCEL_TEAM_LOGINS`. The build is a staged production deployment; production is a promotion in Vercel. |
 
 **PR review is Macroscope's job, not the kit's.** Macroscope reviews every PR in the DriverDigital org
 except Dependabot's (`dependabot-report`'s verdict reviews those), and the dispatcher's revise loop
