@@ -231,7 +231,8 @@ jobs:
 
       # Auto-merge needs all four: validate succeeded, Claude's verdict is exactly "safe", the trusted
       # facts say a patch or minor npm update, and the PR head is still the validated commit. Anything
-      # else, a missing or malformed verdict.json included, turns auto-merge off and asks a person.
+      # else, a missing or malformed verdict.json included, turns auto-merge off, and asks and assigns
+      # a person.
       # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
       # token here that can merge) enables auto-merge, so the merge commit's push workflows run, which a
       # GITHUB_TOKEN merge would not start.
@@ -310,4 +311,5 @@ jobs:
 
           if [ -n "$held" ] && [ -n "$HANDLE" ]; then
             gh pr edit "$PR" --repo "$REPO" --add-reviewer "$HANDLE" || echo "::warning::could not add reviewer '$HANDLE'"
+            gh pr edit "$PR" --repo "$REPO" --add-assignee "$HANDLE" || echo "::warning::could not assign '$HANDLE'"
           fi

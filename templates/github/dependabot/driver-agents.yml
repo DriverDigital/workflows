@@ -19,8 +19,6 @@ updates:
       default-days: 3
       exclude:
         - "DriverDigital/workflows*"
-    assignees:
-      - "mcarter-astronautdev"
     groups:
       actions:
         patterns:
@@ -37,8 +35,6 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
-    assignees:
-      - "mcarter-astronautdev"
     groups:
       mcp:
         patterns:
