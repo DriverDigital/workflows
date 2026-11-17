@@ -201,7 +201,7 @@ stub passes no `secrets:`, and the reusable declares none.
 
 `dependabot-report` holds the secrets and **never checks out or runs PR code**. It first asserts
 provenance (event `pull_request`, actor `dependabot[bot]`, a PR number, a same-repo head, and a
-validate run that succeeded or failed rather than cancelled), then its agent reads only the inert
+validate run that was not cancelled or skipped), then its agent reads only the inert
 artifact (`build.log`, `result.json`, `registry.json`) and Dependabot's PR body and commit message
 with `Read`, `Glob`, `Grep` and `Write` and no `gh`. Artifact content is never interpolated into a
 `run:` line. **Never use `pull_request_target`.**

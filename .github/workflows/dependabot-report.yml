@@ -72,7 +72,7 @@ jobs:
           # A cancelled run was superseded by a newer one, which reports. Every other outcome, a timeout
           # included, reaches a person: Dependabot assigns no one, so this report is the only ping.
           real=false
-          case "$CONCLUSION" in cancelled|skipped|neutral) ;; *) real=true ;; esac
+          case "$CONCLUSION" in cancelled|skipped|neutral|"") ;; *) real=true ;; esac
           [ "$real" = "true" ] || echo "::notice::validate conclusion '$CONCLUSION' is not a real result; nothing to report."
           report=false
           [ "$ok" = "true" ] && [ "$real" = "true" ] && report=true
@@ -237,7 +237,7 @@ jobs:
       # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
       # token here that can merge) enables auto-merge, so the merge commit's push workflows run, which a
       # GITHUB_TOKEN merge would not start.
-      - name: Post verdict, verdict check and merge decision (real outcomes only)
+      - name: Post verdict, verdict check and merge decision
         if: ${{ always() && steps.provenance.outputs.report == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.AGENTS_GH_PAT }}
@@ -251,8 +251,8 @@ jobs:
           ELIGIBLE: ${{ steps.facts.outputs.eligible }}
           WHY: ${{ steps.facts.outputs.why }}
         run: |
-          # The provenance gate already restricted this to success/failure, so CONCLUSION is a real
-          # result here. If the artifact download failed (so no agent verdict was written), still ping
+          # The provenance gate let through every outcome but a superseded or skipped one, so CONCLUSION
+          # is a real result here. If the artifact download failed (so no agent verdict was written), still ping
           # the human with the bare conclusion rather than going silent.
           [ -f verdict.md ] || printf 'Dependabot validation: %s (no verdict produced).\n' "$CONCLUSION" > verdict.md
           verdict=$(jq -r '.verdict // empty' verdict.json 2>/dev/null || true)

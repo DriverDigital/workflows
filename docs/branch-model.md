@@ -47,12 +47,13 @@ Driver-Shopify-Eurus and Driver-Shopify-Prestige are archived and get nothing.
 | Long-lived branches | `main` only; Palmers keeps `main` plus `main-<country>` | `main` only |
 | Production | Publish a theme in the Shopify admin. No branch backs a live theme. | Promote a staged deployment in Vercel. No push reaches production. |
 | Platform stub | `shopify-theme.yml` → reusable `shopify-theme.yml` | None: Vercel's GitHub app builds pushes and PRs |
-| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | A staged production deployment for each push to `main` and a preview for each PR commit, when the commit's author has a seat on the project's Vercel team or is a GitHub App bot (`dependabot[bot]`, `claude[bot]`). |
+| What it deploys | PR preview `DRIVER/<head branch>`: pushed on open and every push, draft or ready, deleted on close; none for a PR that changes no theme files. A push to `main`/`main-*` updates `DRIVER/<branch>`. Never a live theme, never published. | A staged production deployment for each push to `main` and a preview for each PR commit, when the commit's author has a seat on the project's Vercel team. Previews of commits by GitHub App bots (`dependabot[bot]`, `claude[bot]`) build too. |
 | Secrets | `SHOPIFY_CLI_THEME_TOKEN`, and the store as `SHOPIFY_STORE` (or `SHOPIFY_FLAG_STORE`) | None |
 | Variables | `SHOPIFY_ENVIRONMENT_PER_BRANCH=true` where store secrets live in one environment per branch (Palmers) | None |
 
-Vercel builds a commit only when its author has a seat on the project's team or is a GitHub App bot,
-and blocks any other user's with a failing `Vercel` status. Since about May 2026 it applies the same
+Vercel builds a commit only when its author has a seat on the project's team, and blocks any other
+user's with a failing `Vercel` status. Previews of commits by GitHub App bots build too; a production
+build of a bot's commit has not been seen. Since about May 2026 it applies the same
 check to deploy hooks and CLI deploys, so neither can build a commit the GitHub app blocked. Anyone
 can open a PR, but a team member merges into `main`, with a merge commit, so the commit Vercel
 builds is theirs. A team member can redeploy a blocked preview in Vercel. Dependabot's safe updates
