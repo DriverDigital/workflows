@@ -8,7 +8,7 @@ platform topic also brings a root `.node-version` from `templates/github/node-ve
 
 ## Which repos get what
 
-Five GitHub topics on each repo and its visibility decide it. `tools/kit-platforms.sh` lists the files
+Five GitHub topics on each repo and its visibility decide it; a sixth, `maintenance-paused`, changes only who is asked to review. `tools/kit-platforms.sh` lists the files
 each platform and each tier adds.
 
 | Topic | Means |
@@ -18,6 +18,7 @@ each platform and each tier adds.
 | `shopify-theme` | A Shopify site: adds the Shopify files on a private repo. |
 | `vercel-site` | A Vercel site: the shared kit plus the root `.node-version`. |
 | `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
+| `maintenance-paused` | Driver has no maintenance agreement for the site. Dependabot still runs and safe updates still auto-merge, but a PR the report holds gets no reviewer or assignee. Remove the topic when the client asks for help again. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
 

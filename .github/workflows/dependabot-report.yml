@@ -233,7 +233,7 @@ jobs:
       # is not a vercel-site, where Vercel blocks the build of a merge by driver-digital-agents, a
       # user with no seat on its team.
       # Anything else, a missing or malformed verdict.json included, turns auto-merge off, and asks
-      # and assigns a person.
+      # and assigns a person, unless the repo carries the maintenance-paused topic.
       # github-actions[bot] approves, pinned to the validated commit. DEPENDABOT_MERGE_TOKEN (the only
       # token here that can merge) enables auto-merge, so the merge commit's push workflows run, which a
       # GITHUB_TOKEN merge would not start.
@@ -270,13 +270,16 @@ jobs:
             exit 0
           fi
 
+          # A maintenance-paused repo still merges safe updates; a held PR there waits unassigned.
+          topics=$(gh api "repos/$REPO" --jq '" " + (.topics | join(" ")) + " "') || topics=""
+          paused=""
+          case "$topics" in *" maintenance-paused "*) paused=1 ;; esac
           held=""
           if [ "$CONCLUSION" != success ]; then held="validate failed"
           elif [ "$verdict" != safe ]; then held="the verdict is $verdict"
           elif [ "$ELIGIBLE" != true ]; then held="${WHY:-the bump could not be read}"
-          elif ! vercel=$(gh api "repos/$REPO" --jq '.topics | any(. == "vercel-site")'); then
-            held="the repo's topics could not be read"
-          elif [ "$vercel" = true ]; then held="Vercel blocks a merge by driver-digital-agents, which has no seat on its team"
+          elif [ -z "$topics" ]; then held="the repo's topics could not be read"
+          elif [[ "$topics" == *" vercel-site "* ]]; then held="Vercel blocks a merge by driver-digital-agents, which has no seat on its team"
           elif [ -z "$MERGE_TOKEN" ]; then held="this repo has no DEPENDABOT_MERGE_TOKEN"
           elif ! GH_TOKEN="$ACTIONS_TOKEN" gh api -X POST "repos/$REPO/pulls/$PR/reviews" \
                  -f commit_id="$SHA" -f event=APPROVE -f body="Safe verdict on a patch or minor npm update." >/dev/null; then
@@ -295,6 +298,7 @@ jobs:
           {
             cat verdict.md; echo
             if [ -z "$held" ]; then echo "**Auto-merge on:** a safe verdict on a patch or minor npm update."
+            elif [ -n "$paused" ]; then echo "**Waiting, unassigned:** $held. Maintenance is paused on this repo."
             else echo "**Waiting for a person:** $held."; fi
             echo "$marker"
           } > comment.md
@@ -313,7 +317,7 @@ jobs:
               || echo "::warning::could not post the Dependabot verdict check"
           fi
 
-          if [ -n "$held" ] && [ -n "$HANDLE" ]; then
+          if [ -n "$held" ] && [ -n "$HANDLE" ] && [ -z "$paused" ]; then
             gh pr edit "$PR" --repo "$REPO" --add-reviewer "$HANDLE" || echo "::warning::could not add reviewer '$HANDLE'"
             gh pr edit "$PR" --repo "$REPO" --add-assignee "$HANDLE" || { echo "::error::could not assign '$HANDLE'"; exit 1; }
           fi

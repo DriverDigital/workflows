@@ -8,9 +8,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **v1.23.0 is built on `next-release`, not yet released.** It carries the preview link at the top of
   the PR description (#152), Dependabot bump lines read from the commit message (#155), assignment
-  only on a held PR (#156), safe Dependabot PRs held for a person on Vercel sites (#157), the
-  `@types/node` major ignore (#159), keep-current dispatched by the wave (#154), only the minted
-  token in the store env file (#133), and `vercel-deploy` removed from the kit (#158). Release it in
+  only on a held PR (#156) and never on a repo with the `maintenance-paused` topic, safe Dependabot
+  PRs held for a person on Vercel sites (#157), the `@types/node` major ignore (#159), keep-current
+  dispatched by the wave (#154), only the minted token in the store env file (#133), and
+  `vercel-deploy` removed from the kit (#158). Release it in
   README *Release + repin order*. Canary with `tools/fleet-wave.sh --only Driver-Digital-Website`
   (its `vercel-deploy.yml` is deleted), then `--only` a private repo with a Dependabot PR behind
   its base (LaPointe#172 today): `rebase check started` prints, and Dependabot acts on the

@@ -215,7 +215,8 @@ could rewrite, and never from the PR body, which Dependabot truncates on a large
 any 0.0.x change and a prerelease count as majors, and a message whose bump lines do not match its
 dependency list is not eligible. A Vercel site waits because Vercel blocks the build of a merge by
 `driver-digital-agents`, which has no seat on the team (#157). Majors and every other case wait for
-the reviewer, who is also assigned; Dependabot itself assigns no one. The `Dependabot verdict` check
+the reviewer, who is also assigned, except on a repo with the `maintenance-paused` topic, where they
+wait unassigned; Dependabot itself assigns no one. The `Dependabot verdict` check
 is not required in branch protection: human PRs never get one.
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because
