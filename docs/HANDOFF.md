@@ -8,9 +8,8 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 
 - **v1.23.0 is released and waved**; the pin audit reads converged apart from thegathery-rcyc's
   `engines.node` (thegathery-rcyc#3).
-- **Now due, by hand:** delete the `main` deploy hook in each Vercel project (studio-sulzer,
-  Team-Laird, Driver-Digital-Website) and the `VERCEL_DEPLOY_HOOK_MAIN` secret on each repo. The
-  wave removed `vercel-deploy.yml`, so nothing calls them.
+- **Now due, by hand:** delete the `VERCEL_DEPLOY_HOOK_MAIN` secret on studio-sulzer, Team-Laird
+  and Driver-Digital-Website. The hooks it held are already deleted in Vercel.
 - **thegathery-rcyc joined the kit at v1.23.0** with the pipeline tier (`driver-kit`,
   `vercel-site`, `agents-pipeline`) and the `driver-ruleset` property, set before any PR had shown
   `validate / validate` reporting. If its first PR waits on "Expected" for that check, the stub did
