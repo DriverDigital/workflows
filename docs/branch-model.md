@@ -32,7 +32,7 @@ write one there.
 | Topics | Repos |
 |---|---|
 | `driver-kit` + `shopify-theme` | Avara, foundrae-blackridge, LaPointe, Kissy-Kissy, LittleMe, Palmers, R-Finds, savannahfriedkin, indie-ridge, Anduril-Gear |
-| `driver-kit` + `vercel-site` | Team-Laird, Driver-Digital-Website, studio-sulzer |
+| `driver-kit` + `vercel-site` | Team-Laird, Driver-Digital-Website, studio-sulzer, thegathery-rcyc |
 | `driver-kit` + `wordpress-site` | The-Gathery |
 | `driver-kit` only | vite-plugin-shopify-clean, plugins, client-workspaces, driver-onboarding, driver-engineering-app, driver-agents |
 
