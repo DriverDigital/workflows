@@ -12,9 +12,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   Team-Laird, Driver-Digital-Website) and the `VERCEL_DEPLOY_HOOK_MAIN` secret on each repo. The
   wave removed `vercel-deploy.yml`, so nothing calls them.
 - **thegathery-rcyc joined the kit at v1.23.0** with the pipeline tier (`driver-kit`,
-  `vercel-site`, `agents-pipeline`). Its `main` is unprotected until it gets the `driver-ruleset`
-  property: set it once a PR, a person's and a Dependabot one, shows `validate / validate` reporting
-  (`templates/github/README.md`, install step 5).
+  `vercel-site`, `agents-pipeline`) and the `driver-ruleset` property, set before any PR had shown
+  `validate / validate` reporting. If its first PR waits on "Expected" for that check, the stub did
+  not start; an org admin can merge past it.
 - **Docs elsewhere** still describe `vercel-deploy` and auto-merge on Vercel sites: Team-Laird#89,
   Driver-Digital-Website#203, studio-sulzer#99 and driver-onboarding#52.
 
