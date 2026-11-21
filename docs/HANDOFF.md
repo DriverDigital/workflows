@@ -12,8 +12,9 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   `vercel-site`, `agents-pipeline`) and the `driver-ruleset` property, set before any PR had shown
   `validate / validate` reporting. If its first PR waits on "Expected" for that check, the stub did
   not start; an org admin can merge past it.
-- **Docs elsewhere** still describe `vercel-deploy` and auto-merge on Vercel sites: Team-Laird#89,
-  Driver-Digital-Website#203, studio-sulzer#99 and driver-onboarding#52.
+- **Docs elsewhere** still describe `vercel-deploy` and auto-merge on Vercel sites, and are due now
+  that v1.23.0 is out: Team-Laird#89, Driver-Digital-Website#203, studio-sulzer#99 and
+  driver-onboarding#52.
 
 ## Blocked or gated
 
