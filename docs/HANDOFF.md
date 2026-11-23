@@ -13,8 +13,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   `validate / validate` reporting. If its first PR waits on "Expected" for that check, the stub did
   not start; an org admin can merge past it.
 - **Page builder files** are a new house standard in `claude-standards.md`, kit-only, so it reaches
-  the fleet with the next wave; until then the audit reports content drift on that file. It says
-  Macroscope skips these files, which holds once driver-agents#109 merges.
+  the fleet with the next wave; until then the audit reports content drift on that file.
 - **Docs elsewhere** still describe `vercel-deploy` and auto-merge on Vercel sites, and are due now
   that v1.23.0 is out: Team-Laird#89, Driver-Digital-Website#203, studio-sulzer#99 and
   driver-onboarding#52.
