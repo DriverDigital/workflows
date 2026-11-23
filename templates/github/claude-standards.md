@@ -93,8 +93,8 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   when the CLI has no access to the store, and say so.
 - **Page builder files** — Page builder apps write their own files into a Shopify theme, and a live
   theme pull brings them into the repo: EComposer's `ecom-*` and `ecom_*` files, `layout/ecom.liquid`
-  and `templates/*.ecom*`, and PageFly's `pf-*` and `pagefly-*` files and
-  `layout/theme.pagefly.liquid`. Never edit one by hand: the app rewrites it when the merchant
+  and `templates/*.ecom*`, and PageFly's `pf-*` and `pagefly*` files, `layout/theme.pagefly.liquid`
+  and `templates/*.pf-*`. Never edit one by hand: the app rewrites it when the merchant
   publishes, so keep the live theme's copy and make changes in the app. Never give a file of ours
   one of these prefixes, in any repo: Macroscope skips them fleet-wide, so the file would go
   unreviewed. Do not review them, and a theme repo that carries them lists them under `ignore:` in
