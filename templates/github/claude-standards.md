@@ -96,7 +96,7 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   and `templates/*.ecom*`, and PageFly's `pf-*` and `pagefly*` files, `layout/theme.pagefly.liquid`
   and `templates/*.pf-*`. Never edit one by hand: the app rewrites it when the merchant
   publishes, so keep the live theme's copy and make changes in the app. Never give a file of ours
-  one of these prefixes, in any repo: Macroscope skips them fleet-wide, so the file would go
+  a name that matches one of these, in any repo: Macroscope skips them fleet-wide, so the file would go
   unreviewed. Do not review them, and a theme repo that carries them lists them under `ignore:` in
   its `.theme-check.yml`, since they fail theme check with errors only the app can fix.
 - **Figma designs on a PR** — When a PR implements a Figma design, put the design link in its
