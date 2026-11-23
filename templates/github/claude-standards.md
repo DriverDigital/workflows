@@ -91,6 +91,14 @@ file from the PR head, so anything load-bearing belongs in `CLAUDE.md` or `.clau
   file differs from the last pushed commit and the branch has not changed it since, take the preview's
   version and commit it ("Pull theme editor changes"). Where both changed, stop and ask. Skip this
   when the CLI has no access to the store, and say so.
+- **Page builder files** — Page builder apps write their own files into a Shopify theme, and a live
+  theme pull brings them into the repo: EComposer's `ecom-*` and `ecom_*` files, `layout/ecom.liquid`
+  and `templates/*.ecom*`, and PageFly's `pf-*` and `pagefly-*` files and
+  `layout/theme.pagefly.liquid`. Never edit one by hand: the app rewrites it when the merchant
+  publishes, so keep the live theme's copy and make changes in the app. Never give a file of ours
+  one of these prefixes, in any repo: Macroscope skips them fleet-wide, so the file would go
+  unreviewed. Do not review them, and a theme repo that carries them lists them under `ignore:` in
+  its `.theme-check.yml`, since they fail theme check with errors only the app can fix.
 - **Figma designs on a PR** — When a PR implements a Figma design, put the design link in its
   description and add the `figma` label (`gh pr create --label figma`, or `gh pr edit <n> --add-label
   figma`): Macroscope runs its design fidelity check only on PRs with that label. If you cannot add
