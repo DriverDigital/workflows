@@ -99,8 +99,8 @@ expected() {  # file tier platform node_version_source
   tier_allows "$2" "$(file_tier "$1")" && { [ -z "$fp" ] || [ "$fp" = "$3" ]; } && wave_adds "$1" "$4"
 }
 
-scan_ref() {  # repo ref platform tier is_default
-  local repo="$1" ref="$2" plat="$3" tier="$4" is_default="$5" files f fp ft t
+scan_ref() {  # repo ref platform tier is_default paused
+  local repo="$1" ref="$2" plat="$3" tier="$4" is_default="$5" paused="$6" files f fp ft t
   # A standards-only target has no .github/workflows; its .github/ kit files are still checked below.
   files="$(gh api "repos/$ORG/$repo/contents/.github/workflows?ref=$ref" --jq '.[].name' 2>/dev/null)" || files=""
   for f in $files; do
@@ -184,13 +184,17 @@ scan_ref() {  # repo ref platform tier is_default
     done
   fi
   # .github/dependabot.yml and .node-version are compared only where the wave writes them: an
-  # enrolled branch the wave never reaches keeps its own files.
+  # enrolled branch the wave never reaches keeps its own files. A maintenance-paused repo carries none.
   if [ "$waved" = 1 ]; then
     if grep -qx dependabot.yml <<<"$dotgithub"; then
-      gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
-        -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
-        && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
-    else
+      if [ "$paused" = 1 ]; then
+        echo "CONTENT $repo@$ref dependabot.yml DRIFT paused: the wave deletes it"
+      else
+        gh api "repos/$ORG/$repo/contents/.github/dependabot.yml?ref=$ref" \
+          -H 'Accept: application/vnd.github.raw' > "$TMP/raw" 2>/dev/null \
+          && content_row "$repo" "$ref" dependabot.yml "$KIT/dependabot/$variant.yml"
+      fi
+    elif [ "$paused" != 1 ]; then
       echo "CONTENT $repo@$ref dependabot.yml DRIFT missing"
     fi
   fi
@@ -256,6 +260,7 @@ report="$(
     # archived, so they never count as drift.
     topics_enrolled "${topics//,/ }" || plat="unenrolled"
     tier="$(repo_tier "$priv" "${topics//,/ }")"
+    paused=0; topics_paused "${topics//,/ }" && paused=1
     # The two topic states the wave refuses outright. repo_tier reads a public repo as public whatever
     # its topics, so without these rows such a repo could read converged.
     if [ "$plat" != unenrolled ]; then
@@ -264,10 +269,10 @@ report="$(
         echo "CONTENT $repo@$def topics DRIFT public repo tagged $PIPELINE_TOPIC, which the wave refuses"
       fi
     fi
-    scan_ref "$repo" "$def" "$plat" "$tier" 1
+    scan_ref "$repo" "$def" "$plat" "$tier" 1 "$paused"
     if [ "$def" = main ]; then
       gh api --paginate "repos/$ORG/$repo/branches?per_page=100" --jq '.[].name' 2>/dev/null \
-        | grep -E '^main-.' | while read -r b; do scan_ref "$repo" "$b" "$plat" "$tier" 0; done
+        | grep -E '^main-.' | while read -r b; do scan_ref "$repo" "$b" "$plat" "$tier" 0 "$paused"; done
     fi
   done | sort
 )"

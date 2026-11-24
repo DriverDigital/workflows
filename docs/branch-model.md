@@ -8,7 +8,7 @@ platform topic also brings a root `.node-version` from `templates/github/node-ve
 
 ## Which repos get what
 
-Five GitHub topics on each repo and its visibility decide it; a sixth, `maintenance-paused`, changes only who is asked to review. `tools/kit-platforms.sh` lists the files
+Five GitHub topics on each repo and its visibility decide it; a sixth, `maintenance-paused`, switches Dependabot off. `tools/kit-platforms.sh` lists the files
 each platform and each tier adds.
 
 | Topic | Means |
@@ -18,7 +18,7 @@ each platform and each tier adds.
 | `shopify-theme` | A Shopify site: adds the Shopify files on a private repo. |
 | `vercel-site` | A Vercel site: the shared kit plus the root `.node-version`. |
 | `wordpress-site` | A WordPress site: the shared kit plus the root `.node-version`. |
-| `maintenance-paused` | Driver has no maintenance agreement for the site. Dependabot still runs and safe updates still auto-merge, but a PR the report holds gets no reviewer or assignee. Remove the topic when the client asks for help again. |
+| `maintenance-paused` | Driver has no maintenance agreement for the site, so nothing runs there. The repo is archived too, which the wave and the audit skip, unless it is the only home of a live site's code (the Vercel sites). That repo stays on the kit without Dependabot: the wave deletes its `.github/dependabot.yml`, and its Dependabot alerts and security updates are off in its settings. Driver-Digital-Website runs the same stack with alerts on, so its alerts stand in for theirs. To resume: unarchive the repo, remove the topic, wave, and turn alerts and security updates back on. |
 
 A repo carries at most one platform topic; the wave stops on a repo with two.
 

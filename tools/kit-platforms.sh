@@ -8,6 +8,7 @@
 #   / wordpress-site            (Vercel and WordPress have only their .node-version: see
 #                               node_version_source)
 #   agents-pipeline             the repo is on the Bonsai ticket pipeline: it takes the implementer
+#   maintenance-paused          no maintenance agreement: the repo gets no Dependabot (topics_paused)
 # A repo's tier is the most of the kit it may carry: public repos the standards only, private repos
 # the private files too, private repos with agents-pipeline everything (repo_tier, file_tier).
 # A file above a repo's tier, or a platform file on a repo of the other platform or of none, never
@@ -15,6 +16,7 @@
 # kit files on a repo without driver-kit.
 KIT_TOPIC=driver-kit
 PIPELINE_TOPIC=agents-pipeline
+PAUSED_TOPIC=maintenance-paused
 PRIVATE_FILES=(dependabot-report.yml dependabot-keep-current.yml shopify-theme.yml)
 PIPELINE_FILES=(claude.yml shopify-tool-smoke.yml pr-bonsai-link.yml pull_request_template.md)
 SHOPIFY_FILES=(shopify-tool-smoke.yml shopify-theme.yml)
@@ -35,6 +37,16 @@ is_agent() { case " ${RETIRED_AGENT_FILES[*]} " in *" $1 "*) return 0 ;; esac; r
 topics_enrolled() {
   local t
   for t in $1; do [ "$t" = "$KIT_TOPIC" ] && return 0; done
+  return 1
+}
+
+# Whether a repo is maintenance-paused. The wave deletes a paused repo's .github/dependabot.yml and
+# never writes one, so Dependabot opens no PRs there; the audit reports one found. Removing the topic
+# brings the file back with the next wave. A paused Shopify repo is archived instead, which the wave
+# and the audit skip.
+topics_paused() {
+  local t
+  for t in $1; do [ "$t" = "$PAUSED_TOPIC" ] && return 0; done
   return 1
 }
 
