@@ -42,8 +42,8 @@ topics_enrolled() {
 
 # Whether a repo is maintenance-paused. The wave deletes a paused repo's .github/dependabot.yml and
 # never writes one, so Dependabot opens no PRs there; the audit reports one found. Removing the topic
-# brings the file back with the next wave. A paused Shopify repo is archived instead, which the wave
-# and the audit skip.
+# brings the file back with the next wave. A paused repo that is not the only home of a live site's
+# code is archived instead, which the wave and the audit skip (docs/branch-model.md).
 topics_paused() {
   local t
   for t in $1; do [ "$t" = "$PAUSED_TOPIC" ] && return 0; done

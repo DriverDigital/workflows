@@ -112,7 +112,8 @@ pushed directly. Branch protection details: [`docs/fleet-operations.md`](docs/fl
   its trailer. The pin and the trailer are one value and always move together.
 - **The wave keeps it current.** `tools/fleet-wave.sh` replaces each kit file a target branch
   carries and adds every file the tier and platform allow that it lacks: `.github/dependabot.yml`
-  from the variant `tools/kit-platforms.sh` picks (and the Dependabot stubs with it), the root
+  from the variant `tools/kit-platforms.sh` picks (and the Dependabot stubs with it), except on a
+  `maintenance-paused` repo, where it deletes the file so Dependabot stays off, the root
   `.node-version` from `templates/github/node-version/<platform>`, the `.claude/settings.json`
   attribution keys. It deletes the retired check-run agent copies from Shopify repos: Macroscope's
   check-run agents and ignore file reach every repo from driver-agents, its policy repo, and a copy
@@ -216,7 +217,7 @@ any 0.0.x change and a prerelease count as majors, and a message whose bump line
 dependency list is not eligible. A Vercel site waits because Vercel blocks the build of a merge by
 `driver-digital-agents`, which has no seat on the team (#157). Majors and every other case wait for
 the reviewer, who is also assigned, except on a repo with the `maintenance-paused` topic, where they
-wait unassigned; Dependabot itself assigns no one. The `Dependabot verdict` check
+wait unassigned (such a repo normally has no Dependabot at all: [branch model](docs/branch-model.md)); Dependabot itself assigns no one. The `Dependabot verdict` check
 is not required in branch protection: human PRs never get one.
 
 The validate stub's `name:` stays byte-identical (`Dependabot validate`) in every repo, because

@@ -41,7 +41,7 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Dependabot sometimes ignores `@dependabot rebase`** (Driver-Digital-Website #196-#198 on 11-03,
   #198 on 11-16), cause unknown. It answered the v1.23.0 wave's request on LittleMe#57; if one
   goes unanswered again, file it.
-- **`maintenance-paused` now switches Dependabot off** (`docs/branch-model.md`). Eleven paused repos
+- **`maintenance-paused` now switches Dependabot off** (`docs/branch-model.md`). Ten paused repos
   are archived. Team-Laird and studio-sulzer stay on the kit and lose `dependabot.yml` with the next
   wave; their alerts and security updates are off. OliverClarke-Auction-App waits on its open PR #4
   before it is archived. `dependabot-report`'s unassigned case for a paused repo is now unreachable.
