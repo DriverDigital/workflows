@@ -12,8 +12,6 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
   `vercel-site`, `agents-pipeline`) and the `driver-ruleset` property, set before any PR had shown
   `validate / validate` reporting. If its first PR waits on "Expected" for that check, the stub did
   not start; an org admin can merge past it.
-- **Page builder files** are a new house standard in `claude-standards.md`, kit-only, so it reaches
-  the fleet with the next wave; until then the audit reports content drift on that file.
 - **Docs elsewhere** still describe `vercel-deploy` and auto-merge on Vercel sites, and are due now
   that v1.23.0 is out: Team-Laird#89, Driver-Digital-Website#203, studio-sulzer#99 and
   driver-onboarding#52.
@@ -41,9 +39,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Dependabot sometimes ignores `@dependabot rebase`** (Driver-Digital-Website #196-#198 on 11-03,
   #198 on 11-16), cause unknown. It answered the v1.23.0 wave's request on LittleMe#57; if one
   goes unanswered again, file it.
-- **`maintenance-paused` now switches Dependabot off** (`docs/branch-model.md`). Eleven paused repos
-  are archived. Team-Laird and studio-sulzer stay on the kit and lose `dependabot.yml` with the next
-  wave; their alerts and security updates are off. `dependabot-report`'s unassigned case for a paused repo is now unreachable.
+- **`maintenance-paused` switches Dependabot off** (`docs/branch-model.md`). Eleven paused repos
+  are archived. Team-Laird and studio-sulzer stay on the kit with no `dependabot.yml` and their alerts
+  and security updates off. `dependabot-report`'s unassigned case for a paused repo is unreachable;
+  drop it with the next reusable release if nothing needs it.
 - **The Node-pin to-dos** (from #86) have merged on every repo still on the kit. foundrae's `main-development` PR (#256) is also open; its theme push
   fails on that branch's own files (`.shopifyignore` lacks `assets/.vite/*`, and
   `templates/page.all_components.liquid` has a Liquid error). driver-onboarding#41 adds mise to the
