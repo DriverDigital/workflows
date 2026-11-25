@@ -41,10 +41,10 @@ open `todo` issues (`gh issue list --label todo`); this file points at them rath
 - **Dependabot sometimes ignores `@dependabot rebase`** (Driver-Digital-Website #196-#198 on 11-03,
   #198 on 11-16), cause unknown. It answered the v1.23.0 wave's request on LittleMe#57; if one
   goes unanswered again, file it.
-- **`maintenance-paused` (13 repos)** took effect with the v1.23.0 wave: their held Dependabot PRs
-  should request no reviewer and assign no one from now on.
-- **The Node-pin to-dos** (from #86) have merged everywhere but three open PRs: Kissy-Kissy#82,
-  R-Finds#55 and LittleMe#61. foundrae's `main-development` PR (#256) is also open; its theme push
+- **`maintenance-paused` now switches Dependabot off** (`docs/branch-model.md`). Eleven paused repos
+  are archived. Team-Laird and studio-sulzer stay on the kit and lose `dependabot.yml` with the next
+  wave; their alerts and security updates are off. `dependabot-report`'s unassigned case for a paused repo is now unreachable.
+- **The Node-pin to-dos** (from #86) have merged on every repo still on the kit. foundrae's `main-development` PR (#256) is also open; its theme push
   fails on that branch's own files (`.shopifyignore` lacks `assets/.vite/*`, and
   `templates/page.all_components.liquid` has a Liquid error). driver-onboarding#41 adds mise to the
   setup docs.

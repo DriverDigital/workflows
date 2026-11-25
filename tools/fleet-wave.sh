@@ -21,7 +21,8 @@
 #   stubs and shopify-tool-smoke.yml              file's keys are merged into an existing one
 #   dependabot.yml                             <- written at .github/ on every target from its
 #                                                 templates/github/dependabot/ variant (picked by
-#                                                 tools/kit-platforms.sh)
+#                                                 tools/kit-platforms.sh); deleted instead on a
+#                                                 maintenance-paused repo
 #   node-version                               <- written as the root .node-version on every
 #                                                 Shopify, Vercel or WordPress target, from
 #                                                 templates/github/node-version/<platform>
@@ -196,7 +197,7 @@ handle_of() {
 # exit 0. An explicit `exit` in the subshell does propagate — the assignment carries
 # the status, and the CALLER's errexit is live.
 targets() {
-  local repos r def priv topics plat tier branches b
+  local repos r def priv topics plat tier paused branches b
   if [ -n "$ONLY" ]; then
     # Its own statement, not interpolated into the string: a substitution embedded in a larger word
     # cannot fail the assignment, so a typo'd --only would fall through to the "no targets" message
@@ -232,6 +233,7 @@ targets() {
     plat=$(topics_platform "${topics//,/ }")
     [ "$plat" != several ] || { echo "$r carries more than one platform topic — pick one" >&2; exit 2; }
     tier=$(repo_tier "$priv" "${topics//,/ }")
+    paused=0; if topics_paused "${topics//,/ }"; then paused=1; fi
     # Guard 10, per repo: the topic asks for what the visibility forbids, so neither can be trusted.
     if [ "$priv" != true ] && [[ ",$topics," == *",$PIPELINE_TOPIC,"* ]]; then
       echo "$r is public but carries $PIPELINE_TOPIC — the pipeline runs on private repos only" >&2; exit 2
@@ -253,16 +255,16 @@ targets() {
          || api "repos/$ORG/$r/contents/.github/claude-standards.md?ref=$b" --jq .sha >/dev/null 2>&1 \
          || api "repos/$ORG/$r/contents/.github/workflows/lint.yml?ref=$b" --jq .sha >/dev/null 2>&1 \
          || api "repos/$ORG/$r/contents/.github/workflows/shopify-theme.yml?ref=$b" --jq .sha >/dev/null 2>&1; then
-        echo "$r $b $plat $tier kit"
+        echo "$r $b $plat $tier kit $paused"
       elif [ "$b" = "$def" ]; then
-        echo "$r $b $plat $tier new"
+        echo "$r $b $plat $tier new $paused"
       fi
     done
   done <<<"$repos"
 }
 
 plan_and_push() {
-  local repo=$1 branch=$2 plat=$3 tier=$4 found=$5 tmp f fp ft cur
+  local repo=$1 branch=$2 plat=$3 tier=$4 found=$5 paused=$6 tmp f fp ft cur
   tmp="$TMP/$repo/$branch"; rm -rf "$tmp"; mkdir -p "$tmp"
   local -a tree=() deletes=()
   local changes=0 existing root dotgithub workflows dotclaude kit_paths variant src nv
@@ -315,6 +317,10 @@ plan_and_push() {
   # per-repo edit. Nothing outside .github/, .claude/, .macroscope/check-run-agents/ and the root
   # .node-version is ever written.
   for f in "${FULL_FILES[@]}"; do
+    if [ "$f" = dependabot.yml ] && [ "$paused" = 1 ]; then
+      if grep -qxF "$(dest "$f")" <<<"$existing"; then deletes+=("$f"); changes=1; echo "  delete $f (maintenance-paused)"; fi
+      continue
+    fi
     # Guard 9, per file: a platform file is never written to a repo of another platform, and one
     # already there blocks the wave instead of being refreshed into place.
     fp=$(file_platform "$f")
@@ -433,16 +439,16 @@ if [ "$DRY" -eq 0 ]; then
   DRY=1
   # Called from an `if` body, never as the right side of `||`: that context disables errexit for
   # the whole function, and a failed read would then plan on as if nothing happened.
-  while read -r repo branch plat tier found; do if [ -n "$repo" ]; then plan_and_push "$repo" "$branch" "$plat" "$tier" "$found" >/dev/null; fi; done <<<"$TARGETS"
+  while read -r repo branch plat tier found paused; do if [ -n "$repo" ]; then plan_and_push "$repo" "$branch" "$plat" "$tier" "$found" "$paused" >/dev/null; fi; done <<<"$TARGETS"
   DRY=0
   [ "$BLOCKED" -eq 0 ] || { echo "refusing to wave: fix the blocked targets above first" >&2; exit 3; }
 fi
 n=0
 labelled=" "
-while read -r repo branch plat tier found; do
+while read -r repo branch plat tier found paused; do
   [ -n "$repo" ] || continue
-  echo "== $repo@$branch ($plat, $tier$([ "$found" = kit ] || echo ", no kit yet"))"
-  plan_and_push "$repo" "$branch" "$plat" "$tier" "$found"; n=$((n+1))
+  echo "== $repo@$branch ($plat, $tier$([ "$found" = kit ] || echo ", no kit yet")$([ "$paused" = 0 ] || echo ", paused"))"
+  plan_and_push "$repo" "$branch" "$plat" "$tier" "$found" "$paused"; n=$((n+1))
   # Macroscope's design fidelity check runs only on PRs labelled figma, so every kit repo has the label.
   if [ "$DRY" -eq 0 ] && [[ "$labelled" != *" $repo "* ]]; then
     gh label create figma --repo "$ORG/$repo" --color A259FF --force \
